@@ -62,6 +62,7 @@ MUTANTS = {
     "partner_raises": ("        local ok, err = pcall(function()\n            local mod = _G[module]",
                        "        local ok, err = (function(f) return true, f() end)(function()\n            local mod = _G[module]"),
     "partner_log_spam": ("if not ok and not unreadable[module] then", "if not ok then"),
+    "no_fair_autocomplete": ('    fair_autocomplete_kill_tracker = { "_player_kills" },\n', ""),
 }
 
 WORLD = r"""
@@ -407,6 +408,7 @@ c.trader_community = "fotz_own"
 c.survivors[503].community = "fotz_own"; c.survivors[503].pending_community = "fotz_own"
 c.survivors[801].community = "fotz_own"; c.survivors[801].comm = "fotz_own"
 stalker_camp_builder.faction_retaliation_timers.fotz_own = 5
+fair_autocomplete_kill_tracker = { _player_kills = { [503] = { faction = "fotz_own", time = 1 }, [998] = { faction = "bandit" } } }
 ONLINE[901]:set_character_community("fotz_own", 0, 0)
 server(902, "fotz_own")
 """)
@@ -416,6 +418,9 @@ server(902, "fotz_own")
     check(got == ("ecolog", "stalker", "stalker", "stalker", "stalker", "dolg"), "Homestead's records after an update: %s" % (got,))
     timers = dict(w.eval("stalker_camp_builder.faction_retaliation_timers").items())
     check(timers == {"ecolog": 5, "bandit": 7}, "Homestead's timers: %s" % timers)
+    kills = w.eval("fair_autocomplete_kill_tracker._player_kills")
+    check(kills[503]["faction"] == "stalker" and kills[998]["faction"] == "bandit",
+          "Fair Autocomplete's kills: %s, %s" % (kills[503]["faction"], kills[998]["faction"]))
 
     # Homestead caches it again between the last update and the save
     w.run(CAMP + '.survivors[802].pending_community = "fotz_own"')
@@ -475,6 +480,7 @@ def strings(src):
     for opt in re.findall(r'id = "(faction\w*)", type = "(?:check|input)"', mcm):
         want |= {"ui_mcm_fotz_" + opt, "ui_mcm_fotz_" + opt + "_desc"}
     check(len(want) == 15, "%d string ids looked for, not 15: %s" % (len(want), sorted(want)))
+    want |= {"st_dyn_news_comm_fotz_own_%d" % i for i in range(1, 15)}
     missing = sorted(want - set(have))
     check(not missing, "missing from the English table: %s" % missing)
 

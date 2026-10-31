@@ -328,6 +328,27 @@ squad another mod pinned is never steered.
   Safeguard and Immersive Faction Swap.
 - These come from a survey of 23 Anomaly mods on 2026-10-31, as the ones to stay compatible
   with.
+- **Your faction, as G.A.M.M.A. sees it** (an audit of every enabled script that reads a faction,
+  2026-10-31, about 180 sites in 70 files). When you join it, you're in a faction nothing else
+  knows:
+  - **Disguise** (Banjaji's, as G.A.M.M.A. patches it) takes any faction other than your home one
+    for a disguise. On every load and every armor change it "undisguises" you (a message, NPCs
+    forgetting you) and rewrites your faction's relation with your old one from its own saved
+    value. Factions puts you back a second later.
+  - **Faction-bound content goes quiet:** dialogs gated on your faction, the Mysteries of the Zone
+    task, credit for clearing a smart, faction fast travel, PDA v2's squads of your faction, and
+    the Chain artefact's bonus.
+  - **Latent:** G.A.M.M.A. UI's faction prices script would ask the engine about a faction named
+    "fotz" on every trade (a fatal error), but it doesn't load today (its `faction_stocks` is
+    missing).
+  - Leading from your old faction ("You join it" off) avoids all of these. A story change of your
+    faction (`set_actor_true_community`) leaves the faction's record of where you came from stale.
+- **Your members, as G.A.M.M.A. sees them:** their bodies get no faction loot, patch or PDA, and
+  the news names them with this mod's own strings. Mods that save a member's faction get the old
+  one in its place (`PARTNERS`): Homestead's camps, and Fair Autocomplete's kill records (it
+  checks a death's faction against relations, a fatal error once ours is undeclared).
+  Nothing else in G.A.M.M.A. copies the player's faction onto an NPC, and nothing writes the
+  disguise system's `default_faction` from the player's current faction.
 - **Performance:** daily work only, nothing per frame. The census reports its own cost.
 
 ## What players ask for

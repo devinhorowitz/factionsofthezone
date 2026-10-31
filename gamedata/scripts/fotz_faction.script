@@ -28,6 +28,9 @@ CHECK_MS = 1000
 PARTNERS = {
     stalker_camp_builder = { "active_camps", "rival_camps", "refugee_ids", "active_stash_expeditions",
                              "active_convoys", "faction_retaliation_timers" },
+    -- Fair Autocomplete keeps each stalker death's faction, keyed by the victim's id, and checks it
+    -- against relations later
+    fair_autocomplete_kill_tracker = { "_player_kills" },
 }
 
 F = nil                -- the saved state, nil until a faction is founded

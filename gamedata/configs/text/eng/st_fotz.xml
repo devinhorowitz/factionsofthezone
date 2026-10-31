@@ -138,4 +138,47 @@
 	<string id="st_fotz_faction_isg">
 		<text>UNISG</text>
 	</string>
+	<!-- the base game's news names a faction by these; your faction's members are stalkers -->
+	<string id="st_dyn_news_comm_fotz_own_1">
+		<text>a stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_2">
+		<text>a fighter</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_3">
+		<text>some stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_4">
+		<text>some fighter</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_5">
+		<text>stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_6">
+		<text>Stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_7">
+		<text>stalkers</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_8">
+		<text>fighters</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_9">
+		<text>some stalkers</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_10">
+		<text>fighters</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_11">
+		<text>Guys, we need some help!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_12">
+		<text>Help us!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_13">
+		<text>Help us out!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_14">
+		<text>Brothers, help!</text>
+	</string>
 </string_table>

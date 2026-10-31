@@ -192,3 +192,59 @@ msgstr "Грех"
 msgctxt "st_fotz_faction_isg"
 msgid "UNISG"
 msgstr "UNISG"
+
+msgctxt "st_dyn_news_comm_fotz_own_1"
+msgid "a stalker"
+msgstr "сталкер"
+
+msgctxt "st_dyn_news_comm_fotz_own_2"
+msgid "a fighter"
+msgstr "боец"
+
+msgctxt "st_dyn_news_comm_fotz_own_3"
+msgid "some stalker"
+msgstr "сталкера"
+
+msgctxt "st_dyn_news_comm_fotz_own_4"
+msgid "some fighter"
+msgstr "бойца"
+
+msgctxt "st_dyn_news_comm_fotz_own_5"
+msgid "stalker"
+msgstr "сталкер"
+
+msgctxt "st_dyn_news_comm_fotz_own_6"
+msgid "Stalker"
+msgstr "Сталкеры"
+
+msgctxt "st_dyn_news_comm_fotz_own_7"
+msgid "stalkers"
+msgstr "сталкер"
+
+msgctxt "st_dyn_news_comm_fotz_own_8"
+msgid "fighters"
+msgstr "боец"
+
+msgctxt "st_dyn_news_comm_fotz_own_9"
+msgid "some stalkers"
+msgstr "сталкеры"
+
+msgctxt "st_dyn_news_comm_fotz_own_10"
+msgid "fighters"
+msgstr "бойцы"
+
+msgctxt "st_dyn_news_comm_fotz_own_11"
+msgid "Guys, we need some help!"
+msgstr "SOS! Ребята, выручайте!"
+
+msgctxt "st_dyn_news_comm_fotz_own_12"
+msgid "Help us!"
+msgstr "SOS!"
+
+msgctxt "st_dyn_news_comm_fotz_own_13"
+msgid "Help us out!"
+msgstr "Требуется помощь, выручайте."
+
+msgctxt "st_dyn_news_comm_fotz_own_14"
+msgid "Brothers, help!"
+msgstr "Братишки! Спасите..."

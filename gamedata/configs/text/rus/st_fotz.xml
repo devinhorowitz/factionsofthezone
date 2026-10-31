@@ -138,4 +138,46 @@
 	<string id="st_fotz_faction_isg">
 		<text>UNISG</text>
 	</string>
+	<string id="st_dyn_news_comm_fotz_own_1">
+		<text>сталкер</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_2">
+		<text>боец</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_3">
+		<text>сталкера</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_4">
+		<text>бойца</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_5">
+		<text>сталкер</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_6">
+		<text>Сталкеры</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_7">
+		<text>сталкер</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_8">
+		<text>боец</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_9">
+		<text>сталкеры</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_10">
+		<text>бойцы</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_11">
+		<text>SOS! Ребята, выручайте!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_12">
+		<text>SOS!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_13">
+		<text>Требуется помощь, выручайте.</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_14">
+		<text>Братишки! Спасите...</text>
+	</string>
 </string_table>
