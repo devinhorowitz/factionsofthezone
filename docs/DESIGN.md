@@ -146,7 +146,7 @@ engine's input: strength and territory are its counts.
   leaders, and the player's standing. The vanilla Relations tab stays.
   - The model is Clear Sky's faction-war page: each side's members, strength and leader.
   - Register it from an actor callback, never during a load (a registration during a load
-    crashed in testing; Capture the Zone defers the same way).
+    crashed in testing).
   - The war log keeps strategic events only (wars, truces, alliances, ground lost and taken), not
     every message.
   - A "restore relations" button: clearing the drift puts every pair back where the game started
