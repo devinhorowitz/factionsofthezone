@@ -1,0 +1,437 @@
+--[[
+Factions of the Zone: the faction you lead.
+
+Founded from MCM, it is a real faction to the engine, fotz_own (declared in
+configs/mod_system_fotz_faction.ltx), with its members in it and you in its player twin,
+actor_fotz_own. It starts with the relations of the faction you came from, and it and its members
+are your friends. Your companions join it.
+
+No save ever holds it. Just before each save, every member's saved faction is set back to the one
+they came from, by an edit of the faction index in their state packet (the live NPC isn't touched),
+and you go back to your own faction until the save is written. Members get the faction again when
+they come online. Removing the mod needs nothing: a save loads with everyone in their old faction.
+
+Never set_character_community on a dead NPC (it corrupted the heap in testing), and pass an NPC's
+own squad and group.
+--]]
+
+VERSION = "0.3.0"
+SAVE_VERSION = 1
+OWN, ACTOR_OWN = "fotz_own", "actor_fotz_own"
+CHECK_MS = 1000
+
+F = nil                -- the saved state, nil until a faction is founded
+local index_of         -- community name -> index, from [game_relations] communities
+local pending = {}     -- member ids to give the faction on the next update
+local next_check = 0
+
+local function log(fmt, ...)
+    printf("[fotz-faction] " .. fmt, ...)
+end
+
+local function strip(comm)
+    return comm and (string.gsub(comm, "^actor_", ""))
+end
+
+function today()
+    return fotz_census.game_date():sub(1, 10)
+end
+
+-- community name -> index, in the engine's order
+function community_indexes()
+    local t, i, items = {}, 0, {}
+    for w in string.gmatch(ini_sys:r_string_ex("game_relations", "communities") or "", "[^,%s]+") do
+        items[#items + 1] = w
+    end
+    for k = 1, #items, 2 do
+        t[items[k]] = i
+        i = i + 1
+    end
+    return t
+end
+
+-- whether the faction is declared in this game
+function declared()
+    index_of = index_of or community_indexes()
+    return index_of[OWN] ~= nil and index_of[ACTOR_OWN] ~= nil
+end
+
+-- set the faction a server object is saved with, by editing its state packet: after the 2-byte
+-- header come money (u32), specific character (stringZ), trader flags (s32), profile (stringZ) and
+-- the community index (s32); every other byte is copied as it was
+function set_saved_community(se, comm)
+    local index = index_of[comm]
+    assert(index, "no such community: " .. tostring(comm))
+    local p = net_packet()
+    p:w_begin(0)
+    se:STATE_Write(p)
+    local size = p:w_tell()
+    p:r_seek(2)
+    p:r_u32()
+    p:r_stringZ()
+    p:r_s32()
+    p:r_stringZ()
+    local at = p:r_tell()
+    p:r_seek(0)
+    local bytes = {}
+    for i = 1, size do
+        bytes[i] = p:r_u8()
+    end
+    local q = net_packet()
+    q:w_begin(0)
+    for i = 3, at do
+        q:w_u8(bytes[i])
+    end
+    q:w_s32(index)
+    for i = at + 5, size do
+        q:w_u8(bytes[i])
+    end
+    local qsize = q:w_tell()
+    assert(qsize == size, "the packet changed size")
+    q:r_seek(2)
+    se:STATE_Read(q, qsize)
+end
+
+-- news -----------------------------------------------------------------------------------------
+
+local function say(id, fields)
+    local lv = fotz_politics and fotz_politics.news_level and fotz_politics.news_level() or "events"
+    if lv == "off" then
+        return
+    end
+    local text = game.translate_string(id)
+    text = string.gsub(text, "{(%w+)}", function(k) return fields[k] or ("{" .. k .. "}") end)
+    if db.actor and news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, text, nil, nil, 12000)
+        log("news: %s", text)
+    end
+end
+
+-- relations ------------------------------------------------------------------------------------
+
+local function rel(a, b)
+    return relation_registry.community_relation(a, b)
+end
+
+-- the cells fotz_own and actor_fotz_own start with: those of the faction you came from
+local function founding_relations(mother)
+    local base = {}
+    local am = "actor_" .. mother
+    for comm in pairs(index_of) do
+        if comm ~= OWN and comm ~= ACTOR_OWN then
+            base[OWN .. ">" .. comm] = rel(mother, comm)
+            base[comm .. ">" .. OWN] = rel(comm, mother)
+            base[ACTOR_OWN .. ">" .. comm] = rel(am, comm)
+            base[comm .. ">" .. ACTOR_OWN] = rel(comm, am)
+        end
+    end
+    for _, a in ipairs({ OWN, ACTOR_OWN }) do
+        for _, b in ipairs({ OWN, ACTOR_OWN }) do
+            base[a .. ">" .. b] = 2000
+        end
+    end
+    return base
+end
+
+-- set every cell of the faction (the matrix starts from the configs on every load)
+function apply_relations()
+    local n = 0
+    for cell, v in pairs(F.base) do
+        local a, b = string.match(cell, "^(.-)>(.+)$")
+        if index_of[a] and index_of[b] then
+            relation_registry.set_community_relation(a, b, v)
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- members --------------------------------------------------------------------------------------
+
+local function profile_of(id)
+    local se = alife():object(id)
+    return se and se.profile_name and se:profile_name()
+end
+
+-- whether an id still names the member it was recorded for (ids are reused after release)
+local function same_member(id, m)
+    local se = alife():object(id)
+    return se ~= nil and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile
+end
+
+function join(npc, via)
+    local id = npc:id()
+    if F.members[id] or not npc:alive() then
+        return false
+    end
+    local comm = npc:character_community()
+    if comm == OWN then
+        return false
+    end
+    F.members[id] = { mother = comm, name = npc:character_name(), profile = profile_of(id), via = via,
+                      joined = today() }
+    npc:set_character_community(OWN, npc:squad(), npc:group())
+    log("%s (%s) joined, from %s", npc:character_name(), id, comm)
+    say("st_fotz_news_joined", { who = npc:character_name(), name = F.name })
+    return true
+end
+
+-- a member goes back to the faction they came from, live if alive and online, else in the save
+function leave(id, why)
+    local m = F.members[id]
+    if not m then
+        return
+    end
+    F.members[id] = nil
+    pending[id] = nil
+    local o = level.object_by_id(id)
+    if o and o:alive() then
+        o:set_character_community(m.mother, o:squad(), o:group())
+    else
+        local se = alife():object(id)
+        if se and same_member(id, m) and se:community() == OWN then
+            set_saved_community(se, m.mother)
+        end
+    end
+    log("%s (%s) left: %s", m.name, id, why)
+end
+
+local function companions()
+    local out = {}
+    local list = axr_companions and axr_companions.companion_squads or {}
+    for sid in pairs(list) do
+        local squad = alife():object(sid)
+        if squad and squad.squad_members then
+            for k in squad:squad_members() do
+                out[k.id] = true
+            end
+        end
+    end
+    return out
+end
+
+local function companions_join()
+    return not (ui_mcm and ui_mcm.get("fotz/faction_companions") == false)
+end
+
+-- whether you join your faction yourself (MCM); if not, you lead it from your old faction
+local function you_join()
+    return not (ui_mcm and ui_mcm.get("fotz/faction_join") == false)
+end
+
+
+local function tick()
+    if not F then
+        return
+    end
+    -- you: in your faction whenever you're in your old one (a disguise puts you in another, and is
+    -- left alone), or back in your old one if you don't join
+    local yours = db.actor:character_community()
+    if you_join() then
+        if yours == "actor_" .. F.mother then
+            db.actor:set_character_community(ACTOR_OWN, 0, 0)
+        end
+    elseif yours == ACTOR_OWN then
+        db.actor:set_character_community("actor_" .. F.mother, 0, 0)
+    end
+    for id in pairs(pending) do
+        pending[id] = nil
+        local o = level.object_by_id(id)
+        local m = F.members[id]
+        if o and m and o:alive() and o:character_community() ~= OWN then
+            o:set_character_community(OWN, o:squad(), o:group())
+        end
+    end
+    local comp = companions()
+    if companions_join() then
+        for id in pairs(comp) do
+            local o = level.object_by_id(id)
+            if o and o:alive() and IsStalker(o) and not F.members[id] then
+                join(o, "companion")
+            end
+        end
+    end
+    for id, m in pairs(F.members) do
+        if m.via == "companion" and not m.dead and not comp[id] then
+            leave(id, "no longer a companion")
+            say("st_fotz_news_left", { who = m.name, name = F.name })
+        end
+    end
+end
+
+-- founding and disbanding ----------------------------------------------------------------------
+
+function found(name)
+    if F then
+        return false
+    end
+    if not declared() then
+        log("! %s isn't declared: is configs/mod_system_fotz_faction.ltx missing?", OWN)
+        return false
+    end
+    local mother = get_actor_true_community()
+    if not name or name == "" then
+        name = game.translate_string("st_fotz_default_name")
+    end
+    F = { v = SAVE_VERSION, name = name, founded = today(), mother = mother, members = {} }
+    F.base = founding_relations(mother)
+    apply_relations()
+    log("founded %s, from %s", F.name, mother)
+    say("st_fotz_news_founded", { name = F.name })
+    tick()
+    return true
+end
+
+function disband()
+    if not F then
+        return false
+    end
+    local name = F.name
+    for id in pairs(F.members) do
+        leave(id, "disbanded")
+    end
+    if db.actor:character_community() == ACTOR_OWN then
+        db.actor:set_character_community("actor_" .. F.mother, 0, 0)
+    end
+    F = nil
+    pending = {}
+    log("disbanded %s", name)
+    say("st_fotz_news_disbanded", { name = name })
+    return true
+end
+
+-- callbacks ------------------------------------------------------------------------------------
+
+local function save_state(m_data)
+    if not F then
+        m_data.fotz_faction = nil
+        return
+    end
+    local reverted, failed = 0, 0
+    for id, m in pairs(F.members) do
+        local ok, err = pcall(function()
+            local se = alife():object(id)
+            if se and same_member(id, m) then
+                if se:community() == OWN then
+                    set_saved_community(se, m.mother)
+                    reverted = reverted + 1
+                end
+            elseif not m.dead then
+                F.members[id] = nil
+            end
+            if m.dead then
+                F.members[id] = nil
+            end
+        end)
+        if not ok then
+            failed = failed + 1
+            log("! couldn't return member %s to %s for the save: %s", id, m.mother, tostring(err))
+        end
+    end
+    if db.actor:character_community() == ACTOR_OWN then
+        db.actor:set_character_community("actor_" .. F.mother, 0, 0)
+    end
+    m_data.fotz_faction = F
+    log("save: %s members returned to their factions, %s failed", reverted, failed)
+end
+
+local function load_state(m_data)
+    local d = m_data.fotz_faction
+    if type(d) == "table" and d.v == SAVE_VERSION then
+        F = d
+        F.members = F.members or {}
+        F.base = F.base or {}
+    else
+        F = nil
+        if d ~= nil then
+            log("! the save's faction is version %s, this build reads %s: set aside", tostring(type(d) == "table" and d.v), SAVE_VERSION)
+        end
+    end
+end
+
+local function sync_mcm()
+    if ui_mcm and ui_mcm.set then
+        ui_mcm.set("fotz/faction", F ~= nil)
+        if F then
+            ui_mcm.set("fotz/faction_name", F.name)
+        end
+    end
+end
+
+local function actor_on_first_update()
+    index_of = community_indexes()
+    sync_mcm()
+    if not F then
+        return
+    end
+    if not declared() then
+        log("! %s isn't declared: your faction can't be restored", OWN)
+        return
+    end
+    log("%s: %s cells, %s members", F.name, apply_relations(), (function()
+        local n = 0
+        for _ in pairs(F.members) do n = n + 1 end
+        return n
+    end)())
+    for id in pairs(F.members) do
+        pending[id] = true
+    end
+    tick()
+end
+
+local function actor_on_update()
+    if time_global() < next_check then
+        return
+    end
+    next_check = time_global() + CHECK_MS
+    tick()
+end
+
+local function npc_on_net_spawn(npc)
+    local id = npc:id()
+    local m = F and F.members[id]
+    if not m then
+        return
+    end
+    if same_member(id, m) then
+        pending[id] = true
+    else
+        F.members[id] = nil
+        log("member %s no longer names %s: dropped", id, m.name)
+    end
+end
+
+local function npc_on_death_callback(victim)
+    local m = F and F.members[victim:id()]
+    if m then
+        m.dead = true
+        pending[victim:id()] = nil
+        log("%s (%s) died", m.name, victim:id())
+    end
+end
+
+local function on_option_change()
+    if not (ui_mcm and db.actor) then
+        return
+    end
+    local want = ui_mcm.get("fotz/faction") == true
+    local name = ui_mcm.get("fotz/faction_name")
+    if want and not F then
+        found(type(name) == "string" and name or "")
+    elseif not want and F then
+        disband()
+    elseif F and type(name) == "string" and name ~= F.name then
+        F.name = name
+        log("renamed %s", name)
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback("save_state", save_state)
+    RegisterScriptCallback("load_state", load_state)
+    RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("npc_on_net_spawn", npc_on_net_spawn)
+    RegisterScriptCallback("npc_on_death_callback", npc_on_death_callback)
+    RegisterScriptCallback("on_option_change", on_option_change)
+end

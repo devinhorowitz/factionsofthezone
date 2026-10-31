@@ -85,6 +85,66 @@ msgctxt "st_fotz_news_ground"
 msgid "We took {place} from {b}."
 msgstr "Мы заняли позицию «{place}», выбив оттуда группировку «{b}»."
 
+msgctxt "fotz_own"
+msgid "Your faction"
+msgstr "Ваша группировка"
+
+msgctxt "actor_fotz_own"
+msgid "Your faction"
+msgstr "Ваша группировка"
+
+msgctxt "st_fotz_default_name"
+msgid "Your faction"
+msgstr "Ваша группировка"
+
+msgctxt "ui_mcm_fotz_faction"
+msgid "Lead a faction of your own"
+msgstr "Своя группировка"
+
+msgctxt "ui_mcm_fotz_faction_desc"
+msgid "Found a faction of your own. It starts with the friends and enemies of the faction you came from, and your companions join it. Turned off, it is disbanded and everyone goes back to their old faction. No save ever holds it, so removing the mod later needs nothing."
+msgstr "Основать свою группировку. Её друзья и враги поначалу те же, что у вашей прежней группировки, а ваши спутники вступают в неё. Если выключить, группировка распускается и все возвращаются в свои прежние группировки. Ни одно сохранение её не содержит, поэтому удаление мода потом ничего не требует."
+
+msgctxt "ui_mcm_fotz_faction_name"
+msgid "Its name"
+msgstr "Название"
+
+msgctxt "ui_mcm_fotz_faction_name_desc"
+msgid "What your faction is called in the news."
+msgstr "Как ваша группировка называется в новостях."
+
+msgctxt "ui_mcm_fotz_faction_join"
+msgid "You join it"
+msgstr "Вы вступаете в неё"
+
+msgctxt "ui_mcm_fotz_faction_join_desc"
+msgid "You stand in your faction yourself, and its friends and enemies are yours. Faction traders and tasks that need your old faction then treat you as an outsider. Turned off, you lead it from your old faction."
+msgstr "Вы сами состоите в своей группировке, и её друзья и враги становятся вашими. Торговцы и задания, которым нужна ваша прежняя группировка, тогда считают вас чужаком. Если выключить, вы руководите ею, оставаясь в прежней группировке."
+
+msgctxt "ui_mcm_fotz_faction_companions"
+msgid "Companions join it"
+msgstr "Спутники вступают в неё"
+
+msgctxt "ui_mcm_fotz_faction_companions_desc"
+msgid "Your companions join your faction, and leave it when they leave you."
+msgstr "Ваши спутники вступают в вашу группировку и покидают её, когда уходят от вас."
+
+msgctxt "st_fotz_news_founded"
+msgid "{name} is founded. Its friends and enemies start as your old faction's."
+msgstr "Группировка «{name}» основана. Её друзья и враги поначалу те же, что у вашей прежней группировки."
+
+msgctxt "st_fotz_news_joined"
+msgid "{who} has joined {name}."
+msgstr "{who} вступает в группировку «{name}»."
+
+msgctxt "st_fotz_news_left"
+msgid "{who} has left {name}."
+msgstr "{who} покидает группировку «{name}»."
+
+msgctxt "st_fotz_news_disbanded"
+msgid "{name} is disbanded. Everyone goes back to their old faction."
+msgstr "Группировка «{name}» распущена. Все возвращаются в свои прежние группировки."
+
 msgctxt "st_fotz_faction_stalker"
 msgid "Loners"
 msgstr "Одиночки"

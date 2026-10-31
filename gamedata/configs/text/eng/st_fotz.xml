@@ -57,6 +57,51 @@
 	<string id="st_fotz_news_ground">
 		<text>We took {place} from {b}.</text>
 	</string>
+	<string id="fotz_own">
+		<text>Your faction</text>
+	</string>
+	<string id="actor_fotz_own">
+		<text>Your faction</text>
+	</string>
+	<string id="st_fotz_default_name">
+		<text>Your faction</text>
+	</string>
+	<string id="ui_mcm_fotz_faction">
+		<text>Lead a faction of your own</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_desc">
+		<text>Found a faction of your own. It starts with the friends and enemies of the faction you came from, and your companions join it. Turned off, it is disbanded and everyone goes back to their old faction. No save ever holds it, so removing the mod later needs nothing.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name">
+		<text>Its name</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name_desc">
+		<text>What your faction is called in the news.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join">
+		<text>You join it</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join_desc">
+		<text>You stand in your faction yourself, and its friends and enemies are yours. Faction traders and tasks that need your old faction then treat you as an outsider. Turned off, you lead it from your old faction.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions">
+		<text>Companions join it</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions_desc">
+		<text>Your companions join your faction, and leave it when they leave you.</text>
+	</string>
+	<string id="st_fotz_news_founded">
+		<text>{name} is founded. Its friends and enemies start as your old faction's.</text>
+	</string>
+	<string id="st_fotz_news_joined">
+		<text>{who} has joined {name}.</text>
+	</string>
+	<string id="st_fotz_news_left">
+		<text>{who} has left {name}.</text>
+	</string>
+	<string id="st_fotz_news_disbanded">
+		<text>{name} is disbanded. Everyone goes back to their old faction.</text>
+	</string>
 	<string id="st_fotz_faction_stalker">
 		<text>Loners</text>
 	</string>

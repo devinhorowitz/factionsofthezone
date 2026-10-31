@@ -59,11 +59,13 @@ is the `VERSION = "x.y.z"` line in that script. Below, `<folder>` is that folder
 ## 5. Tell the player
 
 - What was installed, and where any backup went.
-- 0.1.0 only watches: once a game day it writes a census of the factions to
-  `fotz_census.jsonl` in the game's appdata folder, and changes nothing in the game or the save.
-  It can be switched off in MCM under Factions of the Zone.
+- Factions' relations change as the factions fight, once a game day; the player can found a
+  faction of their own in MCM under Factions of the Zone. Both can be switched off there.
+- Removing it later is always safe: no save ever holds the player's faction.
 
 ## Removing it
 
 Close MO2 and the game, change `+Factions of the Zone` to `-Factions of the Zone` in
-`modlist.txt`, and move `mods\<folder>` to `mods_backup\`. Saves are unaffected.
+`modlist.txt`, and move `mods\<folder>` to `mods_backup\`. No step is needed in the game first,
+even if the player leads a faction of their own: no save ever holds it, so every save loads with
+everyone back in their old faction.

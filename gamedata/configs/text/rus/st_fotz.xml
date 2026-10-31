@@ -57,6 +57,51 @@
 	<string id="st_fotz_news_ground">
 		<text>Мы заняли позицию «{place}», выбив оттуда группировку «{b}».</text>
 	</string>
+	<string id="fotz_own">
+		<text>Ваша группировка</text>
+	</string>
+	<string id="actor_fotz_own">
+		<text>Ваша группировка</text>
+	</string>
+	<string id="st_fotz_default_name">
+		<text>Ваша группировка</text>
+	</string>
+	<string id="ui_mcm_fotz_faction">
+		<text>Своя группировка</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_desc">
+		<text>Основать свою группировку. Её друзья и враги поначалу те же, что у вашей прежней группировки, а ваши спутники вступают в неё. Если выключить, группировка распускается и все возвращаются в свои прежние группировки. Ни одно сохранение её не содержит, поэтому удаление мода потом ничего не требует.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name">
+		<text>Название</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name_desc">
+		<text>Как ваша группировка называется в новостях.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join">
+		<text>Вы вступаете в неё</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join_desc">
+		<text>Вы сами состоите в своей группировке, и её друзья и враги становятся вашими. Торговцы и задания, которым нужна ваша прежняя группировка, тогда считают вас чужаком. Если выключить, вы руководите ею, оставаясь в прежней группировке.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions">
+		<text>Спутники вступают в неё</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions_desc">
+		<text>Ваши спутники вступают в вашу группировку и покидают её, когда уходят от вас.</text>
+	</string>
+	<string id="st_fotz_news_founded">
+		<text>Группировка «{name}» основана. Её друзья и враги поначалу те же, что у вашей прежней группировки.</text>
+	</string>
+	<string id="st_fotz_news_joined">
+		<text>{who} вступает в группировку «{name}».</text>
+	</string>
+	<string id="st_fotz_news_left">
+		<text>{who} покидает группировку «{name}».</text>
+	</string>
+	<string id="st_fotz_news_disbanded">
+		<text>Группировка «{name}» распущена. Все возвращаются в свои прежние группировки.</text>
+	</string>
 	<string id="st_fotz_faction_stalker">
 		<text>Одиночки</text>
 	</string>

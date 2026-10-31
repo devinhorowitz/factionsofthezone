@@ -58,6 +58,16 @@ Seen on this install, or read in source and marked so.
 - **Removing a declared faction bricks saves that hold members.** Loading such a save without the
   declaration is a fatal error ("item by index not found in section game_relations"; seen
   2026-10-31).
+- **But membership can be kept out of every save** (seen 2026-10-31). `save_state` runs before the
+  engine writes objects, and a server object's saved faction is 4 bytes in its state packet: after
+  the 2-byte header come money (u32), specific character (stringZ), trader flags (s32) and profile
+  (stringZ), then the community index (s32). Editing only those bytes, for online, offline and dead
+  members alike, puts every member back in their old faction in the save without touching the
+  live NPC. A save made that way loads with the declaration removed.
+- **Never set a dead NPC's faction.** `set_character_community` on a corpse corrupted the heap; pass
+  an NPC's own `squad()` and `group()`, not 0 and 0.
+- **No script changes an offline NPC's faction**: the server object only has a getter. The state
+  packet edit is the only way.
 - **Squads leave without dying.** Homestead, ZCP and others remove squads with `alife_release`, so
   no death callback fires. Strength is counted by census, not by deaths.
 - **A smart's `faction` field is set only while it is online.** Offline, who holds a smart has to
@@ -91,6 +101,29 @@ line to `fotz_census.jsonl` in the game's appdata folder. It only reads.
 gained or lost, smarts that changed hands, relations that moved. The point is to learn what
 G.A.M.M.A.'s world does on its own before anything changes it. The census is also the politics
 engine's input: strength and territory are its counts.
+
+## Your faction (0.3.0, first part)
+
+`fotz_faction.script`, declared in `configs/mod_system_fotz_faction.ltx` (`fotz_own`, team 36, and
+its player twin `actor_fotz_own`, team 37).
+
+- **Founding** (MCM, per save): it starts with every relation of the faction you came from (both
+  directions, for the faction and its player twin), and it and its twin are friends (2000). You
+  join it yourself, unless "You join it" is off; then you lead it from your old faction, keeping its
+  traders and tasks. While you're disguised in another faction's suit, you're left alone.
+- **Members:** your companions join, with their own squad and group, and leave when they stop
+  being companions. A member who comes online is given the faction on the next update, never
+  inside net spawn, and only if their id still names them (their profile is checked; ids are
+  reused after release).
+- **No save holds it.** Before each save every member, online, offline or dead, is set back to
+  their old faction in their state packet, and you to yours; the dead are then dropped from the
+  roster. You and the online members are back in it on the next update. Removing the mod needs no
+  step: tested by founding, saving and loading with Factions disabled.
+- **Disbanding** (MCM) returns everyone at once: the living and online live, the rest in their
+  state packet.
+- **Next:** residents of a Homestead settlement who may join as their loyalty grows, and members
+  who may leave; the Factions tab with your roster; your faction's relations moved by the politics
+  engine like any other's.
 
 ## 2. The politics engine (0.2.0)
 
@@ -243,9 +276,12 @@ squad another mod pinned is never steered.
   own reapply (at the first update), and sets it to that start plus the pair's drift: the faction
   rows and the player's `actor_` rows, as the base game's dynamic relations do. Turned off in MCM,
   or standing down, it sets the starts back.
-- **Uninstalling:** the key is ignored, relations return to the configs at the next load, and
-  goodwill the player earned stays. Squads the steer moved (from 0.4.0) stay where they went;
-  nothing else in the alife is changed.
+- **0.3.0 adds `m_data.fotz_faction`:** your faction's name, the faction you came from, its
+  founding relations, and its members (id, old faction, name, profile). No object in the save is
+  ever in your faction (see "Your faction").
+- **Uninstalling:** the keys are ignored, relations return to the configs at the next load, every
+  member and you are in your old factions, and goodwill the player earned stays. Squads the steer
+  moved (from 0.4.0) stay where they went; nothing else in the alife is changed.
 - The base game's `drx_df_*` pstor keys belong to its dynamic relations; Factions never writes
   them.
 
@@ -311,7 +347,7 @@ by how many different people raised each. They shape the plan:
 
 1. **0.1.0, the census.** Read-only; learn the world.
 2. **0.2.0, the politics engine.** Events, relations rebuilt on load, news. (Built.)
-3. **0.3.0, your faction.** Found it (a name and an emblem), with a Homestead settlement as its
+3. **0.3.0, your faction** (founding, companions, disbanding and save safety built). Found it (a name and an emblem), with a Homestead settlement as its
    base; residents who may join as their loyalty grows, and members who may leave; your faction's
    relations moved by the politics engine like any other. The Factions tab comes with it: your
    faction's roster, every faction's relations, the war log, your standing.

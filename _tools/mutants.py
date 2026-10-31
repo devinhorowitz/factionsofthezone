@@ -12,13 +12,16 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TESTS = ["test_census", "test_text", "test_politics"]
+TESTS = ["test_census", "test_text", "test_politics", "test_faction"]
 
 
 def run(test, mutant=None):
+    """The exit code and the run's verdict line: its FAIL line if any, else its last line."""
     args = [sys.executable, os.path.join(HERE, test + ".py")] + ([mutant] if mutant else [])
     r = subprocess.run(args, capture_output=True, text=True, cwd=HERE)
-    return r.returncode, (r.stdout.strip().splitlines() or [r.stderr.strip()[-200:]])[-1]
+    lines = r.stdout.strip().splitlines() or [r.stderr.strip()[-200:]]
+    fails = [l for l in lines if l.startswith("FAIL")]
+    return r.returncode, (fails or lines)[-1]
 
 
 def main():

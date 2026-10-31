@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### 0.3.0: a faction of your own (first part)
+
+- In MCM, found a faction of your own and name it. It is a real faction to the game: it starts
+  with the friends and enemies of the faction you came from, and you join it yourself (or, with
+  "You join it" off, lead it from your old faction). Your companions join it, and leave it when
+  they leave you. Turn it off to disband it: everyone goes back to their old faction.
+- **Removing the mod is always safe.** No save ever holds your faction: just before each save,
+  every member (online, offline or dead) and you are returned to your old factions in the save
+  itself, and get your faction back as you play on. Loading a save without the mod finds everyone
+  in their old faction.
+- News when you found or disband it, and when someone joins or leaves. English and Russian.
+- Still to come in 0.3.0: settlers who may join as their loyalty grows, and the Factions tab.
+
 ### 0.2.0: the politics engine
 
 - Factions now change their relations. Kills between two factions (near you and offline), ground

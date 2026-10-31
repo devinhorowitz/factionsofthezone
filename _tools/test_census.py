@@ -348,7 +348,7 @@ def main():
         print("FAIL: %s" % e)
         return 1
     except Exception as e:
-        print("FAIL (error): %s: %s" % (type(e).__name__, e))
+        print("FAIL (error): %s: %s" % (type(e).__name__, " | ".join(str(e).splitlines())))
         return 1
 
 

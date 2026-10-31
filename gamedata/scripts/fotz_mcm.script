@@ -1,5 +1,8 @@
 --[[
 Factions of the Zone: its MCM page. Options are read with ui_mcm.get("fotz/<id>").
+
+The faction options belong to the save you're playing: fotz_faction sets them from the save at
+each load, and changing them founds, renames or disbands that save's faction.
 --]]
 
 function on_mcm_load()
@@ -9,6 +12,11 @@ function on_mcm_load()
         gr = {
             { id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_menu_fotz",
               size = { 512, 50 }, spacing = 20 },
+            { id = "faction", type = "check", val = 1, def = false },
+            { id = "faction_name", type = "input", val = 0, def = "" },
+            { id = "faction_join", type = "check", val = 1, def = true },
+            { id = "faction_companions", type = "check", val = 1, def = true },
+            { id = "line1", type = "line" },
             { id = "politics", type = "check", val = 1, def = true },
             { id = "news", type = "list", val = 0, def = "events", content = {
                 { "off", "fotz_news_off" },

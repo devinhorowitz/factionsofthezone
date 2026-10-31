@@ -13,7 +13,7 @@ of two hostile factions are there at once, and each such pair has a front. Mutan
 "monster" and never hold or contest a smart.
 --]]
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
              "renegade", "greh", "isg" }
 FILE = "fotz_census.jsonl"

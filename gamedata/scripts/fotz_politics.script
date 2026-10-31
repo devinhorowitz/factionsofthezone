@@ -17,7 +17,7 @@ system in charge of relations, it writes the anchors back and stops. Its state i
 keyed by faction and smart names.
 --]]
 
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 SAVE_VERSION = 1
 CONFIG = "plugins\\fotz_politics.ltx"
 

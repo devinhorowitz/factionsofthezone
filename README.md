@@ -9,8 +9,14 @@ sibling to [Seasons of the Zone](https://github.com/devinhorowitz/seasonsofthezo
 
 ## Status
 
-Early development; 0.2.0 is the first version that changes your game. The plan is in
-[docs/DESIGN.md](docs/DESIGN.md).
+Early development. The plan is in [docs/DESIGN.md](docs/DESIGN.md).
+
+**Your own faction** (0.3.0, first part). Today you're a loner tied to one faction and its
+alliances. In MCM you can found a faction of your own and name it. It's a real faction to the game:
+it starts with the friends and enemies of the faction you came from, you join it (or lead it from
+your old faction, keeping its traders and tasks), and your companions join it. Disband it and
+everyone goes back to their old faction. Coming next: settlers who may join as their loyalty
+grows, and a Factions tab.
 
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
@@ -21,9 +27,11 @@ and Freedom, the Military and the Loners, and others) never change, and every ot
 limits. It steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction
 Relations Customizer, or Warfare mode handle relations.
 
-**What it saves.** One key in your save holds each pair's change from where the game started it.
-Every load sets the relations again from that, so turning politics off in MCM, or removing the
-mod, puts every faction back.
+**What it saves, and removing it.** Two keys in your save: each pair's change from where the game
+started it, and your faction's roster. No character in a save is ever in your faction: just before
+each save, everyone is put back in their old faction in the save itself, and gets your faction
+back as you play on. So removing the mod is always safe, with no step first: a save loads with
+every faction's relations as the game had them and everyone in their old faction.
 
 **Census.** Once a game day, and once after each load, it counts every faction's squads and
 fighters by tier, rank and level, which faction holds each smart terrain and which are contested,
@@ -35,8 +43,9 @@ in `fotz_census.jsonl` in the game's appdata folder (`<Anomaly>\appdata`).
 python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
 
-MCM, under Factions of the Zone: politics on or off, PDA news (off, wars and truces, or
-everything), and the census log.
+MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it,
+whether companions join), politics on or off, PDA news (off, wars and truces, or everything), and
+the census log.
 
 ## Install
 
@@ -49,9 +58,10 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
 - `_tools/build.py` writes the Russian string tables, compiles every script under LuaJIT 2.0, runs
   the tests, and installs into an MO2 mods folder (`--check` only checks).
 - `_tools/test_census.py` runs the census against a made-up alife, `test_politics.py` runs the
-  politics engine through wars, truces, alliances, saves and stand-downs, and `test_text.py`
-  checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (58 so far); every
+  politics engine through wars, truces, alliances, saves and stand-downs, `test_faction.py` runs
+  your faction through founding, saves (byte-level packets), loads, disguise and disbanding, and
+  `test_text.py` checks the Russian tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (72 so far); every
   one must fail.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
 
