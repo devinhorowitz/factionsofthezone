@@ -54,6 +54,7 @@ MUTANTS = {
     "last_forgotten": ("    last = c or last", "    last = c"),
     "dxml_any_file": ('    if not string.match(name, "^ui[\\\\/]map_spots[_%d]*%.xml$") then', "    if false then",
                       "modxml_fotz_map"),
+    "hint_newline": ('hint = table.concat(lines, "\\\\n")', 'hint = table.concat(lines, "\\n")'),
     "dxml_twice": ("        if #xml:query(spot) == 0 then", "        if true then", "modxml_fotz_map"),
 }
 
@@ -194,13 +195,14 @@ class World:
         return list(self.g.LOG.values())
 
 
-GARBAGE_HINT = ("Fronts in Garbage:\nDuty 30, Mercenaries 12\nBandits 14, Loners 12\nClear Sky 11, Mercenaries 9\n"
-                "Military 10, Mercenaries 6\nand 1 more")
+# the UI breaks a hint's lines at the two characters \n, as the game's own map hints write them
+GARBAGE_HINT = ("Fronts in Garbage:\\nDuty 30, Mercenaries 12\\nBandits 14, Loners 12\\nClear Sky 11, Mercenaries 9\\n"
+                "Military 10, Mercenaries 6\\nand 1 more")
 WANT = {
     "103|fotz_front_yours": GARBAGE_HINT,
-    "201|fotz_front_yours": "Fronts in Agroprom:\nMercenaries 30, Duty 10",
-    "301|fotz_front": "Fronts in Dark Valley:\nMilitary 30, Bandits 5",
-    "401|fotz_front_yours": "Fronts in Rostok:\nDuty 12, Freedom 12",
+    "201|fotz_front_yours": "Fronts in Agroprom:\\nMercenaries 30, Duty 10",
+    "301|fotz_front": "Fronts in Dark Valley:\\nMilitary 30, Bandits 5",
+    "401|fotz_front_yours": "Fronts in Rostok:\\nDuty 12, Freedom 12",
 }
 
 

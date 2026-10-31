@@ -32,6 +32,12 @@ MCM = os.path.join(GD, "scripts", "fotz_mcm.script")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
 MUTANTS = {
+    # the 2026-10-31 sweep
+    "blank_renames": ('    local name = name_wanted(ui_mcm.get("fotz/faction_name"))',
+                      '    local name = ui_mcm.get("fotz/faction_name") or ""'),
+    "undeclared_kept_on": ("        parked, F = F, nil\n", "        parked = F\n"),
+    "parked_not_saved": ("    m_data.fotz_faction = F or parked", "    m_data.fotz_faction = F"),
+    "no_back_after_save": ("    if saved then\n        back_after_save()\n    end\n", ""),
     "offset": ("    p:r_s32()\n    p:r_stringZ()\n    local at", "    p:r_s32()\n    local at"),
     "dead_set": ("    if o and o:alive() then\n        o:set_character_community(m.mother", "    if o then\n        o:set_character_community(m.mother"),
     "identity": ("return se ~= nil and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile",
@@ -288,6 +294,37 @@ def not_declared(src):
     check(any("isn't declared" in l for l in w.log()), "no log line for the missing declaration")
     check(w.g.ACTOR.comm == "actor_ecolog" and len(w.calls()) == 0, "something changed: %s" % w.calls())
 
+    # a save with a faction, loaded where the install doesn't declare it: kept aside as saved, so
+    # nothing names the faction (the engine asserts on an undeclared one), and the next save keeps it
+    saved = ('{ fotz_faction = { v = 1, name = "Wolves", founded = "2012-05-01", mother = "ecolog", base = {}, '
+             'members = { [501] = { name = "Stalker 501", mother = "stalker", profile = "p501" } } } }')
+    w = World(src, setup='MCM["fotz/faction"] = true; COMMS = "actor, 0, stalker, 1, ecolog, 2, actor_ecolog, 3"; names()'
+              + SETUP, m_data=saved)
+    check(w.env.F is None and w.g.SET["fotz/faction"] is False, "an undeclared faction was restored: %s" % w.env.F)
+    w.run("tick()")
+    w.cb["on_option_change"]()
+    check(len(w.calls()) == 0 and w.g.ACTOR.comm == "actor_ecolog", "the undeclared faction was named: %s" % w.calls())
+    m = w.eval("{}")
+    w.cb["save_state"](m)
+    check(m.fotz_faction is not None and m.fotz_faction.name == "Wolves", "the save dropped the faction kept aside")
+
+
+def blank_name(src):
+    """A blank name (the box's default) is the default name, at founding and at every Accept after."""
+    w = World(src, setup=SETUP)
+    default = w.eval('game.translate_string("st_fotz_default_name")')
+    w.run('MCM["fotz/faction"] = true; MCM["fotz/faction_name"] = ""')
+    w.cb["on_option_change"]()
+    check(w.env.F is not None and w.env.F.name == default, "founded as %r" % (w.env.F and w.env.F.name))
+    w.cb["on_option_change"]()
+    check(w.env.F.name == default, "a later Accept with the box blank renamed it %r" % w.env.F.name)
+    w.run('MCM["fotz/faction_name"] = "Wolves"')
+    w.cb["on_option_change"]()
+    check(w.env.F.name == "Wolves", "not renamed: %r" % w.env.F.name)
+    w.run('MCM["fotz/faction_name"] = ""')
+    w.cb["on_option_change"]()
+    check(w.env.F.name == default, "a cleared box: %r" % w.env.F.name)
+
 
 def found_save_load(src):
     w = World(src, setup=SETUP)
@@ -322,6 +359,8 @@ def found_save_load(src):
     check(w.env.F.members[501] is None and w.env.F.members[503] is not None, "the dead weren't dropped, or the living were")
     w.run("tick()")
     check(w.g.ACTOR.comm == "actor_fotz_own", "you weren't back in your faction after the save")
+    check(w.comm(503) == "fotz_own" and w.eval("snapshot(503)") == before[503],
+          "after the save, the offline member's server object stayed %s" % w.comm(503))
     check(not any(c[0] == 501 and c[4] != "update" for c in w.calls()), "a dead NPC's faction was changed")
     saved = w.eval("dump")(m)
 
@@ -350,6 +389,13 @@ server(0, "actor_ecolog", "actor")
     check(w2.live(503) == "fotz_own" and w2.live(504) == "stalker", "after the update: 503 %s, 504 %s" % (w2.live(503), w2.live(504)))
     check(w2.env.F.members[504] is None, "a reused id stayed a member")
     check(not any(c[4] == "net_spawn" for c in w2.calls()), "a faction changed during net spawn: %s" % w2.calls())
+    # an online member through a save: saved in his old faction, his server object back in yours on
+    # the next update, the live NPC in it throughout
+    m3 = w2.eval("{}")
+    w2.cb["save_state"](m3)
+    check(w2.comm(503) == "stalker" and w2.live(503) == "fotz_own", "the save: %s, %s" % (w2.comm(503), w2.live(503)))
+    w2.run("tick()")
+    check(w2.comm(503) == "fotz_own" and w2.live(503) == "fotz_own", "after the save: %s, %s" % (w2.comm(503), w2.live(503)))
     return w2
 
 
@@ -528,6 +574,7 @@ def strings(src):
 def run(src):
     strings(src)
     not_declared(src)
+    blank_name(src)
     w2 = found_save_load(src)
     dismissed_and_disband(src, w2)
     you_and_disguise(src)
@@ -536,7 +583,7 @@ def run(src):
     others(src)
     load_and_untouched(src)
     other_version(src)
-    return "10 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub"
+    return "11 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub, names"
 
 
 def main():

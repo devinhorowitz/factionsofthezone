@@ -125,6 +125,23 @@ local function trend_of(P, pair)
     return t > 0 and "up" or "down"
 end
 
+-- a row's detail line in n bytes at most (cp1251: a byte a letter), cut with an ellipsis: the
+-- leader's name gives way first, so the ground and fighters stay whole
+function detail_fit(row, n)
+    local s = row.detail or ""
+    if #s <= n then
+        return s
+    end
+    if row.lead and row.stats then
+        local sep = " " .. text("st_fotz_tab_sep") .. " "
+        local room = n - #sep - #row.stats
+        if room >= 4 then
+            return string.sub(row.lead, 1, room - 1) .. "\133" .. sep .. row.stats
+        end
+    end
+    return string.sub(s, 1, n - 1) .. "\133"
+end
+
 local function rows(P, side)
     local out = {}
     for _, f in ipairs(fotz_census.FACTIONS) do
@@ -151,6 +168,7 @@ local function rows(P, side)
                 standing = text("st_fotz_tab_band_" .. b) .. " (" .. signed(rel) .. ")",
                 -- the spaces are added here: the string table trims them off the ends of a text
                 color = COLORS[b], detail = table.concat(parts, " " .. text("st_fotz_tab_sep") .. " "), change = change,
+                lead = #parts == 2 and parts[1] or nil, stats = #parts == 2 and parts[2] or nil,
                 event = event_line(ev) or "", trend = trend_of(P, pair),
             }
         end
@@ -176,6 +194,10 @@ end
 -- the side with more fighters there named first
 local function front_lines(P, side)
     local T = fotz_territory
+    -- the census comes some seconds into a load: until then there's nothing to say yet
+    if T and not T.COUNTED then
+        return { text("st_fotz_tab_fronts_wait") }
+    end
     local mine, rest = {}, {}
     for _, f in ipairs(T and T.FRONTS or {}) do
         local list = (f.a == side or f.b == side) and mine or rest
@@ -314,8 +336,14 @@ function sync()
             z_fotz_mac.add_tile()
         end
         local m = ActorMenu.get_pda_menu()
-        if m and was and was ~= "" and m:GetActiveSection() ~= was then
-            m:SetActiveSubdialog(was)
+        if m and was and was ~= "" then
+            if was == modxml_fotz_tab.SECTION and TAB then
+                -- the PDA was on the page from the tile: nothing routes that section any more, so
+                -- the page goes with it to its own tab
+                m:SetActiveSubdialog(TAB)
+            elseif m:GetActiveSection() ~= was then
+                m:SetActiveSubdialog(was)
+            end
         end
     elseif not want then
         local was, gone = pda_section(), TAB

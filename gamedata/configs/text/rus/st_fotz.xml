@@ -252,6 +252,9 @@
 	<string id="st_fotz_tab_front">
 		<text>{place}: «{a}» {na}, «{b}» {nb}</text>
 	</string>
+	<string id="st_fotz_tab_fronts_wait">
+		<text>Ещё не подсчитано: перепись вскоре после загрузки.</text>
+	</string>
 	<string id="st_fotz_tab_fronts_none">
 		<text>Нет: ни на одной локации нет двух воюющих группировок.</text>
 	</string>

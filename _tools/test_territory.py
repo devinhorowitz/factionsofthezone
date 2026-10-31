@@ -77,6 +77,7 @@ MUTANTS = {
     "bad_claim_taken": ('    if type(name) ~= "string" or type(fn) ~= "function" then', "    if false then"),
     "homestead_held_ignored": ("    local hs = stalker_camp_builder\n", "    local hs = nil\n"),
     "homestead_failure_steers": ("        if held or not ok then", "        if ok and held then"),
+    "never_counted": ("    COUNTED = true\n", ""),
     "map_not_updated": ("        ok, err = pcall(fotz_map.update, c)\n", "        ok, err = true, nil\n"),
     "map_unguarded": ("        ok, err = pcall(fotz_map.update, c)\n", "        ok, err = true, fotz_map.update(c)\n"),
     "ctz_ignored": ("    if squad.ctz_campaign_owned then\n        return \"ctz\"\n    end\n", ""),
@@ -346,6 +347,7 @@ def upper(win, lose, place):
 def fronts(src):
     w = World(src, SETUP)
     lead = w.env.leader
+    check(w.env.COUNTED is False, "counted before a census")
 
     def side(fa, fb):
         r = lead(w.eval('{ a = "x", b = "y", fa = %d, fb = %d }' % (fa, fb)))
@@ -358,6 +360,7 @@ def fronts(src):
     c1 = {"l02_garbage": {"dolg": 30, "killer": 10, "bandit": 5, "army": 15, "csky": 20, "freedom": 20},
           "l03_agroprom": {"dolg": 10, "killer": 30}, "l06_rostok": {"dolg": 20}, "l07_military": {"killer": 40}}
     w.census(census_of(c1))
+    check(w.env.COUNTED is True, "not counted after a census")
     got = front_list(w)
     check(got == [("dolg", "killer", "l02_garbage", 30, 10), ("dolg", "killer", "l03_agroprom", 10, 30),
                   ("bandit", "army", "l02_garbage", 5, 15)], "the fronts %s" % got)

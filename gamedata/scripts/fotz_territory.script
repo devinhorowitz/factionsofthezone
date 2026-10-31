@@ -179,6 +179,7 @@ UPPER = 2 / 3             -- a side with this share of a front's fighters has th
 FRONT_MIN = 10            -- fewer fighters than this on both sides together isn't news
 NEWS_PER_DAY = 2
 FRONTS = {}               -- the last census's fronts, the biggest first
+COUNTED = false           -- whether a census has given the fronts since the load
 local upper = nil         -- "a|b|level" -> the side with the upper hand (false: close), last census
 
 -- every front in a census: a level two enemy factions both have fighters on, each pair once
@@ -223,6 +224,7 @@ end
 -- first census after a load, which only sets where things stand), the biggest fronts first
 local function take_fronts(c)
     FRONTS = fronts(c)
+    COUNTED = true
     local now, said = {}, 0
     for _, f in ipairs(FRONTS) do
         local key = f.a .. "|" .. f.b .. "|" .. f.level

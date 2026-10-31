@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+### Fixed before the first release (a bug sweep)
+
+- **Relations no longer drift further on every load.** The base game puts back relations other
+  scripts saved (Banjaji's disguise saves copies of live ones) before Factions read its starting
+  values, so Factions' change could count twice and grow load after load, and stay after removing
+  the mod. Each relation's last value now goes with the save, and before each save a copy of
+  Factions' own value in that store goes back to where the game had it.
+- **Another script's change is respected.** A story ceasefire that sets two factions' relations
+  ends Factions' war between them and the pair starts over from there, instead of being undone the
+  next day; a disguise's change to how your faction sees you holds while you wear it.
+- A faction founded with the name box left blank keeps its default name (an options Accept no
+  longer renames it to nothing).
+- After a save, your members are back in your faction for the rest of the game too (A-Life, offline
+  fights and kill credit saw their old faction until they next came near).
+- A day whose census log can't be written still counts (politics, territory and the map).
+- A truce lasts its five days in every time zone.
+- The map markers' hover list puts each front on its own line.
+- Switching from Mod App Creator's tile to the page's own tab while the page is open takes the PDA
+  to the new tab; before, it reopened on the map under the page's caption.
+- The Factions page: a long leader name gives way before the ground and fighters numbers; the
+  fronts read "Not counted yet" for the seconds before the first census after a load;
+  "Relations restored" shows only when they were.
+- A save holding a faction, loaded where the faction isn't declared (a broken install), keeps it
+  aside instead of crashing.
+
 ### 0.4.0: territory
 
 - **Fronts on the Factions page.** The Zone's fronts from the last census: each level two

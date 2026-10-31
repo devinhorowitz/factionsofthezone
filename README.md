@@ -102,7 +102,7 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
   scoring, `test_map.py` runs the fronts on the PDA map against a stand-in for its spots, and
   `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (198 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (221 so far); every
   one must fail.
 - `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
   `build.py --check` passes and only once CHANGELOG.md has a section for the version.

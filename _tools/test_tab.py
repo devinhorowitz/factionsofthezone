@@ -42,6 +42,9 @@ MUTANTS = {
                'p.status = text("st_fotz_tab_in_charge")'),
     "date": ('return m and (dd .. "." .. m) or tostring(d or "")', 'return tostring(d or "")'),
     "drift_shown": ('change = d ~= 0 and text("st_fotz_tab_change", { n = signed(d) }) or ""', 'change = ""'),
+    "fronts_wait_ignored": ("    if T and not T.COUNTED then", "    if false then"),
+    "detail_cuts_stats": ("    if row.lead and row.stats then", "    if false then"),
+    "tile_section_left": ("            if was == modxml_fotz_tab.SECTION and TAB then", "            if false then"),
     "leader_alive": ("    if se and (se.alive == nil or se:alive()) then", "    if se then"),
     "leader_trader": ("    if se and (se.alive == nil or se:alive()) then", "    if se and se:alive() then"),
     "leader_gone": ("local name = se and se:character_name() or (fp.leader_name and game.translate_string(fp.leader_name))",
@@ -165,6 +168,21 @@ def lines(t):
     return [t[i] for i in range(1, len(t) + 1)]
 
 
+def detail_cut(srcs):
+    """A detail line too long for its box: the leader's name gives way, the numbers stay whole."""
+    t = Tab(srcs)
+    sep = " " + t.env.text("st_fotz_tab_sep") + " "
+    lead, stats = "Lieutenant General Voronin of the Rostok Bar (dead)", "holds 12" + sep + "140 fighters"
+    row = t.p.lua.eval("{ lead = %s, stats = %s, detail = %s }" % tuple('"%s"' % s for s in (lead, stats, lead + sep + stats)))
+    # the cut ends in the cp1251 ellipsis (a byte that isn't UTF-8): looked at inside Lua
+    judge = t.p.lua.eval("function(row, tail) local s = fotz_tab.detail_fit(row, 50) "
+                         "return #s <= 50, s:sub(-#tail) == tail, s:sub(1, 10) == 'Lieutenant', #s end")
+    fits, whole, starts, n = judge(row, sep + stats)
+    check(fits and whole and starts, "the cut: %d bytes, numbers whole %s, name first %s" % (n, whole, starts))
+    short = t.p.lua.eval('{ detail = "Voronin" .. "%s" .. "holds 2", lead = "Voronin", stats = "holds 2" }' % sep)
+    check(t.env.detail_fit(short, 50) == "Voronin" + sep + "holds 2", "a short line was cut")
+
+
 def your_own(srcs):
     t = Tab(srcs)
     p = t.page()
@@ -215,6 +233,9 @@ def your_own(srcs):
           "log %s" % log)
 
     # the fronts, from territory's last census: Duty's first, then the biggest; five at most
+    check(lines(t.page().fronts) == ["Not counted yet: the census comes shortly after a load."],
+          "before the census: %s" % lines(t.page().fronts))
+    t.run("fotz_territory.COUNTED = true")
     check(lines(t.page().fronts) == ["None: no two factions at war share a level."], "no fronts: %s" % lines(t.page().fronts))
     t.run("""
 STR.l02_garbage, STR.l03_agroprom, STR.l04_darkvalley = "Garbage", "Agroprom", "Dark Valley"
@@ -320,6 +341,11 @@ def ways_in(srcs):
     check(t.env.section() == "eptFactions" and t.env.back_to_launcher() is True, "tiled: section %s" % t.env.section())
     t.env.sync()
     check(t.p.g.ADDS == 1, "a second sync gave MAC the tile again (%d adds)" % t.p.g.ADDS)
+    t2 = Tab(srcs, mac=True)
+    t2.env.sync()
+    t2.run('MCM["fotz/pda_tab"] = true; pda_menu("eptFactions")')
+    t2.env.sync()
+    check(t2.p.g.MENU.section == "ept_dynamic_1", "from the tile to the tab, the PDA stayed on %s" % t2.p.g.MENU.section)
     t.run('MCM["fotz/pda_tab"] = true; pda_menu("eptTasks")')
     t.env.sync()
     check(list(t.p.g.REG.values()) == ["st_fotz_tab"] and t.p.g.APPS["fotz"] is None and list(t.p.g.REMOVED.values()) == ["fotz"],
@@ -383,13 +409,14 @@ def mcm_option(srcs):
 
 def run(srcs):
     n = strings(srcs)
+    detail_cut(srcs)
     your_own(srcs)
     yours(srcs)
     restore(srcs)
     ways_in(srcs)
     parked(srcs)
     mcm_option(srcs)
-    return "6 scenarios, %d strings" % n
+    return "7 scenarios, %d strings" % n
 
 
 def main():

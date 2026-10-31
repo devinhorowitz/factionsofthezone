@@ -253,6 +253,9 @@
 	<string id="st_fotz_tab_front">
 		<text>{place}: {a} {na}, {b} {nb}</text>
 	</string>
+	<string id="st_fotz_tab_fronts_wait">
+		<text>Not counted yet: the census comes shortly after a load.</text>
+	</string>
 	<string id="st_fotz_tab_fronts_none">
 		<text>None: no two factions at war share a level.</text>
 	</string>

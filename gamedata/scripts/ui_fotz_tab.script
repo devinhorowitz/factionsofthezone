@@ -205,7 +205,7 @@ function FactionsTab:Fill()
                 r.standing:SetTextColor(GetARGB(255, row.color[1], row.color[2], row.color[3]))
             end
             put(r.change, row.change)
-            put(r.detail, fit(row.detail, 50))
+            put(r.detail, fotz_tab.detail_fit(row, 50))
             put(r.event, row.event)
             local t = TREND[row.trend]
             show(r.trend, t ~= nil)
@@ -254,7 +254,10 @@ function FactionsTab:OnRestore()
         say("! restore failed: " .. tostring(err))
     end
     self:Reset()
-    put(self.restore_label, fotz_tab.text("st_fotz_tab_restored"))
+    -- "restored" only when it was: a failure (logged) leaves the button as it was
+    if ok then
+        put(self.restore_label, fotz_tab.text("st_fotz_tab_restored"))
+    end
 end
 
 function FactionsTab:Update()

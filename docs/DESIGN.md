@@ -134,8 +134,11 @@ its player twin `actor_fotz_own`, team 37).
   reused after release).
 - **No save holds it.** Before each save every member, online, offline or dead, is set back to
   their old faction in their state packet, and you to yours; the dead are then dropped from the
-  roster. You and the online members are back in it on the next update. Removing the mod needs no
-  step: tested by founding, saving and loading with Factions disabled.
+  roster. You, the online members and every member's server object (which the game reads for
+  A-Life, offline combat and kill credit) are back in it on the next update. Removing the mod needs
+  no step: tested by founding, saving and loading with Factions disabled. A save with a faction,
+  loaded where the faction isn't declared (a broken install), keeps it aside as saved: nothing names
+  an undeclared community, which the engine asserts on.
 - **Others in it.** Other mods can spread the faction: Homestead caches each settler's faction
   when it recruits them and gives its camp traders the camp's dominant one, so a companion who
   joined and was then recruited would put `fotz_own` in Homestead's save and onto its traders,
@@ -172,7 +175,8 @@ its player twin `actor_fotz_own`, team 37).
   wait for the fighting to stop). An alliance lapses when nothing holds it up.
 - **What's saved:** `m_data.fotz`, keyed by faction and smart names: each pair's drift from where
   the game started it, the pressure waiting, the events in force, recent grievances and a history
-  of the last 50 events. Relations are rebuilt from the drift on every load (see the save, below).
+  of the last 50 events, and each cell's last value and the drift it carried. Relations are rebuilt
+  from the drift on every load (see the save, below).
 - **Pairs that start at war stay at war.** In G.A.M.M.A., 7 of the 16 changeable pairs start at
   -2000 (among them Duty–Mercenaries and Clear Sky–Military); they can be pushed further but a
   peace between them is later work. Wars can be declared among the other 9, which start neutral.
@@ -192,8 +196,24 @@ its player twin `actor_fotz_own`, team 37).
   (with Warfare Alife Overhaul's relation pacing) run, Factions writes the game's relations back
   and stops counting. Each of them saves and reapplies relations itself. Killing Friends Reduces
   Goodwill changes the player's goodwill, not the matrix, and can run beside it.
-- **Someone else's change wins.** If another script sets a cell Factions manages, that value
-  becomes the cell's new start, and Factions' drift goes on top of it.
+- **A cell's start, and others' changes** (fixed in the 2026-10-31 sweep).
+  - The base game keeps the relations other scripts save (`game_relations.save_relation`, in the
+    actor's pstor) and puts them back at every load. Banjaji's disguise saves copies of live cells,
+    Factions' drift and all; reading the start live after a load counted that drift twice, more on
+    every load, and the copy outlived the mod.
+  - So each cell's last value and the drift it carried are saved. At a load, a cell that holds that
+    value (the base game put back a copy) has its start from the save; any other value is the start
+    (the engine's reset, or a value another script saved).
+  - What else sets a cell is noticed at each apply and before each save. On the pair's own rows (A
+    to B, B to A, as a story ceasefire writes them): the pair starts over from the values it has
+    now, its drift, pressure and event ended (a war ended so goes in the war log, without news), so
+    Factions never fights the change or drifts the pair past it. On a player row only (a disguise):
+    the row's start moves with the change, so the other script's value holds; when the script puts
+    back what Factions had there (the disguise taken off), the row is Factions' again.
+  - Before each save, a value in that store that is Factions' own (what it wrote, or what a script
+    put back on a row it had held) goes back to the cell's start, so removing the mod leaves the
+    game's values. Seen in game (run 13): a disguise put on and off across a drift change, a save, a
+    load with and without Factions.
 - **Later:** strength and supply per faction, emissions, the season, the player's deeds beyond
   kills, and the rest of the event deck (after Zone Frontline): a coalition against the strongest,
   incidents, trade, betrayal, ultimatums, prisoner exchanges.
