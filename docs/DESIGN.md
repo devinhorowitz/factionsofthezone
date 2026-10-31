@@ -45,6 +45,19 @@ Seen on this install, or read in source and marked so.
   list reaches assertions (source: FAC-03), and the setter changes neither goodwill, the matrix,
   squad membership nor smart assignment. Communities are the matrix in
   `configs/creatures/game_relations.ltx`, which G.A.M.M.A. Economy ships as a whole file here.
+- **A new faction can be declared by DLTX, and it works** (seen 2026-10-31, a prototype):
+  - append the faction and its `actor_` twin to `[game_relations] communities`, and give each a
+    row in `[communities_relations]` and `[communities_sympathy]`. Every community needs a row,
+    but a short row is padded with 0 (neutral), so no other mod's rows need touching and two
+    faction mods can coexist;
+  - an NPC moved into it stays a member through a save and load, and the player can join it as
+    its `actor_` twin;
+  - team numbers must stay under 64 (the engine's `max_team_count`, checked only in debug
+    builds). Stalker factions use 0-31 and mutants 39-68, so 32-38 are free; another faction mod
+    already uses 32 and 33.
+- **Removing a declared faction bricks saves that hold members.** Loading such a save without the
+  declaration is a fatal error ("item by index not found in section game_relations"; seen
+  2026-10-31).
 - **Squads leave without dying.** Homestead, ZCP and others remove squads with `alife_release`, so
   no death callback fires. Strength is counted by census, not by deaths.
 - **A smart's `faction` field is set only while it is online.** Offline, who holds a smart has to
