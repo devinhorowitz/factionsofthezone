@@ -1,0 +1,16 @@
+--[[
+Factions of the Zone: its MCM page. Options are read with ui_mcm.get("fotz/<id>").
+--]]
+
+function on_mcm_load()
+    return {
+        id = "fotz",
+        sh = true,
+        gr = {
+            { id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_menu_fotz",
+              size = { 512, 50 }, spacing = 20 },
+            { id = "census", type = "check", val = 1, def = true },
+            { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
+        },
+    }
+end
