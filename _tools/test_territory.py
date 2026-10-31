@@ -5,7 +5,9 @@ Checked: the multiplier from a level's fighters, within its bounds; the table fr
 wars in force (only smarts an enemy at war holds, not your faction's wars, not peace); the wrapper
 raises and lowers a smart's score for the right squads and passes everything else through
 (other factions, squads as targets, a 0 score, varargs); story squads, companions, Homestead's
-garrisons and squads with a scripted target are left alone; MCM's switch and politics standing down
+garrisons and squads with a scripted target are left alone, and squads other mods claim (add_owner,
+AlifePlus's registry, Homestead's held squads; a claim that fails counts, and is logged once);
+MCM's switch and politics standing down
 unwind it, but never another mod's wrapper over it; wrapping again doesn't weigh twice; the
 census's log line and counters; the shipped config's numbers. The fronts: each enemy pair's shared
 levels, the biggest first; the upper hand at two thirds; news when a side newly takes it on a front
@@ -65,6 +67,16 @@ MUTANTS = {
     "news_uncounted": ("                said = said + 1\n", ""),
     "news_loser": ("{ b = P.faction_name(lose), place", "{ b = P.faction_name(win), place"),
     "fronts_unguarded": ("    local ok, err = pcall(take_fronts, c)", "    local ok, err = true, take_fronts(c)"),
+    "claims_ignored": ("    return e or squad.scripted_target ~= nil or owner_of(squad) ~= nil",
+                       "    return e or squad.scripted_target ~= nil"),
+    "failed_claim_steers": ("        if mine or not ok then", "        if ok and mine then"),
+    "failed_claim_logged_always": ("        if not ok and not failed[name] then", "        if not ok then"),
+    "alifeplus_ignored": ("    local ap = ap_api\n", "    local ap = nil\n"),
+    "alifeplus_unguarded": ("        local _, name = pcall(ap.get_owner, squad)", "        local name = ap.get_owner(squad)"),
+    "claim_kept": ("    owners[name] = nil\n", ""),
+    "bad_claim_taken": ('    if type(name) ~= "string" or type(fn) ~= "function" then', "    if false then"),
+    "homestead_held_ignored": ("    local hs = stalker_camp_builder\n", "    local hs = nil\n"),
+    "homestead_failure_steers": ("        if held or not ok then", "        if ok and held then"),
 }
 
 WORLD = r"""
@@ -235,6 +247,29 @@ stalker_camp_builder.rival_camps.camp_a = { squad_id = 903 }
     got.append(w.eval('score(101, "dolg", 904, "some_smart")'))
     got.append(w.eval('score(101, "dolg", 905)'))
     check(got == [10, 10, 10, 10, 12.5], "story, companion, garrison, scripted, ordinary: %s" % got)
+
+    # squads other mods claim: through add_owner, through AlifePlus's registry, and a claim that
+    # fails (left alone, logged once); a claim removed lets the steer back in
+    env = w.env
+    check(env.add_owner("theirs", w.eval("function(sq) return sq.id == 906 end")) is True
+          and env.add_owner("broken", w.eval('function(sq) if sq.id == 908 then error("no such field") end end')) is True
+          and env.add_owner(None, w.eval("function() return true end")) is False, "add_owner's answers")
+    w.run('ap_api = { get_owner = function(sq) if sq.id == 909 then error("bad squad") end '
+          'return sq.id == 907 and "warfare" or nil end }')
+    # Homestead's own check: its camps, reinforcements and convoys
+    w.run('function stalker_camp_builder.is_held_squad(sq) if sq.id == 911 then error("no camp") end return sq.id == 910 end')
+    got = [w.eval('score(101, "dolg", %d)' % i) for i in (906, 907, 908, 908, 909, 910, 911, 905)]
+    check(got == [10, 10, 10, 10, 10, 10, 10, 12.5],
+          "claimed by add_owner, by AlifePlus, failing twice, AlifePlus failing, Homestead's, Homestead "
+          "failing, ordinary: %s" % got)
+    fails = [l for l in w.log() if "broken's claim failed" in l]
+    check(len(fails) == 1, "the failed claim logged %d times" % len(fails))
+    check(env.owner_of(w.eval("{ id = 907 }")) == "warfare" and env.owner_of(w.eval("{ id = 905 }")) is None,
+          "owner_of: %s, %s" % (env.owner_of(w.eval("{ id = 907 }")), env.owner_of(w.eval("{ id = 905 }"))))
+    env.remove_owner("theirs")
+    w.run("ap_api = nil")
+    got = [w.eval('score(101, "dolg", %d)' % i) for i in (906, 907)]
+    check(got == [12.5, 12.5], "after the claims went: %s" % got)
 
 
 def switch(src):

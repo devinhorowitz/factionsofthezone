@@ -68,6 +68,22 @@ yourself, off unless you choose it, and whether companions join), politics on or
 territory steer, PDA news (off, wars and truces, or everything), the census log, the Factions
 page key, and, with Mod App Creator, the page's own PDA tab.
 
+## For other mods
+
+The territory steer only weighs squads the game routes itself, so squads a mod directs (by a
+scripted target or its own `get_script_target`) are never touched. A mod that holds squads without
+one, such as a garrison kept at its post by its stay time, can claim them, and the steer leaves them
+alone:
+
+```lua
+if fotz_territory and fotz_territory.add_owner then
+    fotz_territory.add_owner("my_mod", function(squad) return my_mod.holds(squad.id) end)
+end
+```
+
+Squads claimed in AlifePlus's owner registry (`ap_api.register_owner`), and the squads Homestead
+holds, are left alone too.
+
 ## Install
 
 With Claude Code, see [INSTALL-WITH-CLAUDE.md](INSTALL-WITH-CLAUDE.md). By hand: put the
@@ -84,7 +100,7 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
   scoring, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (165 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (174 so far); every
   one must fail.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
 

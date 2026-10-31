@@ -231,6 +231,20 @@ its player twin `actor_fotz_own`, team 37).
   no more than that.
 - **Left alone:** story squads, squads with a scripted target, the player's companions, and
   Homestead's outpost garrisons (`stalker_camp_builder.rival_camps[*].squad_id`).
+- **Other mods' squads.** The steer only sees a squad the game routes itself: `sim_squad_scripted`
+  (G.A.M.M.A.'s is ZCP 1.4 Balanced Spawns') asks the board for targets only in `generic_update`,
+  when the squad has no script target (a scripted target, `random_targets`, a target condlist, a
+  hostage, a companion, or a mod's own `get_script_target`) and isn't locked (`__lock`). So:
+  - AlifePlus directs its squads by `scripted_target` or, for chases, its `get_script_target`
+    hook, and never calls the board's scoring; a squad it releases goes back to the game.
+  - ZHOPA directs its managed squads through its `get_script_target` hook. It calls
+    `evaluate_prior` only to test a score above 0, which the steer never changes.
+  - A mod can hold squads without a script target: a garrison kept at its post by
+    `current_action` and `stay_time`, which asks the board again once its stay runs out. For
+    these, `fotz_territory.add_owner(name, fn)` (and `remove_owner`) lets the mod claim them; so
+    does AlifePlus's owner registry (`ap_api.get_owner`), and Homestead's `is_held_squad` (its
+    camps' garrisons, reinforcements and convoys) is read directly. A claim that fails counts as a
+    claim, logged once.
 - **The switch:** MCM's "Squads lean toward winning fronts", and Warfare mode, which runs the
   squads itself (politics' own switch doesn't matter: enmity exists without it). Off, the
   original is put back if Factions' wrapper is still the one in place. If another mod wrapped
@@ -259,8 +273,8 @@ its player twin `actor_fotz_own`, team 37).
   ranks), with a bounded multiplier (ZHOPA clamps its own to 0.35-1.5). Factions never sets a
   squad's `scripted_target`; AlifePlus, ZHOPA, P.O.L.I.C.Y and Pathfinder all do, and two
   commanders fight. It never touches story squads, squads with a script target, squads another
-  mod owns (AlifePlus's `ap_api.get_owner`, ZHOPA's managed flag, CtZ's mark), or Homestead's
-  garrisons.
+  mod owns (AlifePlus's `ap_api.get_owner`, ZHOPA's managed squads, a mod's own mark), or
+  Homestead's garrisons.
 - **No spawn rows.** AlifePlus writes `respawn_params` and `last_respawn_update` on smarts,
   AlifeBalance and ZCP gate on the latter; Factions leaves them alone.
 - **Uninstall-safe wrappers** (after ZHOPA): one switch unwinds every callback and wrapper, and

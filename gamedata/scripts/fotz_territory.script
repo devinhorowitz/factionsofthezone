@@ -11,9 +11,10 @@ score of 0 (not allowed) stays 0.
 
 The table is rebuilt from each census (once a game day, and after each load) and the relations
 then in force, the politics engine's wars among them. The same census gives the fronts the
-Factions page lists, and news where a side has newly taken the upper hand on one. Left alone: story squads, squads with a
-scripted target, the player's companions and Homestead's outpost garrisons. It stands down for
-Warfare mode, which runs the squads itself, and with its MCM switch. One
+Factions page lists, and news where a side has newly taken the upper hand on one. Left alone:
+story squads, squads with a scripted target, the player's companions, Homestead's outpost
+garrisons, and squads another mod claims (add_owner, or AlifePlus's owner registry). It stands
+down for Warfare mode, which runs the squads itself, and with its MCM switch. One
 wrapper, put in place as the game starts (after every script has loaded, so it wraps the version
 G.A.M.M.A. Economy put there), and unwound when the switch goes off if it is still the one in
 place. It saves nothing.
@@ -59,8 +60,57 @@ local function fighters(c, f, lv)
     return l and l.fighters or 0
 end
 
+-- other mods' squads. A squad another mod directs has a script target (a scripted target, its
+-- own get_script_target, a condlist) or Xlib's lock, so the game never asks it to choose and the
+-- steer never sees it. A mod that holds squads without one (a garrison kept at its post by its
+-- stay time, say) can claim them here, or in AlifePlus's owner registry: the steer leaves a
+-- claimed squad alone, and the squads Homestead holds. A claim that fails counts as one.
+local owners = {}         -- name -> function(squad), true while that mod holds the squad
+local failed = {}         -- owners whose claim has failed, logged once
+
+function add_owner(name, fn)
+    if type(name) ~= "string" or type(fn) ~= "function" then
+        return false
+    end
+    owners[name] = fn
+    return true
+end
+
+function remove_owner(name)
+    owners[name] = nil
+end
+
+-- the name of the mod holding a squad, or nil
+function owner_of(squad)
+    for name, fn in pairs(owners) do
+        local ok, mine = pcall(fn, squad)
+        if not ok and not failed[name] then
+            failed[name] = true
+            log("! %s's claim failed, its squads are left alone: %s", name, tostring(mine))
+        end
+        if mine or not ok then
+            return name
+        end
+    end
+    -- Homestead's camps, their reinforcements and convoys (what it registers with AlifePlus)
+    local hs = stalker_camp_builder
+    if hs and type(hs.is_held_squad) == "function" then
+        local ok, held = pcall(hs.is_held_squad, squad)
+        if held or not ok then
+            return "homestead"
+        end
+    end
+    local ap = ap_api
+    if ap and type(ap.get_owner) == "function" then
+        -- a lookup that fails gives its error, not nil: that squad is left alone too
+        local _, name = pcall(ap.get_owner, squad)
+        return name
+    end
+end
+
 -- whether the steer leaves a squad alone: a story squad, the player's companions, a Homestead
--- garrison (kept per census), or one with a scripted target (checked each time)
+-- garrison (kept per census), one with a scripted target, or one another mod claims (checked each
+-- time)
 local function left_alone(squad)
     local id = squad.id
     local e = exempt[id]
@@ -69,7 +119,7 @@ local function left_alone(squad)
         e = get_object_story_id(id) ~= nil or (comp ~= nil and comp[id] ~= nil) or garrison[id] == true
         exempt[id] = e
     end
-    return e or squad.scripted_target ~= nil
+    return e or squad.scripted_target ~= nil or owner_of(squad) ~= nil
 end
 
 -- the table, from a census and the wars in force; returns how many smarts it weighs

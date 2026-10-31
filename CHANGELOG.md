@@ -12,6 +12,10 @@
   fighters there), it says so in its own voice, with PDA news set to everything. Only a front that
   was there at the last census and has at least 10 fighters on it counts, and at most two such
   news a day, the biggest fronts first. Loading a save never sets it off.
+- **Other mods' squads are left alone.** The steer only weighs squads the game routes itself, so
+  squads AlifePlus or ZHOPA direct are never touched. Squads Homestead holds (its camps'
+  garrisons, reinforcements and convoys) and squads claimed in AlifePlus's owner registry are
+  left alone too, and any mod can claim squads it holds with `fotz_territory.add_owner`.
 - **Squads lean toward winning fronts.** When a squad picks where to go next, a smart held by a
   faction its own is at war with weighs more where its faction outnumbers the holder on that
   level, and less where it's outnumbered (from 0.6 to 1.5 times), on levels both sides are on. It's a bias in the game's own
