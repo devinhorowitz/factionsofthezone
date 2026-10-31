@@ -11,8 +11,14 @@ settlement as its base; recruit settlers who may, as their loyalty grows, join i
 alliances; and face rival factions that compete with the Zone's own. That also gives warfare
 mods, Warfare mode or Capture the Zone, a reason to fight.
 
-This is a plan, not a manual. What exists today is the census (0.1.0) and the politics engine
-(0.2.0).
+**Where it started.** On the G.A.M.M.A. Discord on 2026-10-26, Pikapika asked how close G.A.M.M.A.
+was to a mod that lets you start your own faction: in Fallout 4 he ran a mercenary company,
+recruiting everyone he could, giving them jobs, helping one faction and hurting another, and
+"homestead is like first step of making your own faction". The idea went to Homestead's author the
+same hour, and this mod is its faction half.
+
+This is a plan, not a manual. What exists today is the census (0.1.0), the politics engine
+(0.2.0) and the first part of your own faction (0.3.0).
 
 ## Decisions (2026-10-31)
 
@@ -232,13 +238,14 @@ its player twin `actor_fotz_own`, team 37).
   prosperity data on the settler record. Since 501f2fe its outposts change hands on their own
   (with a 6-hour cooldown), and wiping a hostile garrison brings a retaliation camp 2 to 4 hours
   later; the census sees both as ground taken.
-- **Homestead's own custom factions.** Its author has said the next update brings custom factions
-  with an emblem-making GUI (Discord, 2026-10-28), and that such a faction would start from your
-  current relations. Two mods each declaring a player faction would collide (team ids, the
-  player's faction, save safety), so the aim is one faction shared: Factions keeps the declaration,
-  the relations and the save safety; Homestead keeps the flag, the emblem and the settlement, and
-  reads the faction through a hook. Until then its Settlement Flag shows a Loner flag for a
-  Factions leader (no `homestead_settlement_flag_fotz_own` section; it falls back).
+- **Homestead's custom factions.** Its author has said a coming update brings custom factions with
+  an emblem-making GUI (Discord, 2026-10-28), starting from your current relations: the same idea
+  as this mod's, from the same conversation. They should be one faction, not two (two declared
+  player factions would fight over team ids, the player's faction and save safety): Factions
+  keeps the declaration, the relations, the members and the save safety; Homestead keeps the
+  flag, the emblem and the settlement, and reads the faction through a hook. Until then its
+  Settlement Flag shows a Loner flag for a Factions leader (no
+  `homestead_settlement_flag_fotz_own` section; it falls back).
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.
