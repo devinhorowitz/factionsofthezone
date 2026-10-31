@@ -104,6 +104,8 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   `test_text.py` checks the Russian tables' build.
 - `_tools/mutants.py` runs each test against broken copies of what it tests (198 so far); every
   one must fail.
+- `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
+  `build.py --check` passes and only once CHANGELOG.md has a section for the version.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
 
 ## Credits

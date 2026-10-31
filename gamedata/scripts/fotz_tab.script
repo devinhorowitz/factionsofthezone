@@ -15,7 +15,7 @@ page() builds everything the page shows, as text, so it can be tested away from 
 ui_fotz_tab.script only lays it out. Every word is a string id, st_fotz_tab_*.
 --]]
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 TAB_CAPTION = "st_fotz_tab"
 KEY_PATH = "fotz/tab_key"
 LOG_LINES = 6

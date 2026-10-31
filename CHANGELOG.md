@@ -9,9 +9,10 @@
   faction's fronts come first, then the biggest, five in all. To make room, the war log shows its
   last six events and your members list five.
 - **Fronts on the PDA map.** A marker on each level with a front of 10 fighters or more (and 3
-  a side: a big force and a few stragglers isn't a front), at a smart where its biggest front meets: red where your side fights, amber elsewhere, with the
-  biggest front named under it. Hover it for the level's fronts. The markers are never saved,
-  so removing the mod leaves nothing in a save, and MCM can turn them off.
+  a side: a big force and a few stragglers isn't a front), at a smart where its biggest front
+  meets: red where your side fights, amber elsewhere, with the biggest front named under it.
+  Hover it for the level's fronts. The markers are never saved, so removing the mod leaves
+  nothing in a save, and MCM can turn them off.
 - **News from the fronts.** When a side takes the upper hand on a front (two thirds of the
   fighters there), it says so in its own voice, with PDA news set to everything. Only a front that
   was there at the last census and has at least 10 fighters on it counts, and at most two such
@@ -23,12 +24,12 @@
   squads it holds with `fotz_territory.add_owner`.
 - **Squads lean toward winning fronts.** When a squad picks where to go next, a smart held by a
   faction its own is at war with weighs more where its faction outnumbers the holder on that
-  level, and less where it's outnumbered (from 0.6 to 1.5 times), on levels both sides are on. It's a bias in the game's own
-  choice, not an order: no squad is sent anywhere, no squads are added, and story squads, squads
-  on a scripted errand, your companions and Homestead's garrisons are left alone. "At war" is the
-  game's own enmity, so pairs G.A.M.M.A. starts as enemies (Duty and the Mercenaries) count, and
-  so do the wars politics declares. MCM can turn it off, and it's off in Warfare mode. Nothing
-  goes into your save.
+  level, and less where it's outnumbered (from 0.6 to 1.5 times), on levels both sides are on.
+  It's a bias in the game's own choice, not an order: no squad is sent anywhere, no squads are
+  added, and story squads, squads on a scripted errand, your companions and Homestead's
+  garrisons are left alone. "At war" is the game's own enmity, so pairs G.A.M.M.A. starts as
+  enemies (Duty and the Mercenaries) count, and so do the wars politics declares. MCM can turn
+  it off, and it's off in Warfare mode. Nothing goes into your save.
 
 ### 0.3.0: a faction of your own (first part)
 
