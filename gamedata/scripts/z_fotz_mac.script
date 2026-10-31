@@ -1,0 +1,54 @@
+--[[
+Factions of the Zone: the Factions page's tile in Mod App Creator's launcher (PDA > Launcher).
+
+The page opens three ways, the player's choice: its own PDA tab, this tile, or the MCM key that
+opens it flat. fotz_tab decides between the tab and the tile (with MAC, an MCM option; without
+MAC, always the tab) and calls add_tile and remove_tile. The tile opens the page's parked section
+(modxml_fotz_tab), which MAC routes to the page. Without MAC nothing here does anything.
+--]]
+
+local tiled = false
+
+local function log(fmt, ...)
+    printf("[fotz-tab] " .. fmt, ...)
+end
+
+function available()
+    return mac_mcm ~= nil and type(mac_mcm.add_app) == "function"
+end
+
+-- the tile in MAC's launcher, once. MAC asserts on what it is given, and the game starts every
+-- script in one pass that catches nothing: an error here is caught and logged
+function add_tile()
+    if tiled or not available() then
+        return
+    end
+    local ok, err = pcall(mac_mcm.add_app, "fotz", {
+        name = "st_fotz_tab",              -- the tile's label
+        texture = "fotz_app",              -- _e, _h, _t, _d in textures_descr/ui_fotz_app.xml
+        tab = modxml_fotz_tab.SECTION,     -- the parked section the page opens in
+        func = fotz_tab.page_ui,
+    })
+    if ok then
+        tiled = true
+    else
+        log("! no tile in Mod App Creator: %s", tostring(err))
+    end
+end
+
+-- the tile out of the launcher; one MAC can't take away stays, and says so
+function remove_tile()
+    if not tiled then
+        return
+    end
+    local ok, err = pcall(mac_mcm.remove_app, "fotz")
+    if ok then
+        tiled = false
+    else
+        log("! the tile stays in Mod App Creator: %s", tostring(err))
+    end
+end
+
+function has_tile()
+    return tiled
+end

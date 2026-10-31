@@ -22,11 +22,14 @@
   you lead it, push its relation with each faction, and it goes to war, makes truces and allies in
   its own name. It starts from the relations it was founded with; a disbanded faction's relations
   are dropped, and a new one starts from its own.
-- **The Factions tab.** A PDA tab of its own (Modded Exes' tab registry): your side, each
-  faction's standing with it in words and colors, how far politics has moved it and which way on
-  its last day, its leader (or that he's dead), the ground and fighters from the last census, the war log, your members, and "Restore relations", which puts
-  every pair back where it started after a second click. A key in MCM (unbound by default) opens
-  the page in a window of its own. English and Russian.
+- **The Factions page.** Your side, each faction's standing with it in words and colors, how far
+  politics has moved it and which way on its last day, its leader (or that he's dead), the ground
+  and fighters from the last census, the war log, your members, and "Restore relations", which
+  puts every pair back where it started after a second click. English and Russian.
+- **Open it your way:** a PDA tab of its own (Modded Exes' tab registry), its tile in Mod App
+  Creator's launcher, or a key in MCM (unbound by default) that opens it in a window of its own.
+  Mod App Creator is optional: without it the page has its tab; with it, the tile, or the tab if
+  MCM's "Its own PDA tab" is on. From the tile, the page has Back to the launcher.
 - Still to come in 0.3.0: settlers who may join as their loyalty grows.
 
 ### 0.2.0: the politics engine

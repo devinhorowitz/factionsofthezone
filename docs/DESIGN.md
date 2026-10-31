@@ -221,8 +221,14 @@ its player twin `actor_fotz_own`, team 37).
 ## 4. PDA and news
 
 - **The Factions tab (0.3.0):** `fotz_tab.script` registers it a second into play (Modded Exes'
-  `pda_dynamic_tabs`); `ui_fotz_tab.script` and `configs/ui/ui_fotz_tab.xml` draw it; an MCM key
-  opens the same page flat, sharp in the 3D PDA, and it closes on Escape, the key, or a load.
+  `pda_dynamic_tabs`); `ui_fotz_tab.script` and `configs/ui/ui_fotz_tab.xml` draw it.
+  - **Three ways in, the player's choice:** its own PDA tab, Mod App Creator's tile
+    (`z_fotz_mac`, with a parked section `eptFactions` added by DXML in `modxml_fotz_tab`, which
+    MAC routes to the page; Back on the page returns to the launcher), or an MCM key that opens
+    it flat, sharp in the 3D PDA, closing on Escape, the key, or a load. MAC is optional: without
+    it the page has its tab; with it, the tile, unless MCM's "Its own PDA tab" (there only with
+    MAC) asks for the tab (`fotz_tab.wants_tab`, `sync`, as Arsenal and Seasons do). The key works
+    either way.
   What it shows, all built as text by `fotz_tab.page()`:
   - your side: the faction you lead (its name, founding, old faction, members) or, without one,
     your own, with that faction's icon; and whether politics is in charge or why not;
@@ -249,7 +255,9 @@ its player twin `actor_fotz_own`, team 37).
 - **Art by reference only.** The tab points at textures the game already has: the faction icon
   atlas (`ui_mm_faction_<faction>`, 64 px, with inactive variants), leader portraits and the news
   icons. HD packs that replace them (HD Faction Patches, BBFI) show through, and Factions ships no
-  art: almost no art addon on ModDB grants reuse.
+  art of others: almost no art addon on ModDB grants reuse. The one picture it ships is its own:
+  the MAC tile, a banner drawn in code (`_tools/make_tile.py`). A tile borrowing the faction icon
+  atlas would break under HD Faction Patches, which moves every icon in it.
 - **News in the factions' own voices,** signed with portraits, on the PDA only; the player plays
   nearly HUD-less. MCM sets how much. Never an internal id ("dolg", "killer") in a message.
 - English and Russian.

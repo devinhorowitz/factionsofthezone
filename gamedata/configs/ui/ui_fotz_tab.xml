@@ -82,6 +82,14 @@
         <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
     </restore_label>
 
+    <!-- Back to Mod App Creator's launcher, while the page has its tile there -->
+    <back x="680" y="612" width="96" height="28">
+        <texture>ui_button_ordinary</texture>
+    </back>
+    <back_label x="680" y="618" width="96" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </back_label>
+
     <!-- above the flat frame's inner edge (the PDA's own background ends at 709) -->
     <credit x="470" y="666" width="306" height="16">
         <text font="letterica16" r="120" g="120" b="120" align="r" vert_align="c"/>

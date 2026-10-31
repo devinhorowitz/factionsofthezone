@@ -6,7 +6,7 @@ each load, and changing them founds, renames or disbands that save's faction.
 --]]
 
 function on_mcm_load()
-    return {
+    local page = {
         id = "fotz",
         sh = true,
         gr = {
@@ -28,4 +28,10 @@ function on_mcm_load()
             { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
         },
     }
+    -- with Mod App Creator, the page opens from its tile unless this asks for its own tab; without
+    -- MAC it always has the tab, so the option isn't there
+    if z_fotz_mac and z_fotz_mac.available() then
+        table.insert(page.gr, #page.gr, { id = "pda_tab", type = "check", val = 1, def = false })
+    end
+    return page
 end

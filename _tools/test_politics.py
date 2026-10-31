@@ -602,7 +602,7 @@ def strings(src):
     for opt in re.findall(r'id = "(\w+)", type = "(?:check|list)"', mcm):
         want |= {"ui_mcm_fotz_" + opt, "ui_mcm_fotz_" + opt + "_desc"}
     want |= {"ui_mcm_lst_" + k for k in re.findall(r'\{ "\w+", "(fotz_news_\w+)" \}', mcm)}
-    check(len(want) == 23, "%d string ids were looked for, not 23" % len(want))
+    check(len(want) == 25, "%d string ids were looked for, not 25" % len(want))
     want |= {"st_fotz_faction_" + f for f in ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army",
                                               "ecolog", "monolith", "renegade", "greh", "isg")}
     missing = sorted(want - have)

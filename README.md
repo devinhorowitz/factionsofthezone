@@ -47,14 +47,19 @@ in `fotz_census.jsonl` in the game's appdata folder (`<Anomaly>\appdata`).
 python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
 
-**The Factions tab.** A PDA tab of its own: your side (the faction you lead, or your own), each
-faction's standing with it, how far and which way it has moved, its leader, the ground and fighters the census found, the
-war log, your members, and a button that puts every relation back where it started. A key in MCM
-opens the same page in a window of its own, sharper than the 3D PDA.
+**The Factions page.** Your side (the faction you lead, or your own), each faction's standing with
+it, how far and which way it has moved, its leader, the ground and fighters the census found, the
+war log, your members, and a button that puts every relation back where it started.
+
+Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
+key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
+without it the page has its tab; with it, the tile, or the tab if you choose it in MCM. The key
+works either way.
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
 yourself, off unless you choose it, and whether companions join), politics on or off, PDA news
-(off, wars and truces, or everything), the census log, and the Factions page key.
+(off, wars and truces, or everything), the census log, the Factions page key, and, with Mod App
+Creator, the page's own PDA tab.
 
 ## Install
 

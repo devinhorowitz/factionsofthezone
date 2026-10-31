@@ -262,6 +262,15 @@
 	<string id="st_fotz_tab_leader_dead">
 		<text>{name} (dead)</text>
 	</string>
+	<string id="st_fotz_tab_back">
+		<text>Back</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab">
+		<text>Its own PDA tab</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab_desc">
+		<text>The Factions page opens your way: from its tile in Mod App Creator's launcher, from a PDA tab of its own (check this), or in a window of its own with the key below. Without Mod App Creator it always has its tab.</text>
+	</string>
 	<string id="st_fotz_tab_sep">
 		<text>·</text>
 	</string>
@@ -272,7 +281,7 @@
 		<text>Factions page key</text>
 	</string>
 	<string id="ui_mcm_fotz_tab_key_desc">
-		<text>Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page is also the PDA's Factions tab.</text>
+		<text>Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page also opens from its own PDA tab, or from its tile in Mod App Creator's launcher.</text>
 	</string>
 	<!-- the base game's news names a faction by these; your faction's members are stalkers -->
 	<string id="st_dyn_news_comm_fotz_own_1">

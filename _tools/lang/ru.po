@@ -418,8 +418,8 @@ msgid "Factions page key"
 msgstr "Клавиша страницы группировок"
 
 msgctxt "ui_mcm_fotz_tab_key_desc"
-msgid "Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page is also the PDA's Factions tab."
-msgstr "Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Та же страница есть во вкладке «Группировки» КПК."
+msgid "Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page also opens from its own PDA tab, or from its tile in Mod App Creator's launcher."
+msgstr "Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Страница открывается и из своей вкладки КПК или из значка в меню приложений Mod App Creator."
 
 msgctxt "st_fotz_tab_sep"
 msgid "·"
@@ -428,3 +428,15 @@ msgstr "·"
 msgctxt "st_fotz_tab_leader_dead"
 msgid "{name} (dead)"
 msgstr "{name} (погиб)"
+
+msgctxt "st_fotz_tab_back"
+msgid "Back"
+msgstr "Назад"
+
+msgctxt "ui_mcm_fotz_pda_tab"
+msgid "Its own PDA tab"
+msgstr "Своя вкладка КПК"
+
+msgctxt "ui_mcm_fotz_pda_tab_desc"
+msgid "The Factions page opens your way: from its tile in Mod App Creator's launcher, from a PDA tab of its own (check this), or in a window of its own with the key below. Without Mod App Creator it always has its tab."
+msgstr "Страница группировок открывается как вам удобнее: из значка в меню приложений Mod App Creator, из своей вкладки КПК (отметьте) или в отдельном окне по клавише ниже. Без Mod App Creator у неё всегда своя вкладка."

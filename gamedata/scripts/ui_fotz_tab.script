@@ -158,7 +158,22 @@ function FactionsTab:InitControls()
         self:Register(self.restore, "restore")
         self:AddCallback("restore", ui_events.BUTTON_CLICKED, self.OnRestore, self)
     end
+    self.back = xml:Init3tButton("back", self)
+    self.back_label = xml:InitTextWnd("back_label", self)
+    put(self.back_label, fotz_tab.text("st_fotz_tab_back"))
+    if self.back then
+        self:Register(self.back, "back")
+        self:AddCallback("back", ui_events.BUTTON_CLICKED, self.OnBack, self)
+    end
     self.credit = xml:InitTextWnd("credit", self)
+end
+
+-- Back to MAC's launcher, the way MAC's own key goes
+function FactionsTab:OnBack()
+    local m = ActorMenu.get_pda_menu()
+    if m then
+        m:SetActiveSubdialog("eptLauncher")
+    end
 end
 
 function FactionsTab:Fill()
@@ -195,13 +210,17 @@ function FactionsTab:Fill()
         end
     end
     for i, w in ipairs(self.log or {}) do
-        put(w, fit(p.log[i], 46))
+        put(w, fit(p.log[i], 60))
     end
     show(self.members_heading, p.members ~= nil)
     for i, w in ipairs(self.members or {}) do
-        put(w, p.members and fit(p.members[i], 46) or "")
+        put(w, p.members and fit(p.members[i], 60) or "")
     end
     put(self.credit, p.credit)
+    -- Back while the page came from MAC's tile; flat, or from its own tab, the way out is the PDA's
+    local back = not self.flat and fotz_tab.back_to_launcher()
+    show(self.back, back)
+    show(self.back_label, back)
     self.confirm_until = nil
     put(self.restore_label, fotz_tab.text("st_fotz_tab_restore"))
 end

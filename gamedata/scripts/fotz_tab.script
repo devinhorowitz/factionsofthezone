@@ -1,8 +1,10 @@
 --[[
 Factions of the Zone: the Factions tab.
 
-A tab of its own in the PDA (Modded Exes' registry, pda_dynamic_tabs), registered a second into
-play, never during a load. It shows your side, the faction you lead or, without one, your own;
+The page opens three ways, the player's choice: a tab of its own in the PDA (Modded Exes' registry,
+pda_dynamic_tabs, registered a second into play, never during a load), Mod App Creator's tile
+(z_fotz_mac; with MAC an MCM option picks the tile or the tab), or a key that opens it flat. It
+shows your side, the faction you lead or, without one, your own;
 each faction's standing with it, what holds that standing (a war, a truce, an alliance), how far
 politics has moved it and which way on its last day, its leader, and the ground and fighters the
 last census found; the war log, newest
@@ -223,8 +225,9 @@ end
 
 -- the tab -------------------------------------------------------------------------------------
 
--- the page for the PDA; a page that fails to build is logged and the tab comes up empty
-local function safe_ui()
+-- the page for the PDA, from its tab or MAC's tile; a page that fails to build is logged and
+-- comes up empty
+function page_ui()
     local ok, ui = pcall(function() return ui_fotz_tab.get_ui() end)
     if ok then
         return ui
@@ -237,21 +240,85 @@ function supported()
     return pda_dynamic_tabs ~= nil and type(pda_dynamic_tabs.register) == "function"
 end
 
-local function register()
-    if TAB or not supported() then
-        return
+-- The page opens three ways, the player's choice: its own PDA tab, Mod App Creator's tile, or the
+-- key. Without MAC it has the tab; with MAC, the tile, unless MCM asks for the tab (the option
+-- exists only with MAC, so MAC is asked first: MCM logs a read of an option no page defines).
+function wants_tab()
+    if not supported() then
+        return false
     end
-    local ok, id = pcall(pda_dynamic_tabs.register, TAB_CAPTION, safe_ui)
-    if ok and type(id) == "string" then
-        TAB = id
-        log("the Factions tab is %s", id)
-    else
-        log("! no Factions tab: %s", tostring(id))
+    return not z_fotz_mac.available() or (ui_mcm ~= nil and ui_mcm.get("fotz/pda_tab") == true)
+end
+
+-- the section the PDA shows, or nil while it can't be read
+local function pda_section()
+    local ok, s = pcall(function()
+        local m = ActorMenu.get_pda_menu()
+        return m and m:GetActiveSection()
+    end)
+    return ok and s or nil
+end
+
+-- The tab there or gone as wants_tab() says, and the tile the other way round; a tab the registry
+-- refuses leaves the tile. The registry rebuilds the tab bar, and the engine may then select a
+-- registered tab's page: the section the PDA was on is put back, and if it was the tab taken away,
+-- the PDA goes to Tasks, its own first page.
+function sync()
+    local want = wants_tab()
+    if want and not TAB then
+        local was = pda_section()
+        local ok, id = pcall(pda_dynamic_tabs.register, TAB_CAPTION, page_ui)
+        if ok and type(id) == "string" then
+            TAB = id
+            z_fotz_mac.remove_tile()
+            log("the Factions tab is %s", id)
+        else
+            log("! no Factions tab: %s", tostring(id))
+            z_fotz_mac.add_tile()
+        end
+        local m = ActorMenu.get_pda_menu()
+        if m and was and was ~= "" and m:GetActiveSection() ~= was then
+            m:SetActiveSubdialog(was)
+        end
+    elseif not want then
+        local was, gone = pda_section(), TAB
+        if gone then
+            TAB = nil
+            local ok, err = pcall(pda_dynamic_tabs.unregister, gone)
+            if not ok then
+                log("! the tab could not be taken away: %s", tostring(err))
+            end
+        end
+        z_fotz_mac.add_tile()
+        local m = ActorMenu.get_pda_menu()
+        if m and gone then
+            if m:GetActiveSection() == gone or was == gone then
+                m:SetActiveSubdialog("eptTasks")
+            elseif was and was ~= "" and m:GetActiveSection() ~= was then
+                m:SetActiveSubdialog(was)
+            end
+        end
     end
 end
 
+local function sync_soon(delay)
+    CreateTimeEvent("fotz_tab", "sync", delay, function()
+        local ok, err = pcall(sync)
+        if not ok then
+            log("! the tab: %s", tostring(err))
+        end
+        return true
+    end)
+end
+
+-- the section the page is on in the PDA: its tab's, or the tile's parked one
 function section()
-    return TAB
+    return TAB or modxml_fotz_tab.SECTION
+end
+
+-- whether a page in the PDA should offer Back to MAC's launcher: while the page has its tile
+function back_to_launcher()
+    return z_fotz_mac.has_tile() == true
 end
 
 -- the flat window's key: its DIK code, or nil while unbound. Read at each press, so a change in
@@ -292,12 +359,9 @@ end
 
 function on_game_start()
     fotz_census.listen(function(c) LAST = c end)
-    RegisterScriptCallback("actor_on_first_update", function()
-        CreateTimeEvent("fotz_tab", "register", 1, function()
-            register()
-            return true
-        end)
-    end)
+    -- the tab or the tile in play only: a registration during a load crashed in testing
+    RegisterScriptCallback("actor_on_first_update", function() sync_soon(1) end)
+    RegisterScriptCallback("on_option_change", function() sync_soon(0) end)
     RegisterScriptCallback("on_key_press", on_key_press)
     RegisterScriptCallback("actor_on_net_destroy", close_flat)
 end

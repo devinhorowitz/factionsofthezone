@@ -61,6 +61,9 @@ is the `VERSION = "x.y.z"` line in that script. Below, `<folder>` is that folder
 - What was installed, and where any backup went.
 - Factions' relations change as the factions fight, once a game day; the player can found a
   faction of their own in MCM under Factions of the Zone. Both can be switched off there.
+- The Factions page opens the player's way: from a PDA tab of its own, from its tile in Mod App
+  Creator's launcher (if MAC is installed; MCM can swap the tile for the tab), or with a key they
+  can set in MCM.
 - Removing it later is always safe: no save ever holds the player's faction.
 
 ## Removing it

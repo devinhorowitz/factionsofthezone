@@ -261,6 +261,15 @@
 	<string id="st_fotz_tab_leader_dead">
 		<text>{name} (погиб)</text>
 	</string>
+	<string id="st_fotz_tab_back">
+		<text>Назад</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab">
+		<text>Своя вкладка КПК</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab_desc">
+		<text>Страница группировок открывается как вам удобнее: из значка в меню приложений Mod App Creator, из своей вкладки КПК (отметьте) или в отдельном окне по клавише ниже. Без Mod App Creator у неё всегда своя вкладка.</text>
+	</string>
 	<string id="st_fotz_tab_sep">
 		<text>·</text>
 	</string>
@@ -271,7 +280,7 @@
 		<text>Клавиша страницы группировок</text>
 	</string>
 	<string id="ui_mcm_fotz_tab_key_desc">
-		<text>Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Та же страница есть во вкладке «Группировки» КПК.</text>
+		<text>Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Страница открывается и из своей вкладки КПК или из значка в меню приложений Mod App Creator.</text>
 	</string>
 	<string id="st_dyn_news_comm_fotz_own_1">
 		<text>сталкер</text>

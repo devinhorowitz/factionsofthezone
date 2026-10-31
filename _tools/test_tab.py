@@ -18,7 +18,10 @@ import sys
 import test_politics as TP
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SCRIPT = os.path.join(HERE, "..", "gamedata", "scripts", "fotz_tab.script")
+SCRIPTS_DIR = os.path.join(HERE, "..", "gamedata", "scripts")
+#: the scripts the tab is made of, by module name; a mutant names its module when it isn't fotz_tab
+MODULES = ("fotz_tab", "z_fotz_mac", "modxml_fotz_tab", "fotz_mcm")
+SCRIPT = os.path.join(SCRIPTS_DIR, "fotz_tab.script")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
 MUTANTS = {
@@ -43,6 +46,22 @@ MUTANTS = {
                     "local name = se and se:character_name()"),
     "trend_sign": ('return t > 0 and "up" or "down"', 'return t > 0 and "down" or "up"'),
     "event_split": ('event = event_line(ev) or ""', 'event = ""'),
+    "no_mac_no_tab": ('    return not z_fotz_mac.available() or (ui_mcm ~= nil and ui_mcm.get("fotz/pda_tab") == true)',
+                      '    return ui_mcm ~= nil and ui_mcm.get("fotz/pda_tab") == true'),
+    "mac_tab_always": ('    return not z_fotz_mac.available() or (ui_mcm ~= nil and ui_mcm.get("fotz/pda_tab") == true)',
+                       "    return true"),
+    "tab_keeps_tile": ("            TAB = id\n            z_fotz_mac.remove_tile()\n", "            TAB = id\n"),
+    "refused_no_tile": ('            log("! no Factions tab: %s", tostring(id))\n            z_fotz_mac.add_tile()\n',
+                        '            log("! no Factions tab: %s", tostring(id))\n'),
+    "gone_stays": ('                m:SetActiveSubdialog("eptTasks")', "                m:SetActiveSubdialog(gone)"),
+    "tile_section": ("        tab = modxml_fotz_tab.SECTION,     -- the parked section the page opens in",
+                     '        tab = "eptLauncher",', "z_fotz_mac"),
+    "tile_twice": ("    if tiled or not available() then", "    if not available() then", "z_fotz_mac"),
+    "dxml_twice": ('    if #xml:query("tab > button[id=" .. SECTION .. "]") > 0 then\n        return false\n    end\n', "",
+                   "modxml_fotz_tab"),
+    "dxml_no_caption": ('    if not (tab and xml:query("caption_static")[1]) then', "    if not tab then", "modxml_fotz_tab"),
+    "dxml_any_file": ('    if not string.match(name, "^ui[\\\\/]pda[%w_]*%.xml$") then', "    if false then", "modxml_fotz_tab"),
+    "mcm_option_always": ("    if z_fotz_mac and z_fotz_mac.available() then", "    if true then", "fotz_mcm"),
 }
 
 FACTIONS = ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
@@ -61,7 +80,7 @@ def check(cond, what):
 class Tab:
     """The politics world, with the tab's script loaded beside it."""
 
-    def __init__(self, src, pre=None, m_data=None):
+    def __init__(self, srcs, pre=None, m_data=None, mac=False):
         self.p = TP.World(io.open(TP.SCRIPT, encoding="utf-8").read(), anchors=TP.DK_ANCHORS, pre=pre, m_data=m_data)
         lua, g = self.p.lua, self.p.g
         g.fotz_politics = self.p.env
@@ -86,8 +105,34 @@ function get_story_se_object(id)
 end
 """)
         lua.execute("function CreateTimeEvent() end")
-        self.env = lua.eval("function(src) local env = setmetatable({}, { __index = _G }) "
-                            "local f = assert(loadstring(src, 'fotz_tab')) setfenv(f, env) f() return env end")(src)
+        # Modded Exes' tab registry, the PDA window, and Mod App Creator when `mac`
+        lua.execute("""
+REG, UNREG, REFUSE = {}, {}, false
+pda_dynamic_tabs = {
+    register = function(caption, fn) assert(not REFUSE, "refused") REG[#REG + 1] = caption; PAGE_FN = fn; return "ept_dynamic_1" end,
+    unregister = function(id) UNREG[#UNREG + 1] = id; return true end }
+MENU = nil
+ActorMenu = { get_pda_menu = function() return MENU end }
+function pda_menu(section)
+    MENU = { section = section, went = {} }
+    function MENU:GetActiveSection() return self.section end
+    function MENU:SetActiveSubdialog(s) self.went[#self.went + 1] = s; self.section = s end
+    return MENU
+end
+""")
+        if mac:
+            lua.execute("""
+APPS, REMOVED, ADDS = {}, {}, 0
+mac_mcm = { add_app = function(id, data) ADDS = ADDS + 1; APPS[id] = data end,
+            remove_app = function(id) REMOVED[#REMOVED + 1] = id; APPS[id] = nil end }
+""")
+        load = lua.eval("function(src, name) local env = setmetatable({}, { __index = _G }) "
+                        "local f = assert(loadstring(src, name)) setfenv(f, env) f() return env end")
+        g = self.p.g
+        for name in ("modxml_fotz_tab", "z_fotz_mac", "fotz_mcm"):
+            g[name] = load(srcs[name], name)
+        self.env = load(srcs["fotz_tab"], "fotz_tab")
+        g.fotz_tab = self.env
         self.env.on_game_start()
 
     def run(self, code):
@@ -114,8 +159,8 @@ def lines(t):
     return [t[i] for i in range(1, len(t) + 1)]
 
 
-def your_own(src):
-    t = Tab(src)
+def your_own(srcs):
+    t = Tab(srcs)
     p = t.page()
     r = rows(p)
     check(p.leading is False and p.side == "dolg" and p.title == "Duty", "side %s, title %s" % (p.side, p.title))
@@ -171,8 +216,8 @@ def your_own(src):
     return t
 
 
-def yours(src):
-    t = Tab(src, pre=TP.led_lua() + """
+def yours(srcs):
+    t = Tab(srcs, pre=TP.led_lua() + """
 fotz_faction.F.members = { [501] = { name = "Vaska", mother = "stalker", joined = "2012-05-01" },
                            [502] = { name = "Oleg", mother = "dolg", joined = "2012-05-01", dead = true },
                            [503] = { name = "Fedya", mother = "csky", joined = "2012-05-02" } }
@@ -197,8 +242,8 @@ NEAR = { [501] = {} }
     return t
 
 
-def restore(src):
-    t = Tab(src)
+def restore(srcs):
+    t = Tab(srcs)
     t.run('day("2012-05-01")')
     t.run('kill("dolg", "killer", "veteran", 60)')
     t.run('day("2012-05-02")')
@@ -209,14 +254,14 @@ def restore(src):
     check(lines(t.page().log)[0] == "02.05  Relations restored to their start", "log %s" % lines(t.page().log))
 
 
-def strings(src):
+def strings(srcs):
     import re
     import xml.etree.ElementTree as ET
     root = ET.fromstring(open(TP.ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
     have = {s.get("id") for s in root.iter("string")}
     ui = io.open(os.path.join(HERE, "..", "gamedata", "scripts", "ui_fotz_tab.script"), encoding="utf-8").read()
     # whole ids; the prefixes the script builds ids from are listed below in full
-    want = {w for w in re.findall(r'"(st_fotz_tab\w*)"', src + ui) if not w.endswith("_")}
+    want = {w for w in re.findall(r'"(st_fotz_tab\w*)"', srcs["fotz_tab"] + ui + srcs["z_fotz_mac"]) if not w.endswith("_")}
     for b in ("war", "enemies", "truce", "neutral", "friends", "alliance"):
         want.add("st_fotz_tab_band_" + b)
     for k in ("war", "war_over", "truce", "truce_over", "alliance", "alliance_over", "restored"):
@@ -227,31 +272,115 @@ def strings(src):
         want.add("st_fotz_tab_member_" + s)
     for d in ("off", "dynamic", "warfare", "dfrc", "fluid"):
         want.add("st_fotz_tab_down_" + d)
-    want |= {"ui_mcm_fotz_tab_key", "ui_mcm_fotz_tab_key_desc"}
+    want |= {"ui_mcm_fotz_tab_key", "ui_mcm_fotz_tab_key_desc", "ui_mcm_fotz_pda_tab", "ui_mcm_fotz_pda_tab_desc"}
     missing = sorted(want - have)
     check(not missing, "missing from the English table: %s" % missing)
     return len(want)
 
 
-def run(src):
-    n = strings(src)
-    your_own(src)
-    yours(src)
-    restore(src)
-    return "3 scenarios, %d strings" % n
+def ways_in(srcs):
+    # without Mod App Creator: the page's own tab, no tile
+    t = Tab(srcs)
+    t.env.sync()
+    check(list(t.p.g.REG.values()) == ["st_fotz_tab"] and t.env.section() == "ept_dynamic_1",
+          "without MAC: registered %s, section %s" % (list(t.p.g.REG.values()), t.env.section()))
+    check(t.env.back_to_launcher() is False, "Back to a launcher without MAC")
+
+    # with MAC: the tile, until MCM asks for the tab
+    t = Tab(srcs, mac=True)
+    t.env.sync()
+    app = t.p.g.APPS["fotz"]
+    check(len(t.p.g.REG) == 0 and app is not None, "with MAC: registered %s, tile %s" % (len(t.p.g.REG), app))
+    same_fn = t.p.lua.eval("function() return APPS.fotz.func == fotz_tab.page_ui end")()
+    check(app.tab == "eptFactions" and app.texture == "fotz_app" and app.name == "st_fotz_tab" and same_fn,
+          "the tile: %s %s %s" % (app.tab, app.texture, app.name))
+    check(t.env.section() == "eptFactions" and t.env.back_to_launcher() is True, "tiled: section %s" % t.env.section())
+    t.env.sync()
+    check(t.p.g.ADDS == 1, "a second sync gave MAC the tile again (%d adds)" % t.p.g.ADDS)
+    t.run('MCM["fotz/pda_tab"] = true; pda_menu("eptTasks")')
+    t.env.sync()
+    check(list(t.p.g.REG.values()) == ["st_fotz_tab"] and t.p.g.APPS["fotz"] is None and list(t.p.g.REMOVED.values()) == ["fotz"],
+          "the option on: tab %s, tile %s" % (list(t.p.g.REG.values()), t.p.g.APPS["fotz"]))
+    check(t.p.g.MENU.section == "eptTasks", "the PDA left its page for %s" % t.p.g.MENU.section)
+    # off again while the page is open in its tab: the tile comes back, the PDA goes to Tasks
+    t.run('MCM["fotz/pda_tab"] = false; pda_menu("ept_dynamic_1")')
+    t.env.sync()
+    check(list(t.p.g.UNREG.values()) == ["ept_dynamic_1"] and t.p.g.APPS["fotz"] is not None,
+          "the option off: unregistered %s, tile %s" % (list(t.p.g.UNREG.values()), t.p.g.APPS["fotz"]))
+    check(t.p.g.MENU.section == "eptTasks", "the PDA stayed on a tab that's gone: %s" % t.p.g.MENU.section)
+
+    # a tab the registry refuses leaves the tile
+    t = Tab(srcs, mac=True)
+    t.run('MCM["fotz/pda_tab"] = true; REFUSE = true')
+    t.env.sync()
+    check(t.p.g.APPS["fotz"] is not None and t.env.section() == "eptFactions", "refused: no tile")
+
+
+#: a DXML document as far as the edit reads it
+FAKE_XML = """
+function fake_xml(has_tab, has_caption)
+    local x = { inserted = {} }
+    function x:query(q)
+        if q == "tab" then return has_tab and { "TAB" } or {} end
+        if q == "caption_static" then return has_caption and { "CAP" } or {} end
+        if string.find(q, "eptFactions", 1, true) then return #self.inserted > 0 and { "BTN" } or {} end
+        return {}
+    end
+    function x:insertFromXMLString(s, parent) self.inserted[#self.inserted + 1] = { s = s, parent = parent } end
+    return x
+end
+"""
+
+
+def parked(srcs):
+    t = Tab(srcs)
+    t.run(FAKE_XML)
+    edit = t.p.g.modxml_fotz_tab.edit
+    x = t.p.lua.eval("fake_xml(true, true)")
+    check(edit("ui\\pda_16.xml", x) is True and edit("ui\\pda_16.xml", x) is False and len(x.inserted) == 1,
+          "the button went in %d times" % len(x.inserted))
+    b = x.inserted[1]
+    check('id="eptFactions"' in b.s and 'width="0"' in b.s and 'x="1000"' in b.s and b.parent == "TAB",
+          "the button: %s" % b.s)
+    for name, args in (("ui\\pda.xml", (True, False)), ("ui\\pda_apps_16.xml", (True, False)),
+                       ("ui\\ui_actor_menu.xml", (True, True)), ("gameplay\\dialogs.xml", (True, True))):
+        y = t.p.lua.eval("fake_xml(%s, %s)" % tuple("true" if a else "false" for a in args))
+        check(edit(name, y) is False and len(y.inserted) == 0, "a button in %s" % name)
+
+
+def mcm_option(srcs):
+    t = Tab(srcs)
+    ids = [g.id for g in t.p.g.fotz_mcm.on_mcm_load().gr.values()]
+    check("pda_tab" not in ids, "the tab option without MAC")
+    t = Tab(srcs, mac=True)
+    ids = [g.id for g in t.p.g.fotz_mcm.on_mcm_load().gr.values()]
+    check("pda_tab" in ids and ids[-1] == "about" and ids.index("pda_tab") == ids.index("tab_key") + 1,
+          "with MAC, the options: %s" % ids)
+
+
+def run(srcs):
+    n = strings(srcs)
+    your_own(srcs)
+    yours(srcs)
+    restore(srcs)
+    ways_in(srcs)
+    parked(srcs)
+    mcm_option(srcs)
+    return "6 scenarios, %d strings" % n
 
 
 def main():
-    src = io.open(SCRIPT, encoding="utf-8").read()
+    srcs = {m: io.open(os.path.join(SCRIPTS_DIR, m + ".script"), encoding="utf-8").read() for m in MODULES}
     if len(sys.argv) > 1:
         name = sys.argv[1]
-        old, new = MUTANTS[name]
-        if src.count(old) != 1:
-            print("MUTANT DOES NOT APPLY: %s (found %d times)" % (name, src.count(old)))
+        m = MUTANTS[name]
+        old, new, module = m[0], m[1], (m[2] if len(m) > 2 else "fotz_tab")
+        if srcs[module].count(old) != 1:
+            print("MUTANT DOES NOT APPLY: %s (found %d times)" % (name, srcs[module].count(old)))
             return 2
-        src = src.replace(old, new)
+        srcs[module] = srcs[module].replace(old, new)
     try:
-        print("ok: " + run(src))
+        print("ok: " + run(srcs))
         return 0
     except Fail as e:
         print("FAIL: %s" % e)
