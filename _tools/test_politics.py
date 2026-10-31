@@ -43,8 +43,8 @@ MUTANTS = {
     "warfare": ("if IsWarfare and IsWarfare() then", "if false then"),
     "warfare_flag": ("if IsWarfare and IsWarfare() then", "if _G.WARFARE then"),
     "off_keeps": ("local d = on and (state().drift[p.key] or 0) or 0", "local d = state().drift[p.key] or 0"),
-    "player_weight": ("if killer:id() == AC_ID then\n        comm, weight = get_actor_true_community(), cfg.player_kill",
-                      "if killer:id() == AC_ID then\n        comm, weight = get_actor_true_community(), nil"),
+    "player_weight": ("if killer:id() == AC_ID then\n        comm, weight = players_side(), cfg.player_kill",
+                      "if killer:id() == AC_ID then\n        comm, weight = players_side(), nil"),
     "silent_kill": ("if owner and owner:id() == AC_ID then", "if false then"),
     "rank_weight": ("(cfg.rank_weight[rank] or 1)", "1"),
     "forward": ("        return orig(...)\n", "        return orig()\n"),
@@ -63,6 +63,18 @@ MUTANTS = {
     "string_id": ('"st_fotz_news_alliance_plain"', '"st_fotz_news_alliance_plane"'),
     "news_unlogged": ('        log("news: %s", text)\n', ""),
     "base_names": ("    local s = game.translate_string(id)\n", "    local s = id\n"),
+    "own_no_pairs": ("    if not F then\n        return\n    end\n    SIDES[#SIDES + 1] = OWN",
+                     "    if true then\n        return\n    end\n    SIDES[#SIDES + 1] = OWN"),
+    "own_anchor_live": ("anchor[k] = F and F.base[k] or live", "anchor[k] = live"),
+    "own_anchor_of": ("return F and F.base[k] or relation_registry.community_relation(p.a, p.b)",
+                      "return relation_registry.community_relation(p.a, p.b)"),
+    "own_player_side": ("return led() and OWN or get_actor_true_community()", "return get_actor_true_community()"),
+    "own_members_cells": ("{ ACTOR_OWN, f }, { f, ACTOR_OWN } } }", '{ ACTOR_OWN, f }, { f, ACTOR_OWN }, { OWN, "actor_" .. f } } }'),
+    "own_keeps_old": ("    if st.own ~= uid then\n        for _, name in", "    if false then\n        for _, name in"),
+    "own_sides": ("    SIDES[#SIDES + 1] = OWN\n", ""),
+    "own_name": ('        return F and F.name or game.translate_string("st_fotz_default_name")',
+                 '        return game.translate_string("st_fotz_default_name")'),
+    "own_icon": ("voice ~= OWN and voice or nil", "voice"),
 }
 
 TEST_CONFIG = """
@@ -115,7 +127,7 @@ ui_mcm = { get = function(id) return MCM[id] end }
 OPT = {}
 ui_options = { get = function(id) return OPT[id] end }
 NEWS = {}
-news_manager = { send_tip = function(actor, text, timeout, sender, showtime) NEWS[#NEWS + 1] = sender .. "|" .. text end }
+news_manager = { send_tip = function(actor, text, timeout, sender, showtime) NEWS[#NEWS + 1] = tostring(sender) .. "|" .. text end }
 -- the base game's own names, singular for some: Factions shows its own group names
 NAMES = { dolg = "Duty", freedom = "Freedom", killer = "Mercenary", csky = "Clear Sky", stalker = "Free stalkers",
           bandit = "Bandit", army = "Military", ecolog = "Ecologist" }
@@ -455,6 +467,76 @@ def kills(src):
           "ignored kills counted: %s" % dict(w.env.S.kills.items()))
 
 
+#: the faction you lead, founded from Duty: some of its founding relations
+OWN_BASE = {"fotz_own>killer": -200, "killer>fotz_own": -250, "actor_fotz_own>killer": -150,
+            "killer>actor_fotz_own": -150, "fotz_own>actor_killer": -300, "actor_killer>fotz_own": -300}
+#: the cells politics moves for it and the Mercenaries (not its members' relation to a player)
+OWN_CELLS = ["fotz_own>killer", "killer>fotz_own", "actor_fotz_own>killer", "killer>actor_fotz_own"]
+
+
+def led_lua(uid="u1"):
+    return ('fotz_faction = { F = { name = "Wolves", mother = "dolg", founded = "2012-05-01", uid = %s, base = { %s } } }'
+            % (lua_str(uid), ", ".join("[%s] = %d" % (lua_str(k), v) for k, v in OWN_BASE.items())))
+
+
+def your_faction(src):
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua())
+    got = {c: w.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] for c in OWN_CELLS}, "your faction's cells at load: %s" % got)
+    own = [w.env.PAIRS[i].key for i in range(1, len(w.env.PAIRS) + 1) if w.env.PAIRS[i].own]
+    check(len(own) == 8 and "fotz_own/killer" in own and "dolg/fotz_own" in own, "your faction's pairs: %s" % own)
+
+    # its members' kills and yours count for it, not for Duty
+    w.run('day("2012-05-01")')
+    w.run('kill("killer", "fotz_own", "veteran", 30)')
+    w.run('kill("killer", "actor", "novice", 10)')
+    check(w.env.S.kills["fotz_own/killer"] == 65 and w.env.S.kills["dolg/killer"] is None,
+          "kills: yours %s, Duty's %s" % (w.env.S.kills["fotz_own/killer"], w.env.S.kills["dolg/killer"]))
+    w.run('day("2012-05-02")')
+    check(w.drift("fotz_own/killer") == -400, "day 2: drift %s" % w.drift("fotz_own/killer"))
+    got = {c: w.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] - 400 for c in OWN_CELLS}, "day 2: cells %s" % got)
+    writes = list(w.g.WRITES.values())
+    check(not any(c in writes for c in ("fotz_own>actor_killer", "actor_killer>fotz_own", "fotz_own>actor_dolg")),
+          "a member's relation to a player moved")
+
+    # the Mercenaries hit back: war, in your faction's voice and under its name
+    w.run('kill("fotz_own", "killer", "veteran", 60)')
+    w.run('day("2012-05-03")')
+    check(w.event("fotz_own/killer") is None, "war a day early")
+    w.run('day("2012-05-04")')
+    check(w.event("fotz_own/killer") == "war", "no war: drift %s" % w.drift("fotz_own/killer"))
+    check(w.news() and w.news()[-1].startswith("nil|Wolves: "), "the war's news: %s" % w.news())
+
+    # two factions at war with yours grow closer
+    w.env.S.events["bandit/fotz_own"] = w.lua.eval('{ kind = "war", since = "2012-05-04", a = "bandit", b = "fotz_own" }')
+    w.run('day("2012-05-05")')
+    check(w.drift("bandit/killer") == 60, "common enemy: bandit/killer drift %s" % w.drift("bandit/killer"))
+
+    # a load restores it; a different faction in that save starts clean
+    m = w.lua.eval("{}")
+    w.cb["save_state"](m)
+    saved = w.lua.eval("dump")(m)
+    w2 = World(src, anchors=DK_ANCHORS, pre=led_lua(), m_data=saved)
+    got = {c: w2.rel(c) for c in OWN_CELLS}
+    want = {c: w.rel(c) for c in OWN_CELLS}
+    check(got == want and w2.event("fotz_own/killer") == "war", "a load rebuilt %s, not %s" % (got, want))
+    w3 = World(src, anchors=DK_ANCHORS, pre=led_lua("u2"), m_data=saved)
+    check(w3.drift("fotz_own/killer") is None and w3.event("fotz_own/killer") is None and w3.env.S.own == "u2",
+          "another faction took over the last one's relations")
+    got = {c: w3.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] for c in OWN_CELLS}, "another faction's cells: %s" % got)
+
+    # disbanded: what was kept for it goes, and your kills count for Duty again
+    w2.run("fotz_faction.F = nil")
+    w2.env.apply()
+    left = [k for t in ("drift", "pending", "events", "recent", "last_fight") for k in w2.env.S[t].keys() if "fotz_own" in k]
+    check(not left and not any(w2.env.PAIRS[i].own for i in range(1, len(w2.env.PAIRS) + 1)),
+          "after disbanding: %s" % left)
+    w2.run('kill("killer", "actor", "novice", 1)')
+    check(w2.env.S.kills["dolg/killer"] == 0.5, "after disbanding, your kill counted %s for Duty" % w2.env.S.kills["dolg/killer"])
+
+
 def caps(src):
     w = World(src)
     w.run('day("2012-05-01")')
@@ -504,9 +586,10 @@ def run(src):
     stand_down(src)
     save_and_load(src, w)
     kills(src)
+    your_faction(src)
     caps(src)
     real_config(src)
-    return "8 scenarios, 16 pairs from the shipped config"
+    return "9 scenarios, 16 pairs from the shipped config"
 
 
 def main():

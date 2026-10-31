@@ -149,6 +149,14 @@ local function founding_relations(mother)
     return base
 end
 
+-- the politics engine moves the faction's relations from its founding ones: it writes them again
+-- over these, and drops what it kept for a faction disbanded
+local function politics_apply()
+    if fotz_politics and fotz_politics.apply then
+        fotz_politics.apply()
+    end
+end
+
 -- set every cell of the faction (the matrix starts from the configs on every load)
 function apply_relations()
     local n = 0
@@ -159,6 +167,7 @@ function apply_relations()
             n = n + 1
         end
     end
+    politics_apply()
     return n
 end
 
@@ -386,7 +395,8 @@ function found(name)
     if not name or name == "" then
         name = game.translate_string("st_fotz_default_name")
     end
-    F = { v = SAVE_VERSION, name = name, founded = today(), mother = mother, members = {} }
+    F = { v = SAVE_VERSION, name = name, founded = today(), mother = mother, members = {},
+          uid = string.format("%s/%s", tostring(os.time()), tostring(time_global())) }
     touched = true
     F.base = founding_relations(mother)
     apply_relations()
@@ -411,6 +421,7 @@ function disband()
     F = nil
     pending = {}
     scrub_partners()
+    politics_apply()
     log("disbanded %s", name)
     say("st_fotz_news_disbanded", { name = name })
     return true

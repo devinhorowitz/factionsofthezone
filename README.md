@@ -25,8 +25,9 @@ daily limit, and old grudges fade. When a pair crosses into enmity, they go to w
 days, a truce; when a common enemy brings two factions close, an alliance. Each is news on your
 PDA in the faction's own voice. Monolith, Sin, ISG, Renegades and the base game's lore pairs (Duty
 and Freedom, the Military and the Loners, and others) never change, and every other pair has
-limits. It steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction
-Relations Customizer, or Warfare mode handle relations.
+limits. The faction you lead is a side too: its members' kills and yours move its relations, and
+it goes to war and makes peace in its own name. It steps aside while the base game's dynamic
+relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations.
 
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before

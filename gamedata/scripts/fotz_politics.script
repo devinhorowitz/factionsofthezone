@@ -15,6 +15,10 @@ every load, after the base game has reapplied its own. Every load sets anchor pl
 player's actor_ rows alike, as the base game's dynamic relations do. Turned off, or with another
 system in charge of relations, it writes the anchors back and stops. Its state is m_data.fotz,
 keyed by faction and smart names.
+
+The faction you lead (fotz_faction) is a side like any other: it and every faction whose relations
+change make a pair, starting from the relations it was founded with. Its members' kills count for
+it, and so do yours while you lead it. A new faction, or none, drops what was kept for the last.
 --]]
 
 VERSION = "0.3.0"
@@ -25,9 +29,14 @@ local ENEMIES, FRIENDS = -1000, 1000
 local FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
                    "renegade", "greh", "isg" }
 
+OWN, ACTOR_OWN = "fotz_own", "actor_fotz_own"
+
 cfg = nil          -- the tuning, from CONFIG
-PAIRS = {}         -- the pairs whose relation can change, in name order
+PAIRS = {}         -- the pairs whose relation can change: the config's in name order, then yours
 local PAIR = {}    -- "a/b" (either order) -> pair
+local BASE_PAIRS = {} -- the config's pairs
+SIDES = {}         -- the factions whose relations change, yours too while you lead one
+local built_for    -- the faction PAIRS were built for, this session (false: none)
 S = nil            -- the saved state
 
 local anchor = {}  -- "x>y" -> the cell's value before Factions wrote it, this session
@@ -111,6 +120,7 @@ function load_config(ini)
         end
     end
     MANAGED = managed
+    BASE_PAIRS, SIDES, built_for = PAIRS, managed, nil
 end
 
 function pair_of(x, y)
@@ -127,6 +137,64 @@ local function state()
         S = fresh()
     end
     return S
+end
+
+-- your faction ----------------------------------------------------------------------------
+
+-- the faction you lead, or nil
+function led()
+    local F = fotz_faction and fotz_faction.F
+    return F and F.base and F or nil
+end
+
+local function uid_of(F)
+    return F and (F.uid or (tostring(F.founded) .. "/" .. tostring(F.mother))) or nil
+end
+
+-- the pairs, the config's and, while you lead a faction, its own with every side: on its rows and
+-- its player twin's, never on its members' relation to you. What was kept for a faction you no
+-- longer lead goes
+function sync_own()
+    local F = led()
+    local uid = uid_of(F)
+    local st = state()
+    if st.own ~= uid then
+        for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events" }) do
+            for k in pairs(st[name]) do
+                if string.find(k, OWN, 1, true) then
+                    st[name][k] = nil
+                end
+            end
+        end
+        st.own = uid
+    end
+    if built_for == (uid or false) then
+        return
+    end
+    built_for = uid or false
+    PAIRS, PAIR, SIDES = {}, {}, {}
+    for _, p in ipairs(BASE_PAIRS) do
+        PAIRS[#PAIRS + 1] = p
+        PAIR[p.a .. "/" .. p.b], PAIR[p.b .. "/" .. p.a] = p, p
+    end
+    for _, f in ipairs(MANAGED) do
+        SIDES[#SIDES + 1] = f
+    end
+    if not F then
+        return
+    end
+    SIDES[#SIDES + 1] = OWN
+    local cap = cfg.caps[OWN] or cfg.caps.default or { -3000, 2500 }
+    for _, f in ipairs(MANAGED) do
+        local a, b = f, OWN
+        if b < a then
+            a, b = b, a
+        end
+        local p = { a = a, b = b, key = a .. "/" .. b, own = true, lo = cap[1] or -3000, hi = cap[2] or 2500,
+                    cells = { { OWN, f }, { f, OWN }, { ACTOR_OWN, f }, { f, ACTOR_OWN } } }
+        PAIRS[#PAIRS + 1] = p
+        PAIR[a .. "/" .. b], PAIR[b .. "/" .. a] = p, p
+    end
 end
 
 -- dates as "YYYY-MM-DD" and as day numbers
@@ -175,8 +243,14 @@ function active()
     return why == nil
 end
 
+-- a pair's start: as the game had it after its own reapply, or, for your faction, as it was founded
 local function anchor_of(p)
-    return anchor[p.a .. ">" .. p.b] or relation_registry.community_relation(p.a, p.b)
+    local k = p.a .. ">" .. p.b
+    if p.own then
+        local F = led()
+        return F and F.base[k] or relation_registry.community_relation(p.a, p.b)
+    end
+    return anchor[k] or relation_registry.community_relation(p.a, p.b)
 end
 
 -- a pair's relation as Factions has it
@@ -187,14 +261,18 @@ end
 -- set every changeable cell to its anchor plus the pair's drift (only the anchor while standing
 -- down); returns how many cells it wrote
 function apply()
+    sync_own()
     local on = active()
+    local F = led()
     local n = 0
     for _, p in ipairs(PAIRS) do
         local d = on and (state().drift[p.key] or 0) or 0
         for _, c in ipairs(p.cells) do
             local k = c[1] .. ">" .. c[2]
             local live = relation_registry.community_relation(c[1], c[2])
-            if anchor[k] == nil then
+            if p.own then
+                anchor[k] = F and F.base[k] or live
+            elseif anchor[k] == nil then
                 anchor[k] = live
             elseif written[k] ~= nil and live ~= written[k] then
                 -- something else set this cell since: its value is the new start
@@ -227,6 +305,7 @@ function record_kill(victim_comm, killer_comm, rank, weight)
     if not active() then
         return
     end
+    sync_own()
     local v, k = strip(victim_comm), strip(killer_comm)
     local p = pair_of(v, k)
     if not p then
@@ -240,20 +319,25 @@ function record_kill(victim_comm, killer_comm, rank, weight)
     st.last_fight[p.key] = today()
 end
 
+-- the faction the player's kills count for: the one you lead, else your own
+local function players_side()
+    return led() and OWN or get_actor_true_community()
+end
+
 local function npc_on_death_callback(victim, killer)
     if not (victim and killer and IsStalker(victim)) then
         return
     end
     local comm, weight
     if killer:id() == AC_ID then
-        comm, weight = get_actor_true_community(), cfg.player_kill
+        comm, weight = players_side(), cfg.player_kill
     elseif IsStalker(killer) then
         comm = killer:character_community()
     else
         -- a silent kill: the weapon is the killer
         local owner = killer:parent()
         if owner and owner:id() == AC_ID then
-            comm, weight = get_actor_true_community(), cfg.player_kill
+            comm, weight = players_side(), cfg.player_kill
         end
     end
     if comm then
@@ -295,8 +379,12 @@ function news_level()
 end
 
 -- a faction's name as a group ("Mercenaries"): Factions' own string, else the game's (which is
--- singular for some, "Mercenary")
+-- singular for some, "Mercenary"); yours is the name you gave it
 local function faction_name(f)
+    if f == OWN then
+        local F = led()
+        return F and F.name or game.translate_string("st_fotz_default_name")
+    end
     local id = "st_fotz_faction_" .. f
     local s = game.translate_string(id)
     if s == id then
@@ -323,7 +411,8 @@ function say(level, id, voice, fields)
     text = string.gsub(text, "{(%w+)}", function(k) return fields[k] or ("{" .. k .. "}") end)
     text = faction_name(voice) .. ": " .. text
     if db.actor and news_manager and news_manager.send_tip then
-        news_manager.send_tip(db.actor, text, nil, voice, 12000)
+        -- your faction has no news icon of its own: the default one
+        news_manager.send_tip(db.actor, text, nil, voice ~= OWN and voice or nil, 12000)
         log("news: %s", text)
         return true
     end
@@ -437,7 +526,7 @@ local function grievances(c, prev, day)
     end
     for _, p in ipairs(PAIRS) do
         if not at_war(p.a, p.b) then
-            for _, f in ipairs(MANAGED) do
+            for _, f in ipairs(SIDES) do
                 if f ~= p.a and f ~= p.b and at_war(p.a, f) and at_war(p.b, f) then
                     note(t, p, "common", cfg.common_enemy)
                     t[p.key].enemy = f
@@ -549,6 +638,7 @@ end
 
 -- the daily tick, on each census whose date is a new day
 function on_census(c)
+    sync_own()
     local st = state()
     local day = c.date:sub(1, 10)
     if st.day == day then

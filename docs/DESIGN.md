@@ -116,10 +116,18 @@ its player twin `actor_fotz_own`, team 37).
 - **Founding** (MCM, per save): it starts with every relation of the faction you came from (both
   directions, for the faction and its player twin), and it and its twin are friends (2000). You
   lead it from your old faction, keeping its traders, tasks and dialogs. "You join it" (MCM, off
-  unless chosen) puts you in the player twin instead; G.A.M.M.A. doesn't know that faction (see
-  "Compatibility to watch"), and while it has the same relations as your old one, joining only
-  costs. It earns its place once your faction's relations move on their own. While you're
-  disguised in another faction's suit, you're left alone.
+  unless chosen) puts you in the player twin instead, so your own relations follow your
+  faction's as politics moves them. G.A.M.M.A. doesn't know that faction (see "Compatibility to
+  watch"), which is why it isn't the default. While you're disguised in another faction's suit,
+  you're left alone.
+- **In politics** (`fotz_politics`): your faction is a side like any other. It and every faction
+  whose relations change make a pair, starting from its founding relations rather than the
+  config's; the cells moved are its own rows and its player twin's, never its members' relation to
+  you. Its members' kills count for it, and so do yours while you lead it (at the player's half
+  weight), instead of for your old faction. Wars, truces and alliances follow as for any pair, in
+  its own name, with the default news icon. Two factions both at war with yours grow closer. A
+  disbanded faction's drift, pressure and events are dropped, and a new one (each faction has an
+  id) starts from its own founding.
 - **Members:** your companions join, with their own squad and group, and leave when they stop
   being companions. A member who comes online is given the faction on the next update, never
   inside net spawn, and only if their id still names them (their profile is checked; ids are
@@ -140,8 +148,7 @@ its player twin `actor_fotz_own`, team 37).
 - **Disbanding** (MCM) returns everyone at once: the living and online live, the rest in their
   state packet.
 - **Next:** residents of a Homestead settlement who may join as their loyalty grows, and members
-  who may leave; the Factions tab with your roster; your faction's relations moved by the politics
-  engine like any other's.
+  who may leave; the Factions tab with your roster and your faction's relations.
 
 ## 2. The politics engine (0.2.0)
 
@@ -149,7 +156,8 @@ its player twin `actor_fotz_own`, team 37).
 
 - **Pressure per pair.** Kills between two factions (online through `npc_on_death_callback`,
   offline by listening in on `game_relations.offline_npc_on_death`), weighted by the victim's rank;
-  the player's kills count half, for the player's own faction. From each day's census: smarts one
+  the player's kills count half, for the player's own faction, or for the one they lead (see "Your
+  faction"). From each day's census: smarts one
   faction took from the other since the day before, and fronts, the smarts both are fighting
   over. And a third faction both are at war with pushes two factions together.
 - **Paced, not per death** (after Warfare Alife Overhaul 1.6): pressure waits per pair and moves

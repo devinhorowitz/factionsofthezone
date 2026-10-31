@@ -18,6 +18,10 @@
   saved in your old faction, and Homestead's saved camp records get the old faction in place of
   yours (it caches a settler's faction when it recruits them, and gives its traders the camp's).
 - News when you found or disband it, and when someone joins or leaves. English and Russian.
+- **Your faction in politics.** It's a side like any other: its members' kills, and yours while
+  you lead it, push its relation with each faction, and it goes to war, makes truces and allies in
+  its own name. It starts from the relations it was founded with; a disbanded faction's relations
+  are dropped, and a new one starts from its own.
 - Still to come in 0.3.0: settlers who may join as their loyalty grows, and the Factions tab.
 
 ### 0.2.0: the politics engine

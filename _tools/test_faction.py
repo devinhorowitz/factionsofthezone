@@ -63,6 +63,9 @@ MUTANTS = {
                        "        local ok, err = (function(f) return true, f() end)(function()\n            local mod = _G[module]"),
     "partner_log_spam": ("if not ok and not unreadable[module] then", "if not ok then"),
     "no_fair_autocomplete": ('    fair_autocomplete_kill_tracker = { "_player_kills" },\n', ""),
+    "no_politics_found": ("    politics_apply()\n    return n", "    return n"),
+    "no_politics_disband": ("    scrub_partners()\n    politics_apply()\n", "    scrub_partners()\n"),
+    "same_uid": ('uid = string.format("%s/%s", tostring(os.time()), tostring(time_global())) }', 'uid = "same" }'),
     "join_by_default": ('return ui_mcm ~= nil and ui_mcm.get("fotz/faction_join") == true',
                         'return not (ui_mcm and ui_mcm.get("fotz/faction_join") == false)'),
 }
@@ -380,6 +383,22 @@ def default_leads(src):
     check(w.g.ACTOR.comm == "actor_ecolog", "you stayed joined without the option: %s" % w.g.ACTOR.comm)
 
 
+def politics_hook(src):
+    # the politics engine writes the faction's relations again after it does, and forgets a
+    # disbanded faction: each faction has its own id
+    w = World(src, setup=SETUP + "APPLIED = 0; fotz_politics = { apply = function() APPLIED = APPLIED + 1 end }")
+    w.env.found("Wolves")
+    n, uid = w.g.APPLIED, w.env.F.uid
+    check(n >= 1 and uid, "founding: politics applied %d times, id %s" % (n, uid))
+    w.run('MCM["fotz/faction"] = false')
+    w.cb["on_option_change"]()
+    check(w.g.APPLIED > n, "disbanding didn't tell politics")
+    w.run("tick()")
+    w.run('MCM["fotz/faction"] = true')
+    w.cb["on_option_change"]()
+    check(w.env.F.uid and w.env.F.uid != uid, "a new faction kept the id %s" % w.env.F.uid)
+
+
 def dismissed_and_disband(src, w):
     w.run("COMPANIONS[500] = nil")
     w.run("tick()")
@@ -513,10 +532,11 @@ def run(src):
     dismissed_and_disband(src, w2)
     you_and_disguise(src)
     default_leads(src)
+    politics_hook(src)
     others(src)
     load_and_untouched(src)
     other_version(src)
-    return "9 scenarios: found, save, load, disguise, leading, dismiss, disband, others, load scrub"
+    return "10 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub"
 
 
 def main():
