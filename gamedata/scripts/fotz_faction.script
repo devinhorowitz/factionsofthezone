@@ -11,6 +11,10 @@ they came from, by an edit of the faction index in their state packet (the live 
 and you go back to your own faction until the save is written. Members get the faction again when
 they come online. Removing the mod needs nothing: a save loads with everyone in their old faction.
 
+Other mods can spread the faction: Homestead caches a settler's faction when it recruits them, and
+gives its camp traders the camp's. So anyone else in the faction is saved in your old one too, and
+the records other mods save (PARTNERS) get the old faction in place of ours.
+
 Never set_character_community on a dead NPC (it corrupted the heap in testing), and pass an NPC's
 own squad and group.
 --]]
@@ -20,10 +24,19 @@ SAVE_VERSION = 1
 OWN, ACTOR_OWN = "fotz_own", "actor_fotz_own"
 CHECK_MS = 1000
 
+-- what other mods save that can hold a faction name: module -> its saved tables
+PARTNERS = {
+    stalker_camp_builder = { "active_camps", "rival_camps", "refugee_ids", "active_stash_expeditions",
+                             "active_convoys", "faction_retaliation_timers" },
+}
+
 F = nil                -- the saved state, nil until a faction is founded
 local index_of         -- community name -> index, from [game_relations] communities
 local pending = {}     -- member ids to give the faction on the next update
 local next_check = 0
+local touched = false  -- a faction was led in this game, so others may hold its name
+local last_mother      -- the faction you came from, after a disband
+local unreadable = {}  -- partner modules whose records raised an error (logged once)
 
 local function log(fmt, ...)
     printf("[fotz-faction] " .. fmt, ...)
@@ -196,6 +209,101 @@ function leave(id, why)
     log("%s (%s) left: %s", m.name, id, why)
 end
 
+-- others ---------------------------------------------------------------------------------------
+
+local function old_faction()
+    return F and F.mother or last_mother or "stalker"
+end
+
+-- the faction a record of NPC id gets in place of ours: a member's old one, or the NPC's own if
+-- they're out of ours by now
+local function record_faction(id)
+    local m = F and id and F.members[id]
+    if m then
+        return m.mother
+    end
+    index_of = index_of or community_indexes()
+    local se = id and id >= 1 and id <= 65534 and id % 1 == 0 and alife():object(id)
+    local comm = se and IsStalker(nil, se:clsid()) and strip(se:community())
+    if comm and comm ~= OWN and index_of[comm] then
+        return comm
+    end
+    return old_faction()
+end
+
+-- replace our faction's names in a table, keys and values, inside tables keyed by NPC id
+local function scrub(t, id, seen)
+    if seen[t] then
+        return 0
+    end
+    seen[t] = true
+    local n, moved = 0, {}
+    for k, v in pairs(t) do
+        local at = type(k) == "number" and k or id
+        if type(v) == "table" then
+            n = n + scrub(v, at, seen)
+        elseif v == OWN then
+            t[k] = record_faction(at)
+            n = n + 1
+        elseif v == ACTOR_OWN then
+            t[k] = "actor_" .. old_faction()
+            n = n + 1
+        end
+        if k == OWN or k == ACTOR_OWN then
+            moved[#moved + 1] = k
+        end
+    end
+    for _, k in ipairs(moved) do
+        local to = k == OWN and old_faction() or "actor_" .. old_faction()
+        if t[to] == nil then
+            t[to] = t[k]
+        end
+        t[k] = nil
+        n = n + 1
+    end
+    return n
+end
+
+-- the records other mods save get the old faction in place of ours; a surprise in another mod's
+-- tables is logged, never raised
+function scrub_partners()
+    local n, seen = 0, {}
+    for module, keys in pairs(PARTNERS) do
+        local ok, err = pcall(function()
+            local mod = _G[module]
+            if type(mod) == "table" then
+                for _, key in ipairs(keys) do
+                    if type(mod[key]) == "table" then
+                        n = n + scrub(mod[key], nil, seen)
+                    end
+                end
+            end
+        end)
+        if not ok and not unreadable[module] then
+            unreadable[module] = true
+            log("! couldn't read %s's records: %s", module, tostring(err))
+        end
+    end
+    if n > 0 then
+        touched = true
+        log("%s faction names in other mods' records set to the old faction", n)
+    end
+    return n
+end
+
+-- anyone in the faction who isn't a member (another mod put them in it) is saved in the old one
+local function return_strays()
+    local n, comm, sim = 0, old_faction(), alife()
+    for id = 1, 65534 do
+        local se = sim:object(id)
+        if se and not (F and F.members[id]) and IsStalker(nil, se:clsid()) and se:community() == OWN then
+            set_saved_community(se, comm)
+            n = n + 1
+        end
+    end
+    return n
+end
+
 local function companions()
     local out = {}
     local list = axr_companions and axr_companions.companion_squads or {}
@@ -274,6 +382,7 @@ function found(name)
         name = game.translate_string("st_fotz_default_name")
     end
     F = { v = SAVE_VERSION, name = name, founded = today(), mother = mother, members = {} }
+    touched = true
     F.base = founding_relations(mother)
     apply_relations()
     log("founded %s, from %s", F.name, mother)
@@ -293,8 +402,10 @@ function disband()
     if db.actor:character_community() == ACTOR_OWN then
         db.actor:set_character_community("actor_" .. F.mother, 0, 0)
     end
+    last_mother = F.mother
     F = nil
     pending = {}
+    scrub_partners()
     log("disbanded %s", name)
     say("st_fotz_news_disbanded", { name = name })
     return true
@@ -303,12 +414,11 @@ end
 -- callbacks ------------------------------------------------------------------------------------
 
 local function save_state(m_data)
-    if not F then
-        m_data.fotz_faction = nil
-        return
+    if touched then
+        scrub_partners()
     end
     local reverted, failed = 0, 0
-    for id, m in pairs(F.members) do
+    for id, m in pairs(F and F.members or {}) do
         local ok, err = pcall(function()
             local se = alife():object(id)
             if se and same_member(id, m) then
@@ -328,11 +438,22 @@ local function save_state(m_data)
             log("! couldn't return member %s to %s for the save: %s", id, m.mother, tostring(err))
         end
     end
+    local ok, strays = pcall(function() return touched and return_strays() or 0 end)
+    if not ok then
+        log("! couldn't return others in the faction for the save: %s", tostring(strays))
+        strays = 0
+    end
+    m_data.fotz_faction = F
+    if not F then
+        if strays > 0 then
+            log("save: %s others returned to %s", strays, old_faction())
+        end
+        return
+    end
     if db.actor:character_community() == ACTOR_OWN then
         db.actor:set_character_community("actor_" .. F.mother, 0, 0)
     end
-    m_data.fotz_faction = F
-    log("save: %s members returned to their factions, %s failed", reverted, failed)
+    log("save: %s members returned to their factions, %s others, %s failed", reverted, strays, failed)
 end
 
 local function load_state(m_data)
@@ -361,6 +482,7 @@ end
 local function actor_on_first_update()
     index_of = community_indexes()
     sync_mcm()
+    scrub_partners()
     if not F then
         return
     end
@@ -368,6 +490,7 @@ local function actor_on_first_update()
         log("! %s isn't declared: your faction can't be restored", OWN)
         return
     end
+    touched = true
     log("%s: %s cells, %s members", F.name, apply_relations(), (function()
         local n = 0
         for _ in pairs(F.members) do n = n + 1 end
@@ -385,6 +508,9 @@ local function actor_on_update()
     end
     next_check = time_global() + CHECK_MS
     tick()
+    if touched then
+        scrub_partners()
+    end
 end
 
 local function npc_on_net_spawn(npc)

@@ -119,6 +119,15 @@ its player twin `actor_fotz_own`, team 37).
   their old faction in their state packet, and you to yours; the dead are then dropped from the
   roster. You and the online members are back in it on the next update. Removing the mod needs no
   step: tested by founding, saving and loading with Factions disabled.
+- **Others in it.** Other mods can spread the faction: Homestead caches each settler's faction
+  when it recruits them and gives its camp traders the camp's dominant one, so a companion who
+  joined and was then recruited would put `fotz_own` in Homestead's save and onto its traders,
+  and Homestead would set it again after Factions is gone (a crash: the faction is undeclared). So
+  anyone in the faction who isn't a member is saved in your old faction too (their live faction is
+  left alone), and the tables other mods save (`PARTNERS`: Homestead's camps, rival camps,
+  expeditions, convoys and retaliation timers) get the old faction in place of ours: a settler's
+  own faction where it's known, on each update, at the save and at load. Only a game that has had
+  a faction pays for this; the save's sweep reads every object once.
 - **Disbanding** (MCM) returns everyone at once: the living and online live, the rest in their
   state packet.
 - **Next:** residents of a Homestead settlement who may join as their loyalty grows, and members
@@ -223,6 +232,13 @@ its player twin `actor_fotz_own`, team 37).
   prosperity data on the settler record. Since 501f2fe its outposts change hands on their own
   (with a 6-hour cooldown), and wiping a hostile garrison brings a retaliation camp 2 to 4 hours
   later; the census sees both as ground taken.
+- **Homestead's own custom factions.** Its author has said the next update brings custom factions
+  with an emblem-making GUI (Discord, 2026-10-28), and that such a faction would start from your
+  current relations. Two mods each declaring a player faction would collide (team ids, the
+  player's faction, save safety), so the aim is one faction shared: Factions keeps the declaration,
+  the relations and the save safety; Homestead keeps the flag, the emblem and the settlement, and
+  reads the faction through a hook. Until then its Settlement Flag shows a Loner flag for a
+  Factions leader (no `homestead_settlement_flag_fotz_own` section; it falls back).
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.
@@ -329,6 +345,20 @@ by how many different people raised each. They shape the plan:
   rule that unseen kills don't count was praised.
 - **A way back mid-save (about 6):** the tab's "restore relations" button.
 - **News the player controls (about 5),** with no internal names: already the MCM news level.
+
+From the Homestead thread on Discord (June to October 2026), asks that land on Factions:
+
+- **A base for your faction:** base pieces built over days with money, resources and manpower; the
+  Palace of Culture taken from Monolith; forward bases.
+- **Factions with their own style:** camp types, bonuses and broadcasts by faction.
+- **Fixed points to fight over:** places factions claim and build their own structures on, raided
+  at night.
+- **Camps that make sense:** settlers of hostile factions fought each other until Homestead
+  checked residents' relations at recruiting. Those checks don't rerun when a war turns two
+  residents' factions hostile; Homestead's periodic "campmates friendly" refresh is what holds a
+  camp together, and the territory table it checks (`TERRITORY_RULING_FACTIONS`) is fixed, a place
+  for the territory steer to feed through a hook.
+- **Show each settler's faction** in the UI: the Factions tab's roster.
 
 **What failed in other faction mods, and Factions' answer:**
 

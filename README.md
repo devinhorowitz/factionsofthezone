@@ -30,8 +30,10 @@ Relations Customizer, or Warfare mode handle relations.
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before
 each save, everyone is put back in their old faction in the save itself, and gets your faction
-back as you play on. So removing the mod is always safe, with no step first: a save loads with
-every faction's relations as the game had them and everyone in their old faction.
+back as you play on. Anyone another mod put in your faction is saved in your old one too, and
+Homestead's camp records get your old faction in place of it. So removing the mod is always safe,
+with no step first: a save loads with every faction's relations as the game had them and everyone
+in their old faction.
 
 **Census.** Once a game day, and once after each load, it counts every faction's squads and
 fighters by tier, rank and level, which faction holds each smart terrain and which are contested,

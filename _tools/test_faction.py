@@ -9,6 +9,9 @@ a load reapplies relations, re-gives the faction on the update after a member co
 inside net spawn), and drops an id that names someone else now; disguise and "you join it" are
 respected; a dismissed companion leaves; disbanding returns everyone, live or by packet; nothing
 ever changes a dead NPC's faction; a save of another version is set aside; the strings exist.
+Others: anyone another mod put in the faction is saved in the old one (live NPC untouched), also
+after disbanding; Homestead's records (settlers, trader, keyed timers) get the old faction on each
+update, at the save and at load; a game without a faction never looks through every object.
 
     python test_faction.py            the real script
     python test_faction.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -35,8 +38,8 @@ MUTANTS = {
                  "return se ~= nil"),
     "no_defer": ("    if same_member(id, m) then\n        pending[id] = true",
                  "    if same_member(id, m) then\n        npc:set_character_community(OWN, npc:squad(), npc:group())"),
-    "actor_save": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community("actor_" .. F.mother, 0, 0)\n    end\n    m_data.fotz_faction = F',
-                   "    m_data.fotz_faction = F"),
+    "actor_save": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community("actor_" .. F.mother, 0, 0)\n    end\n    log("save: %s members',
+                   '    log("save: %s members'),
     "keep_dead": ("            if m.dead then\n                F.members[id] = nil\n            end\n", ""),
     "always_join": ("    if you_join() then", "    if true then"),
     "keep_dismissed": ('if m.via == "companion" and not m.dead and not comp[id] then', "if false then"),
@@ -46,7 +49,19 @@ MUTANTS = {
     "not_friends": ("            base[a .. \">\" .. b] = 2000", "            base[a .. \">\" .. b] = 0"),
     "no_reapply": ('    log("%s: %s cells, %s members", F.name, apply_relations(),', '    log("%s: %s cells, %s members", F.name, 0,'),
     "any_version": ('if type(d) == "table" and d.v == SAVE_VERSION then', 'if type(d) == "table" then'),
-    "disband_keeps_actor": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community("actor_" .. F.mother, 0, 0)\n    end\n    F = nil', "    F = nil"),
+    "disband_keeps_actor": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community("actor_" .. F.mother, 0, 0)\n    end\n    last_mother', "    last_mother"),
+    "no_strays": ("local ok, strays = pcall(function() return touched and return_strays() or 0 end)", "local ok, strays = true, 0"),
+    "no_scrub_update": ("    tick()\n    if touched then\n        scrub_partners()\n    end\nend", "    tick()\nend"),
+    "no_scrub_save": ("    if touched then\n        scrub_partners()\n    end\n    local reverted", "    local reverted"),
+    "no_scrub_load": ("    sync_mcm()\n    scrub_partners()\n", "    sync_mcm()\n"),
+    "scrub_no_npc": ('local at = type(k) == "number" and k or id', "local at = id"),
+    "scrub_keeps_keys": ("if k == OWN or k == ACTOR_OWN then", "if false then"),
+    "scrub_no_cycles": ("    if seen[t] then\n        return 0\n    end\n", ""),
+    "disband_forgets": ("    last_mother = F.mother\n", ""),
+    "always_sweep": ("return touched and return_strays() or 0", "return return_strays()"),
+    "partner_raises": ("        local ok, err = pcall(function()\n            local mod = _G[module]",
+                       "        local ok, err = (function(f) return true, f() end)(function()\n            local mod = _G[module]"),
+    "partner_log_spam": ("if not ok and not unreadable[module] then", "if not ok then"),
 }
 
 WORLD = r"""
@@ -137,7 +152,8 @@ function online(id, comm, sq, gr)
     return ONLINE[id]
 end
 level = { object_by_id = function(id) return ONLINE[id] end }
-function alife() return { object = function(_, id) return SE[id] end } end
+LOOKUPS = 0
+function alife() return { object = function(_, id) LOOKUPS = LOOKUPS + 1 return SE[id] end } end
 
 ACTOR = setmetatable({ nid = 0, live = true, comm = "actor_ecolog", name = "You", sq = 0, gr = 0, stalker = false }, Npc)
 db = { actor = ACTOR }
@@ -363,6 +379,90 @@ def dismissed_and_disband(src, w):
     check(w.news()[-1] == "Wolves is disbanded. Everyone goes back to their old faction.", "news %s" % w.news()[-1])
 
 
+#: Homestead's saved tables, as far as they hold factions: a camp (hub 900, not a stalker) with a
+#: trader and settlers, and the retaliation timers keyed by faction; 901 is a stalker another mod
+#: can put in the faction
+HOMESTEAD = """
+stalker_camp_builder = { active_camps = { [900] = { trader_community = "dolg", survivors = {
+    [503] = { community = "stalker", name = "Settler 503" },
+    [801] = { community = "stalker" },
+    [802] = { community = "dolg" } } } },
+    faction_retaliation_timers = { bandit = 7 } }
+stalker_camp_builder.active_camps[900].camp = stalker_camp_builder.active_camps[900]
+server(801, "stalker")
+server(802, "dolg")
+online(901, "stalker")
+"""
+
+CAMP = "stalker_camp_builder.active_camps[900]"
+
+
+def others(src):
+    w = World(src, setup=SETUP + HOMESTEAD)
+    w.env.found("Wolves")
+    # Homestead caches the faction: 503's while a member, 801's when it was one (a Loner again now),
+    # the trader's and a timer's; another mod puts 901 (online) and 902 (offline) in the faction
+    w.run("local c = " + CAMP + """
+c.trader_community = "fotz_own"
+c.survivors[503].community = "fotz_own"; c.survivors[503].pending_community = "fotz_own"
+c.survivors[801].community = "fotz_own"; c.survivors[801].comm = "fotz_own"
+stalker_camp_builder.faction_retaliation_timers.fotz_own = 5
+ONLINE[901]:set_character_community("fotz_own", 0, 0)
+server(902, "fotz_own")
+""")
+    w.run("tick()")
+    got = w.eval("function() local c = %s local s = c.survivors return c.trader_community, s[503].community, "
+                 "s[503].pending_community, s[801].community, s[801].comm, s[802].community end" % CAMP)()
+    check(got == ("ecolog", "stalker", "stalker", "stalker", "stalker", "dolg"), "Homestead's records after an update: %s" % (got,))
+    timers = dict(w.eval("stalker_camp_builder.faction_retaliation_timers").items())
+    check(timers == {"ecolog": 5, "bandit": 7}, "Homestead's timers: %s" % timers)
+
+    # Homestead caches it again between the last update and the save
+    w.run(CAMP + '.survivors[802].pending_community = "fotz_own"')
+    m = w.eval("{}")
+    w.cb["save_state"](m)
+    check(w.eval(CAMP + ".survivors[802].pending_community") == "dolg", "a record cached just before the save kept our faction")
+    check(w.comm(901) == "ecolog" and w.comm(902) == "ecolog", "others were saved in %s, %s" % (w.comm(901), w.comm(902)))
+    check(w.live(901) == "fotz_own", "an outsider's live faction was changed: %s" % w.live(901))
+    check(w.comm(501) == "stalker" and w.comm(503) == "stalker", "members were saved in %s, %s" % (w.comm(501), w.comm(503)))
+    check(w.env.F.members[901] is None and w.env.F.members[902] is None, "an outsider became a member")
+    check(any("2 others" in l for l in w.log()), "no log line for the others: %s" % w.log()[-1])
+
+    # after disbanding, Homestead and another mod still spread the faction; the save takes both back
+    w.run("tick()")
+    w.run('MCM["fotz/faction"] = false')
+    w.cb["on_option_change"]()
+    w.run('server(903, "fotz_own"); %s.trader_community = "fotz_own"' % CAMP)
+    m2 = w.eval("{}")
+    w.cb["save_state"](m2)
+    check(m2["fotz_faction"] is None, "a disbanded faction was saved")
+    check(w.comm(903) == "ecolog", "after disbanding, another was saved in %s" % w.comm(903))
+    check(w.eval(CAMP + ".trader_community") == "ecolog", "after disbanding, the trader record kept our faction")
+
+
+def load_and_untouched(src):
+    # a game that never had a faction: a save doesn't look through every object
+    w = World(src, setup=SETUP + HOMESTEAD)
+    w.run("LOOKUPS = 0")
+    w.cb["save_state"](w.eval("{}"))
+    check(w.g.LOOKUPS < 100, "a save without a faction looked up %d objects" % w.g.LOOKUPS)
+    # a load with our name in Homestead's records (a save made in the moment before an update)
+    w = World(src, setup=SETUP + HOMESTEAD + CAMP + '.survivors[801].community = "fotz_own"; server(904, "fotz_own")')
+    check(w.env.F is None, "a faction from nowhere")
+    check(w.eval(CAMP + ".survivors[801].community") == "stalker", "a load left our faction in Homestead's records")
+    w.cb["save_state"](w.eval("{}"))
+    check(w.comm(904) == "stalker", "after that load, another was saved in %s" % w.comm(904))
+    # a partner whose tables raise: updates and saves go on, and it's logged once
+    w = World(src, setup=SETUP + 'stalker_camp_builder = setmetatable({}, { __index = function() error("boom") end })')
+    w.env.found("Wolves")
+    for _ in range(3):
+        w.run("tick()")
+    w.cb["save_state"](w.eval("{}"))
+    check(sum("couldn't read stalker_camp_builder" in l for l in w.log()) == 1, "a partner's error was logged %d times" %
+          sum("couldn't read" in l for l in w.log()))
+    check(w.comm(501) == "stalker", "a partner's error stopped the save's edits")
+
+
 def other_version(src):
     w = World(src, setup=SETUP, m_data='{ fotz_faction = { v = 99, name = "X", members = {} } }')
     check(w.env.F is None and any("set aside" in l for l in w.log()), "a save of another version was read")
@@ -385,8 +485,10 @@ def run(src):
     w2 = found_save_load(src)
     dismissed_and_disband(src, w2)
     you_and_disguise(src)
+    others(src)
+    load_and_untouched(src)
     other_version(src)
-    return "6 scenarios: found, save, load, disguise, dismiss, disband"
+    return "8 scenarios: found, save, load, disguise, dismiss, disband, others, load scrub"
 
 
 def main():

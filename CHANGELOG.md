@@ -11,7 +11,9 @@
 - **Removing the mod is always safe.** No save ever holds your faction: just before each save,
   every member (online, offline or dead) and you are returned to your old factions in the save
   itself, and get your faction back as you play on. Loading a save without the mod finds everyone
-  in their old faction.
+  in their old faction. That holds when another mod spreads the faction too: anyone else in it is
+  saved in your old faction, and Homestead's saved camp records get the old faction in place of
+  yours (it caches a settler's faction when it recruits them, and gives its traders the camp's).
 - News when you found or disband it, and when someone joins or leaves. English and Russian.
 - Still to come in 0.3.0: settlers who may join as their loyalty grows, and the Factions tab.
 
