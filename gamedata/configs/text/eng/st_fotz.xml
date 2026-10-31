@@ -63,6 +63,9 @@
 	<string id="st_fotz_news_ground">
 		<text>We took {place} from {b}.</text>
 	</string>
+	<string id="st_fotz_news_front_upper">
+		<text>In {place} the upper hand over {b} is ours now.</text>
+	</string>
 	<string id="fotz_own">
 		<text>Your faction</text>
 	</string>
@@ -237,6 +240,15 @@
 	</string>
 	<string id="st_fotz_tab_log_none">
 		<text>Nothing yet: wars, truces and alliances show here.</text>
+	</string>
+	<string id="st_fotz_tab_fronts">
+		<text>Fronts: fighters on each side</text>
+	</string>
+	<string id="st_fotz_tab_front">
+		<text>{place}: {a} {na}, {b} {nb}</text>
+	</string>
+	<string id="st_fotz_tab_fronts_none">
+		<text>None: no two factions at war share a level.</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Members</text>

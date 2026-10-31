@@ -200,7 +200,7 @@ its player twin `actor_fotz_own`, team 37).
 
 ## 3. Territory
 
-**Built (0.4.0, first part): `fotz_territory.script`.**
+**Built (0.4.0): `fotz_territory.script`.**
 
 - **The hook:** `simulation_board:get_squad_target` asks each target for its score
   (`se:evaluate_prior`), which a smart resolves at call time to
@@ -236,8 +236,18 @@ its player twin `actor_fotz_own`, team 37).
   original is put back if Factions' wrapper is still the one in place. If another mod wrapped
   over it, it stays and passes everything through, and turning the steer back on doesn't wrap
   again (that would weigh twice, or recurse). Nothing is saved.
-- **Each census logs** how many smarts are weighed for how many factions, and how many scores
-  it raised and lowered since the last.
+- **Each census logs** its fronts, how many smarts are weighed for how many factions, and how
+  many scores it raised and lowered since the last.
+- **The fronts** (`fotz_territory.FRONTS`, from each census): every level two census factions at
+  war (enmity either way) both have fighters on, each pair once, the biggest first. A side with
+  two thirds of the fighters on one has the upper hand (`leader`). The Factions page lists them;
+  their own faction's fronts first.
+- **Upper-hand news:** where a side has newly taken the upper hand on a front (from the other
+  side, or from close) since the last census, it says so, at news level "all": only a front that
+  was there at the last census (fronts come and go as squads move), with at least `FRONT_MIN`
+  (10) fighters, and at most `NEWS_PER_DAY` (2), the biggest first. Who had the upper hand where
+  is kept in memory only, so the first census after a load sets it and says nothing. An error
+  there is logged and the steer is rebuilt anyway.
 
 **The plan it came from:**
 
@@ -280,7 +290,9 @@ its player twin `actor_fotz_own`, team 37).
     `faction_profile.ltx` through `faction_expansions`, marked dead once he is or is gone; a
     trader's server object has no `alive()` and counts as living), the ground and fighters of the
     last census, and the war, truce or alliance holding it, with its date;
-  - the war log, newest first, ten lines; your members, near, away or dead;
+  - the war log, newest first, six lines; the fronts (territory's, from the last census), five
+    lines, your faction's first, each with both sides' fighters, the bigger first; your members,
+    five and "and N more", near, away or dead;
   - "Restore relations" (`fotz_politics.restore`), after a second click: every pair back where it
     started, events ended, a line in the log.
   Still to come: Clear Sky's per-side strength as a bar. The vanilla Relations tab stays.

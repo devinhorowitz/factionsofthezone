@@ -2,8 +2,16 @@
 
 ## Unreleased
 
-### 0.4.0: territory (first part)
+### 0.4.0: territory
 
+- **Fronts on the Factions page.** The Zone's fronts from the last census: each level two
+  factions at war both have fighters on, with each side's count, the bigger side first. Your own
+  faction's fronts come first, then the biggest, five in all. To make room, the war log shows its
+  last six events and your members list five.
+- **News from the fronts.** When a side takes the upper hand on a front (two thirds of the
+  fighters there), it says so in its own voice, with PDA news set to everything. Only a front that
+  was there at the last census and has at least 10 fighters on it counts, and at most two such
+  news a day, the biggest fronts first. Loading a save never sets it off.
 - **Squads lean toward winning fronts.** When a squad picks where to go next, a smart held by a
   faction its own is at war with weighs more where its faction outnumbers the holder on that
   level, and less where it's outnumbered (from 0.6 to 1.5 times), on levels both sides are on. It's a bias in the game's own

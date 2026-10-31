@@ -2,8 +2,8 @@
 Factions of the Zone: the Factions page, as the PDA's tab and as a window of its own.
 
 It lays out fotz_tab.page() and nothing else: the header (your side's icon, name, a line on it,
-and whether politics is in charge), each faction's standing on the left, the war log and your
-members on the right, and "Restore relations", which asks for a second click. The layout is
+and whether politics is in charge), each faction's standing on the left, the war log, the fronts
+and your members on the right, and "Restore relations", which asks for a second click. The layout is
 ui_fotz_tab.xml; rows and lines are its templates, moved down by a step.
 
 The art is the game's own (the faction icons, ui_mm_faction_<faction>; the button and the 2D
@@ -18,7 +18,7 @@ local FLAT = nil
 -- the PDA's pages sit this far into the screen (pda_16.xml), and so does the flat window
 local PDA_X, PDA_Y = 112, 34
 local ROWS, ROW_Y, ROW_STEP = 12, 210, 34
-local LOG_Y, MEMBER_Y, LINE_STEP = 210, 426, 18
+local LOG_Y, FRONT_Y, MEMBER_Y, LINE_STEP = 210, 348, 468, 18
 local CONFIRM_MS = 4000
 
 local function say(msg)
@@ -118,6 +118,7 @@ function FactionsTab:InitControls()
     self.status = xml:InitTextWnd("status", self)
     put(xml:InitTextWnd("standing_heading", self), fotz_tab.text("st_fotz_tab_standing"))
     put(xml:InitTextWnd("log_heading", self), fotz_tab.text("st_fotz_tab_log"))
+    put(xml:InitTextWnd("fronts_heading", self), fotz_tab.text("st_fotz_tab_fronts"))
     self.members_heading = xml:InitTextWnd("members_heading", self)
     put(self.members_heading, fotz_tab.text("st_fotz_tab_members"))
 
@@ -144,6 +145,11 @@ function FactionsTab:InitControls()
     for i = 1, fotz_tab.LOG_LINES do
         local w = xml:InitTextWnd("log_line", self)
         self.log[i] = moved(w, w and w:GetWndPos().x or 0, LOG_Y + (i - 1) * LINE_STEP)
+    end
+    self.fronts = {}
+    for i = 1, fotz_tab.FRONT_LINES do
+        local w = xml:InitTextWnd("front_line", self)
+        self.fronts[i] = moved(w, w and w:GetWndPos().x or 0, FRONT_Y + (i - 1) * LINE_STEP)
     end
     self.members = {}
     for i = 1, fotz_tab.MEMBER_LINES + 1 do
@@ -211,6 +217,9 @@ function FactionsTab:Fill()
     end
     for i, w in ipairs(self.log or {}) do
         put(w, fit(p.log[i], 60))
+    end
+    for i, w in ipairs(self.fronts or {}) do
+        put(w, fit(p.fronts[i], 56))
     end
     show(self.members_heading, p.members ~= nil)
     for i, w in ipairs(self.members or {}) do

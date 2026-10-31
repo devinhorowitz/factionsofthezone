@@ -10,7 +10,8 @@ within the config's bounds. No squad's scripted target is set, no spawn rows are
 score of 0 (not allowed) stays 0.
 
 The table is rebuilt from each census (once a game day, and after each load) and the relations
-then in force, the politics engine's wars among them. Left alone: story squads, squads with a
+then in force, the politics engine's wars among them. The same census gives the fronts the
+Factions page lists, and news where a side has newly taken the upper hand on one. Left alone: story squads, squads with a
 scripted target, the player's companions and Homestead's outpost garrisons. It stands down for
 Warfare mode, which runs the squads itself, and with its MCM switch. One
 wrapper, put in place as the game starts (after every script has loaded, so it wraps the version
@@ -117,6 +118,74 @@ function rebuild(c)
     return n
 end
 
+-- fronts --------------------------------------------------------------------------------------
+
+UPPER = 2 / 3             -- a side with this share of a front's fighters has the upper hand
+FRONT_MIN = 10            -- fewer fighters than this on both sides together isn't news
+NEWS_PER_DAY = 2
+FRONTS = {}               -- the last census's fronts, the biggest first
+local upper = nil         -- "a|b|level" -> the side with the upper hand (false: close), last census
+
+-- every front in a census: a level two enemy factions both have fighters on, each pair once
+function fronts(c)
+    local list = fotz_census.FACTIONS
+    local out = {}
+    for i, a in ipairs(list) do
+        for j = i + 1, #list do
+            local b = list[j]
+            if relation_registry.community_relation(a, b) <= ENEMIES
+                or relation_registry.community_relation(b, a) <= ENEMIES then
+                local la = c.factions and c.factions[a] and c.factions[a].levels or {}
+                for lv, at in pairs(la) do
+                    local fa, fb = at.fighters or 0, fighters(c, b, lv)
+                    if fa > 0 and fb > 0 then
+                        out[#out + 1] = { a = a, b = b, level = lv, fa = fa, fb = fb }
+                    end
+                end
+            end
+        end
+    end
+    table.sort(out, function(x, y)
+        if x.fa + x.fb ~= y.fa + y.fb then
+            return x.fa + x.fb > y.fa + y.fb
+        end
+        return x.a .. x.b .. x.level < y.a .. y.b .. y.level
+    end)
+    return out
+end
+
+-- the side with the upper hand on a front, or nil while it's close
+function leader(f)
+    local total = f.fa + f.fb
+    if f.fa >= UPPER * total then
+        return f.a, f.b
+    elseif f.fb >= UPPER * total then
+        return f.b, f.a
+    end
+end
+
+-- the fronts from a census; news where a side has newly taken the upper hand (none from the
+-- first census after a load, which only sets where things stand), the biggest fronts first
+local function take_fronts(c)
+    FRONTS = fronts(c)
+    local now, said = {}, 0
+    for _, f in ipairs(FRONTS) do
+        local key = f.a .. "|" .. f.b .. "|" .. f.level
+        local win, lose = leader(f)
+        now[key] = win or false
+        -- only a front that was there last time: fronts come and go as squads move
+        local was = upper and upper[key]
+        if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN and said < NEWS_PER_DAY then
+            local P = fotz_politics
+            if P and P.say and P.say("all", "st_fotz_news_front_upper", win,
+                { b = P.faction_name(lose), place = game.translate_string(f.level) }) then
+                said = said + 1
+            end
+        end
+    end
+    upper = now
+end
+
 -- the wrapper: two table reads for a squad the steer has nothing for
 local function steered(target, squad, ...)
     local prior = orig(target, squad, ...)
@@ -186,13 +255,17 @@ end
 
 local function on_census(c)
     refresh()
+    local ok, err = pcall(take_fronts, c)
+    if not ok then
+        log("! fronts: %s", tostring(err))
+    end
     local n = rebuild(c)
     local factions = 0
     for _ in pairs(STEER) do
         factions = factions + 1
     end
-    log("%s: %s smarts weighed for %s factions (%s); since the last census %s scores, %s raised, %s lowered",
-        tostring(c and c.date), n, factions, on and "steering" or "off", STATS.calls, STATS.raised, STATS.lowered)
+    log("%s: %s fronts; %s smarts weighed for %s factions (%s); since the last census %s scores, %s raised, %s lowered",
+        tostring(c and c.date), #FRONTS, n, factions, on and "steering" or "off", STATS.calls, STATS.raised, STATS.lowered)
     STATS.calls, STATS.raised, STATS.lowered = 0, 0, 0
 end
 

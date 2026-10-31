@@ -4,9 +4,10 @@
 
     The PDA's page area, 1024x768, with the content in the PDA's own background rectangle
     (28,106 to 792,709). Your side at the top; each faction's standing on the left, two lines a
-    row; the war log and your members on the right; Restore relations and the credit at the foot.
-    The row_* and *_line elements are templates: the script places one per row or line, a step
-    down from ROW_Y, LOG_Y and MEMBER_Y, so their y here is the offset within a row.
+    row; the war log, the fronts and your members on the right; Restore relations and the credit
+    at the foot. The row_* and *_line elements are templates: the script places one per row or
+    line, a step down from ROW_Y, LOG_Y, FRONT_Y and MEMBER_Y, so their y here is the offset
+    within a row.
 
     Art: the game's own faction icons (set from script), its ordinary button, and for the flat
     window the 2D PDA's frame. Colors follow the PDA: amber 238,196,112 for headings, light gray
@@ -66,8 +67,16 @@
         <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
     </log_line>
 
+    <!-- the fronts: levels two factions at war are both on, your side's first -->
+    <fronts_heading x="470" y="326" width="306" height="18">
+        <text font="letterica16" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </fronts_heading>
+    <front_line x="470" y="0" width="306" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </front_line>
+
     <!-- your members, while you lead a faction -->
-    <members_heading x="470" y="404" width="306" height="18">
+    <members_heading x="470" y="446" width="306" height="18">
         <text font="letterica16" r="238" g="196" b="112" align="l" vert_align="c"/>
     </members_heading>
     <member_line x="470" y="0" width="306" height="16">

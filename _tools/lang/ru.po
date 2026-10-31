@@ -85,6 +85,10 @@ msgctxt "st_fotz_news_ground"
 msgid "We took {place} from {b}."
 msgstr "Мы заняли позицию «{place}», выбив оттуда группировку «{b}»."
 
+msgctxt "st_fotz_news_front_upper"
+msgid "In {place} the upper hand over {b} is ours now."
+msgstr "В районе «{place}» перевес над группировкой «{b}» теперь за нами."
+
 msgctxt "fotz_own"
 msgid "Your faction"
 msgstr "Ваша группировка"
@@ -372,6 +376,18 @@ msgstr "Отношения возвращены к началу"
 msgctxt "st_fotz_tab_log_none"
 msgid "Nothing yet: wars, truces and alliances show here."
 msgstr "Пока ничего: здесь будут войны, перемирия и союзы."
+
+msgctxt "st_fotz_tab_fronts"
+msgid "Fronts: fighters on each side"
+msgstr "Фронты: бойцов у каждой стороны"
+
+msgctxt "st_fotz_tab_front"
+msgid "{place}: {a} {na}, {b} {nb}"
+msgstr "{place}: «{a}» {na}, «{b}» {nb}"
+
+msgctxt "st_fotz_tab_fronts_none"
+msgid "None: no two factions at war share a level."
+msgstr "Нет: ни на одной локации нет двух воюющих группировок."
 
 msgctxt "st_fotz_tab_members"
 msgid "Members"

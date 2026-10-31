@@ -4,8 +4,10 @@ world), and check what the Factions tab shows.
 Checked: your side without a faction (your own) and with one (yours, all twelve factions); each
 row's standing in words and colors, an event in force before the lines at -1000 and 1000; how far
 politics moved a pair, "never changes" for fixed pairs and factions; the census's ground and
-fighters; the war log, newest first, ten at most, with its dates; members (the dead apart, near or
-away, eight then "and N more"); why politics stands down; Restore relations; every string exists.
+fighters; the war log, newest first, six at most, with its dates; the fronts (territory's, from the
+last census), your side's first, then the biggest, five at most, the bigger side named first;
+members (the dead apart, near or away, five then "and N more"); why politics stands down; Restore
+relations; every string exists.
 The page's layout (ui_fotz_tab.script) is checked in game.
 
     python test_tab.py            the real script
@@ -20,7 +22,7 @@ import test_politics as TP
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(HERE, "..", "gamedata", "scripts")
 #: the scripts the tab is made of, by module name; a mutant names its module when it isn't fotz_tab
-MODULES = ("fotz_tab", "z_fotz_mac", "modxml_fotz_tab", "fotz_mcm")
+MODULES = ("fotz_tab", "z_fotz_mac", "modxml_fotz_tab", "fotz_mcm", "fotz_territory")
 SCRIPT = os.path.join(SCRIPTS_DIR, "fotz_tab.script")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
@@ -62,6 +64,10 @@ MUTANTS = {
     "dxml_no_caption": ('    if not (tab and xml:query("caption_static")[1]) then', "    if not tab then", "modxml_fotz_tab"),
     "dxml_any_file": ('    if not string.match(name, "^ui[\\\\/]pda[%w_]*%.xml$") then', "    if false then", "modxml_fotz_tab"),
     "mcm_option_always": ("    if z_fotz_mac and z_fotz_mac.available() then", "    if true then", "fotz_mcm"),
+    "fronts_not_mine_first": ("        local list = (f.a == side or f.b == side) and mine or rest", "        local list = rest"),
+    "fronts_uncapped": ("            if #out >= FRONT_LINES then", "            if false then"),
+    "front_as_listed": ("            if nb > na then", "            if false then"),
+    "fronts_no_none": ('        out[1] = text("st_fotz_tab_fronts_none")', "        out[1] = nil"),
 }
 
 FACTIONS = ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
@@ -129,7 +135,7 @@ mac_mcm = { add_app = function(id, data) ADDS = ADDS + 1; APPS[id] = data end,
         load = lua.eval("function(src, name) local env = setmetatable({}, { __index = _G }) "
                         "local f = assert(loadstring(src, name)) setfenv(f, env) f() return env end")
         g = self.p.g
-        for name in ("modxml_fotz_tab", "z_fotz_mac", "fotz_mcm"):
+        for name in ("modxml_fotz_tab", "z_fotz_mac", "fotz_mcm", "fotz_territory"):
             g[name] = load(srcs[name], name)
         self.env = load(srcs["fotz_tab"], "fotz_tab")
         g.fotz_tab = self.env
@@ -199,14 +205,31 @@ def your_own(srcs):
     check(r["killer"].trend == "down" and r["bandit"].trend == "up" and r["csky"].trend is None,
           "trends %s %s %s" % (r["killer"].trend, r["bandit"].trend, r["csky"].trend))
 
-    # the war log: newest first, ten at most
+    # the war log: newest first, six at most
     for i in range(12):
         t.p.env.S.history[len(t.p.env.S.history) + 1] = t.p.lua.eval(
             '{ kind = "war", a = "dolg", b = "killer", day = "2012-05-%02d" }' % (i + 1))
     t.p.env.S.history[len(t.p.env.S.history) + 1] = t.p.lua.eval('{ kind = "truce", a = "dolg", b = "killer", day = "2012-05-20" }')
     log = lines(t.page().log)
-    check(len(log) == 10 and log[0] == "20.05  Truce: Duty and Mercenaries" and log[1] == "12.05  War: Duty and Mercenaries",
+    check(len(log) == 6 and log[0] == "20.05  Truce: Duty and Mercenaries" and log[1] == "12.05  War: Duty and Mercenaries",
           "log %s" % log)
+
+    # the fronts, from territory's last census: Duty's first, then the biggest; five at most
+    check(lines(t.page().fronts) == ["None: no two factions at war share a level."], "no fronts: %s" % lines(t.page().fronts))
+    t.run("""
+STR.l02_garbage, STR.l03_agroprom, STR.l04_darkvalley = "Garbage", "Agroprom", "Dark Valley"
+fotz_territory.FRONTS = {
+    { a = "bandit", b = "army", level = "l02_garbage", fa = 5, fb = 40 },
+    { a = "csky", b = "freedom", level = "l03_agroprom", fa = 20, fb = 18 },
+    { a = "dolg", b = "killer", level = "l03_agroprom", fa = 10, fb = 26 },
+    { a = "stalker", b = "bandit", level = "l02_garbage", fa = 12, fb = 12 },
+    { a = "ecolog", b = "monolith", level = "l04_darkvalley", fa = 3, fb = 20 },
+    { a = "freedom", b = "dolg", level = "l04_darkvalley", fa = 9, fb = 6 },
+    { a = "army", b = "killer", level = "l04_darkvalley", fa = 2, fb = 3 } }
+""")
+    fr = lines(t.page().fronts)
+    check(fr == ["Agroprom: Mercenaries 26, Duty 10", "Dark Valley: Freedom 9, Duty 6", "Garbage: Military 40, Bandits 5",
+                 "Agroprom: Clear Sky 20, Freedom 18", "Garbage: Loners 12, Bandits 12"], "fronts %s" % fr)
 
     # standing down says why
     t.run('MCM["fotz/politics"] = false')
@@ -235,10 +258,10 @@ NEAR = { [501] = {} }
     check(lines(p.members) == ["Fedya (Clear Sky), away", "Oleg (Duty), dead", "Vaska (Loners), with you"],
           "members %s" % lines(p.members))
 
-    # more than eight
+    # more than five
     t.run("for i = 1, 10 do fotz_faction.F.members[600 + i] = { name = 'Zed ' .. string.char(64 + i), mother = 'stalker' } end")
     m = lines(t.page().members)
-    check(len(m) == 9 and m[-1] == "and 5 more", "nine lines, the last 'and 5 more': %s" % m)
+    check(len(m) == 6 and m[-1] == "and 8 more", "six lines, the last 'and 8 more': %s" % m)
     return t
 
 

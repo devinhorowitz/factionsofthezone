@@ -17,7 +17,7 @@ it starts with the friends and enemies of the faction you came from, you lead it
 faction (keeping its traders and tasks; you can choose to join it instead), and your companions
 join it. Disband it and
 everyone goes back to their old faction. Coming next: settlers who may join as their loyalty
-grows, and a Factions tab.
+grows.
 
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
@@ -33,7 +33,8 @@ relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mod
 go next, ground held by an enemy weighs more where its faction outnumbers that enemy on the level,
 and less where it's outnumbered. It's only a bias in the game's own choice: nothing is ordered or
 spawned, and story squads, squads on a scripted errand, your companions and Homestead's garrisons
-are left alone.
+are left alone. The Factions page lists the fronts with each side's fighters, and a side that takes
+the upper hand on one says so on your PDA.
 
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before
@@ -55,7 +56,7 @@ python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 
 **The Factions page.** Your side (the faction you lead, or your own), each faction's standing with
 it, how far and which way it has moved, its leader, the ground and fighters the census found, the
-war log, your members, and a button that puts every relation back where it started.
+war log, the fronts, your members, and a button that puts every relation back where it started.
 
 Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
 key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
@@ -83,7 +84,7 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
   scoring, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (148 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (165 so far); every
   one must fail.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
 

@@ -63,6 +63,9 @@
 	<string id="st_fotz_news_ground">
 		<text>Мы заняли позицию «{place}», выбив оттуда группировку «{b}».</text>
 	</string>
+	<string id="st_fotz_news_front_upper">
+		<text>В районе «{place}» перевес над группировкой «{b}» теперь за нами.</text>
+	</string>
 	<string id="fotz_own">
 		<text>Ваша группировка</text>
 	</string>
@@ -236,6 +239,15 @@
 	</string>
 	<string id="st_fotz_tab_log_none">
 		<text>Пока ничего: здесь будут войны, перемирия и союзы.</text>
+	</string>
+	<string id="st_fotz_tab_fronts">
+		<text>Фронты: бойцов у каждой стороны</text>
+	</string>
+	<string id="st_fotz_tab_front">
+		<text>{place}: «{a}» {na}, «{b}» {nb}</text>
+	</string>
+	<string id="st_fotz_tab_fronts_none">
+		<text>Нет: ни на одной локации нет двух воюющих группировок.</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Бойцы</text>

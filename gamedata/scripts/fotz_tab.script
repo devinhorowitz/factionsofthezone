@@ -18,8 +18,9 @@ ui_fotz_tab.script only lays it out. Every word is a string id, st_fotz_tab_*.
 VERSION = "0.3.0"
 TAB_CAPTION = "st_fotz_tab"
 KEY_PATH = "fotz/tab_key"
-LOG_LINES = 10
-MEMBER_LINES = 8
+LOG_LINES = 6
+FRONT_LINES = 5
+MEMBER_LINES = 5
 
 -- the standing's colors, as r, g, b: the PDA's reds, ambers and greens
 COLORS = {
@@ -171,6 +172,35 @@ local function war_log(P)
     return out
 end
 
+-- the Zone's fronts (fotz_territory, from the last census): your side's first, then the biggest;
+-- the side with more fighters there named first
+local function front_lines(P, side)
+    local T = fotz_territory
+    local mine, rest = {}, {}
+    for _, f in ipairs(T and T.FRONTS or {}) do
+        local list = (f.a == side or f.b == side) and mine or rest
+        list[#list + 1] = f
+    end
+    local out = {}
+    for _, list in ipairs({ mine, rest }) do
+        for _, f in ipairs(list) do
+            if #out >= FRONT_LINES then
+                return out
+            end
+            local a, b, na, nb = f.a, f.b, f.fa, f.fb
+            if nb > na then
+                a, b, na, nb = b, a, nb, na
+            end
+            out[#out + 1] = text("st_fotz_tab_front", { place = game.translate_string(f.level),
+                a = P.faction_name(a), b = P.faction_name(b), na = na, nb = nb })
+        end
+    end
+    if #out == 0 then
+        out[1] = text("st_fotz_tab_fronts_none")
+    end
+    return out
+end
+
 local function member_lines(P, F)
     local list = {}
     for id, m in pairs(F.members) do
@@ -219,6 +249,7 @@ function page()
     p.status = why and text("st_fotz_tab_down_" .. why) or text("st_fotz_tab_in_charge")
     p.rows = rows(P, side)
     p.log = war_log(P)
+    p.fronts = front_lines(P, side)
     p.credit = text("st_fotz_tab_credit", { v = VERSION })
     return p
 end
