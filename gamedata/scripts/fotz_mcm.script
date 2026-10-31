@@ -24,6 +24,7 @@ function on_mcm_load()
                 { "all", "fotz_news_all" },
             } },
             { id = "census", type = "check", val = 1, def = true },
+            { id = "tab_key", type = "key_bind", val = 2, def = -1 },
             { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
         },
     }

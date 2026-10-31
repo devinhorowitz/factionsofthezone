@@ -47,9 +47,14 @@ in `fotz_census.jsonl` in the game's appdata folder (`<Anomaly>\appdata`).
 python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
 
+**The Factions tab.** A PDA tab of its own: your side (the faction you lead, or your own), each
+faction's standing with it and how far it has moved, the ground and fighters the census found, the
+war log, your members, and a button that puts every relation back where it started. A key in MCM
+opens the same page in a window of its own, sharper than the 3D PDA.
+
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
-yourself, off unless you choose it, and whether companions join), politics on or off, PDA news (off, wars and truces, or everything), and
-the census log.
+yourself, off unless you choose it, and whether companions join), politics on or off, PDA news
+(off, wars and truces, or everything), the census log, and the Factions page key.
 
 ## Install
 
@@ -63,9 +68,10 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   the tests, and installs into an MO2 mods folder (`--check` only checks).
 - `_tools/test_census.py` runs the census against a made-up alife, `test_politics.py` runs the
   politics engine through wars, truces, alliances, saves and stand-downs, `test_faction.py` runs
-  your faction through founding, saves (byte-level packets), loads, disguise and disbanding, and
+  your faction through founding, saves (byte-level packets), loads, disguise and disbanding,
+  `test_tab.py` checks what the Factions tab shows on top of the real politics engine, and
   `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (72 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (113 so far); every
   one must fail.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
 

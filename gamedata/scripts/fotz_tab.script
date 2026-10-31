@@ -1,0 +1,272 @@
+--[[
+Factions of the Zone: the Factions tab.
+
+A tab of its own in the PDA (Modded Exes' registry, pda_dynamic_tabs), registered a second into
+play, never during a load. It shows your side, the faction you lead or, without one, your own;
+each faction's standing with it, what holds that standing (a war, a truce, an alliance), how far
+politics has moved it and the ground and fighters the last census found; the war log, newest
+first; and your members. "Restore relations" puts every pair back where it started. A key in MCM
+opens the page flat, in a window of its own, since the 3D PDA softens PDA pages.
+
+page() builds everything the page shows, as text, so it can be tested away from the UI;
+ui_fotz_tab.script only lays it out. Every word is a string id, st_fotz_tab_*.
+--]]
+
+VERSION = "0.3.0"
+TAB_CAPTION = "st_fotz_tab"
+KEY_PATH = "fotz/tab_key"
+LOG_LINES = 10
+MEMBER_LINES = 8
+
+-- the standing's colors, as r, g, b: the PDA's reds, ambers and greens
+COLORS = {
+    war = { 230, 80, 70 }, enemies = { 210, 110, 90 }, truce = { 238, 196, 112 },
+    neutral = { 200, 200, 200 }, friends = { 140, 205, 130 }, alliance = { 120, 225, 140 },
+}
+
+local LAST   -- the last census, kept as it arrives
+local TAB    -- the tab's section id, once registered
+
+local function log(fmt, ...)
+    printf("[fotz-tab] " .. fmt, ...)
+end
+
+-- a string id's text with {fields} filled in
+function text(id, fields)
+    local s = game.translate_string(id)
+    if fields then
+        s = string.gsub(s, "{(%w+)}", function(k)
+            return fields[k] ~= nil and tostring(fields[k]) or ("{" .. k .. "}")
+        end)
+    end
+    return s
+end
+
+-- "2018-11-05" as "05.11"
+function short_date(d)
+    local _, m, dd = string.match(d or "", "^(%d+)-(%d+)-(%d+)")
+    return m and (dd .. "." .. m) or tostring(d or "")
+end
+
+local function signed(n)
+    n = math.floor((n or 0) + 0.5)
+    return n > 0 and ("+" .. n) or tostring(n)
+end
+
+-- a standing in words: an event in force first, else the game's lines at -1000 and 1000
+function band(rel, kind)
+    if kind == "war" or kind == "truce" or kind == "alliance" then
+        return kind
+    end
+    if rel <= -1000 then
+        return "enemies"
+    elseif rel >= 1000 then
+        return "friends"
+    end
+    return "neutral"
+end
+
+-- smarts held and fighters, from the last census, or nil before one
+local function strength(f)
+    if not LAST then
+        return nil
+    end
+    local held = 0
+    for _, holder in pairs(LAST.smarts or {}) do
+        if holder == f then
+            held = held + 1
+        end
+    end
+    local e = LAST.factions and LAST.factions[f]
+    return held, e and e.fighters or 0
+end
+
+-- what the event holding a pair says, with its date
+local function event_line(ev)
+    if not ev then
+        return nil
+    end
+    if ev.kind == "truce" then
+        return text("st_fotz_tab_truce_until", { date = short_date(ev["until"]) })
+    end
+    return text("st_fotz_tab_" .. ev.kind .. "_since", { date = short_date(ev.since) })
+end
+
+local function rows(P, side)
+    local out = {}
+    for _, f in ipairs(fotz_census.FACTIONS) do
+        if f ~= side then
+            local rel = relation_registry.community_relation(side, f)
+            local pair = P.pair_of(side, f)
+            local ev = pair and P.S and P.S.events[pair.key]
+            local b = band(rel, ev and ev.kind)
+            local parts = {}
+            local held, fighters = strength(f)
+            if held then
+                parts[#parts + 1] = text("st_fotz_tab_strength", { held = held, fighters = fighters })
+            end
+            parts[#parts + 1] = event_line(ev)
+            local change
+            if not pair then
+                change = text("st_fotz_tab_fixed")
+            else
+                local d = P.S and P.S.drift[pair.key] or 0
+                change = d ~= 0 and text("st_fotz_tab_change", { n = signed(d) }) or ""
+            end
+            out[#out + 1] = {
+                faction = f, icon = "ui_mm_faction_" .. f, name = P.faction_name(f), band = b,
+                standing = text("st_fotz_tab_band_" .. b) .. " (" .. signed(rel) .. ")",
+                -- the spaces are added here: the string table trims them off the ends of a text
+                color = COLORS[b], detail = table.concat(parts, " " .. text("st_fotz_tab_sep") .. " "), change = change,
+            }
+        end
+    end
+    return out
+end
+
+local function war_log(P)
+    local out = {}
+    local h = P.S and P.S.history or {}
+    for i = #h, math.max(1, #h - LOG_LINES + 1), -1 do
+        local e = h[i]
+        out[#out + 1] = short_date(e.day) .. "  " .. text("st_fotz_tab_log_" .. tostring(e.kind), {
+            a = e.a and P.faction_name(e.a) or "", b = e.b and P.faction_name(e.b) or "" })
+    end
+    if #out == 0 then
+        out[1] = text("st_fotz_tab_log_none")
+    end
+    return out
+end
+
+local function member_lines(P, F)
+    local list = {}
+    for id, m in pairs(F.members) do
+        list[#list + 1] = { id = id, m = m }
+    end
+    table.sort(list, function(x, y) return tostring(x.m.name) < tostring(y.m.name) end)
+    local out = {}
+    for i, it in ipairs(list) do
+        if i > MEMBER_LINES then
+            out[#out + 1] = text("st_fotz_tab_members_more", { n = #list - MEMBER_LINES })
+            break
+        end
+        local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")
+        out[#out + 1] = text("st_fotz_tab_member_" .. state, { name = it.m.name,
+            from = P.faction_name(it.m.mother), date = short_date(it.m.joined) })
+    end
+    if #out == 0 then
+        out[1] = text("st_fotz_tab_members_none")
+    end
+    return out
+end
+
+-- everything the page shows
+function page()
+    local P = fotz_politics
+    local F = fotz_faction and fotz_faction.F
+    local side = F and P.OWN or get_actor_true_community()
+    local p = { leading = F ~= nil, side = side }
+    if F then
+        local n = 0
+        for _, m in pairs(F.members) do
+            if not m.dead then
+                n = n + 1
+            end
+        end
+        p.title = F.name
+        p.subtitle = text("st_fotz_tab_yours", { date = short_date(F.founded), from = P.faction_name(F.mother), n = n })
+        p.icon = "ui_mm_faction_" .. F.mother
+        p.members = member_lines(P, F)
+    else
+        p.title = P.faction_name(side)
+        p.subtitle = text("st_fotz_tab_no_faction")
+        p.icon = "ui_mm_faction_" .. side
+    end
+    local _, why = P.standing_down()
+    p.status = why and text("st_fotz_tab_down_" .. why) or text("st_fotz_tab_in_charge")
+    p.rows = rows(P, side)
+    p.log = war_log(P)
+    p.credit = text("st_fotz_tab_credit", { v = VERSION })
+    return p
+end
+
+-- the tab -------------------------------------------------------------------------------------
+
+-- the page for the PDA; a page that fails to build is logged and the tab comes up empty
+local function safe_ui()
+    local ok, ui = pcall(function() return ui_fotz_tab.get_ui() end)
+    if ok then
+        return ui
+    end
+    log("! the page failed: %s", tostring(ui))
+    return nil
+end
+
+function supported()
+    return pda_dynamic_tabs ~= nil and type(pda_dynamic_tabs.register) == "function"
+end
+
+local function register()
+    if TAB or not supported() then
+        return
+    end
+    local ok, id = pcall(pda_dynamic_tabs.register, TAB_CAPTION, safe_ui)
+    if ok and type(id) == "string" then
+        TAB = id
+        log("the Factions tab is %s", id)
+    else
+        log("! no Factions tab: %s", tostring(id))
+    end
+end
+
+function section()
+    return TAB
+end
+
+-- the flat window's key: its DIK code, or nil while unbound. Read at each press, so a change in
+-- MCM takes at once
+function key()
+    local ok, k = pcall(function() return ui_mcm and ui_mcm.get(KEY_PATH) end)
+    k = ok and tonumber(k) or nil
+    return (k and k >= 0) and k or nil
+end
+
+-- The key opens the page a moment after the press: the engine hands a key to the scripts before
+-- the UI, so a window opened during the press would take that same press and close again. While
+-- the page is open flat, the press is the page's.
+local function on_key_press(dik)
+    local k = key()
+    if not (k and dik == k) or ui_fotz_tab.flat_window() then
+        return
+    end
+    CreateTimeEvent("fotz_tab", "open_flat", 0, function()
+        if db.actor and db.actor:alive() then
+            local ok, err = pcall(ui_fotz_tab.open_flat)
+            if not ok then
+                log("! could not open the page flat: %s", tostring(err))
+            end
+        end
+        return true
+    end)
+end
+
+-- a window Lua made, still shown when a load starts, crashes the game: the flat page closes
+-- when the level goes
+local function close_flat()
+    local ok, err = pcall(ui_fotz_tab.close_flat)
+    if not ok then
+        log("! could not close the page: %s", tostring(err))
+    end
+end
+
+function on_game_start()
+    fotz_census.listen(function(c) LAST = c end)
+    RegisterScriptCallback("actor_on_first_update", function()
+        CreateTimeEvent("fotz_tab", "register", 1, function()
+            register()
+            return true
+        end)
+    end)
+    RegisterScriptCallback("on_key_press", on_key_press)
+    RegisterScriptCallback("actor_on_net_destroy", close_flat)
+end

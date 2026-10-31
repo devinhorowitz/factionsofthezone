@@ -138,6 +138,138 @@
 	<string id="st_fotz_faction_isg">
 		<text>UNISG</text>
 	</string>
+	<string id="st_fotz_tab">
+		<text>Группировки</text>
+	</string>
+	<string id="st_fotz_tab_yours">
+		<text>Ваша группировка · основана {date} · прежняя: «{from}» · бойцов: {n}</text>
+	</string>
+	<string id="st_fotz_tab_no_faction">
+		<text>У вас нет своей группировки. Её можно основать в MCM, в разделе «Фракции Зоны».</text>
+	</string>
+	<string id="st_fotz_tab_in_charge">
+		<text>Отношения меняются по ходу боёв между группировками.</text>
+	</string>
+	<string id="st_fotz_tab_down_off">
+		<text>Отношения не меняются: выключено в MCM.</text>
+	</string>
+	<string id="st_fotz_tab_down_dynamic">
+		<text>Отношениями управляют динамические отношения самой игры.</text>
+	</string>
+	<string id="st_fotz_tab_down_warfare">
+		<text>Отношениями управляет режим «Война группировок».</text>
+	</string>
+	<string id="st_fotz_tab_down_dfrc">
+		<text>Отношениями управляет Dynamic Faction Relations Customizer.</text>
+	</string>
+	<string id="st_fotz_tab_down_fluid">
+		<text>Отношениями управляет Fluid Relations.</text>
+	</string>
+	<string id="st_fotz_tab_standing">
+		<text>Отношения</text>
+	</string>
+	<string id="st_fotz_tab_band_war">
+		<text>Война</text>
+	</string>
+	<string id="st_fotz_tab_band_enemies">
+		<text>Враги</text>
+	</string>
+	<string id="st_fotz_tab_band_truce">
+		<text>Перемирие</text>
+	</string>
+	<string id="st_fotz_tab_band_neutral">
+		<text>Нейтралы</text>
+	</string>
+	<string id="st_fotz_tab_band_friends">
+		<text>Друзья</text>
+	</string>
+	<string id="st_fotz_tab_band_alliance">
+		<text>Союз</text>
+	</string>
+	<string id="st_fotz_tab_strength">
+		<text>позиций: {held} · бойцов: {fighters}</text>
+	</string>
+	<string id="st_fotz_tab_war_since">
+		<text>война с {date}</text>
+	</string>
+	<string id="st_fotz_tab_truce_until">
+		<text>перемирие до {date}</text>
+	</string>
+	<string id="st_fotz_tab_alliance_since">
+		<text>союз с {date}</text>
+	</string>
+	<string id="st_fotz_tab_fixed">
+		<text>не меняется</text>
+	</string>
+	<string id="st_fotz_tab_change">
+		<text>{n} от начала</text>
+	</string>
+	<string id="st_fotz_tab_log">
+		<text>Хроника</text>
+	</string>
+	<string id="st_fotz_tab_log_war">
+		<text>Война: «{a}» и «{b}»</text>
+	</string>
+	<string id="st_fotz_tab_log_war_over">
+		<text>Конец войны: «{a}» и «{b}»</text>
+	</string>
+	<string id="st_fotz_tab_log_truce">
+		<text>Перемирие: «{a}» и «{b}»</text>
+	</string>
+	<string id="st_fotz_tab_log_truce_over">
+		<text>Конец перемирия: «{a}» и «{b}»</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance">
+		<text>Союз: «{a}» и «{b}»</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance_over">
+		<text>Конец союза: «{a}» и «{b}»</text>
+	</string>
+	<string id="st_fotz_tab_log_restored">
+		<text>Отношения возвращены к началу</text>
+	</string>
+	<string id="st_fotz_tab_log_none">
+		<text>Пока ничего: здесь будут войны, перемирия и союзы.</text>
+	</string>
+	<string id="st_fotz_tab_members">
+		<text>Бойцы</text>
+	</string>
+	<string id="st_fotz_tab_member_near">
+		<text>{name} («{from}»), рядом</text>
+	</string>
+	<string id="st_fotz_tab_member_away">
+		<text>{name} («{from}»), далеко</text>
+	</string>
+	<string id="st_fotz_tab_member_dead">
+		<text>{name} («{from}»), погиб</text>
+	</string>
+	<string id="st_fotz_tab_members_none">
+		<text>Бойцов пока нет: ваши спутники вступают сами.</text>
+	</string>
+	<string id="st_fotz_tab_members_more">
+		<text>и ещё {n}</text>
+	</string>
+	<string id="st_fotz_tab_restore">
+		<text>Вернуть отношения</text>
+	</string>
+	<string id="st_fotz_tab_restore_confirm">
+		<text>Нажмите ещё раз</text>
+	</string>
+	<string id="st_fotz_tab_restored">
+		<text>Отношения возвращены</text>
+	</string>
+	<string id="st_fotz_tab_sep">
+		<text>·</text>
+	</string>
+	<string id="st_fotz_tab_credit">
+		<text>Фракции Зоны {v} · Windwalker</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key">
+		<text>Клавиша страницы группировок</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key_desc">
+		<text>Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Та же страница есть во вкладке «Группировки» КПК.</text>
+	</string>
 	<string id="st_dyn_news_comm_fotz_own_1">
 		<text>сталкер</text>
 	</string>

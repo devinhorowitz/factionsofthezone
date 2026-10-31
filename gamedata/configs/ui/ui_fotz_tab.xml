@@ -1,0 +1,84 @@
+<w>
+<!--
+    Factions of the Zone: the Factions page (ui_fotz_tab.script).
+
+    The PDA's page area, 1024x768, with the content in the PDA's own background rectangle
+    (28,106 to 792,709). Your side at the top; each faction's standing on the left, two lines a
+    row; the war log and your members on the right; Restore relations and the credit at the foot.
+    The row_* and *_line elements are templates: the script places one per row or line, a step
+    down from ROW_Y, LOG_Y and MEMBER_Y, so their y here is the offset within a row.
+
+    Art: the game's own faction icons (set from script), its ordinary button, and for the flat
+    window the 2D PDA's frame. Colors follow the PDA: amber 238,196,112 for headings, light gray
+    for text, dim gray for detail. Fonts are letterica, as everywhere else.
+-->
+    <!-- the flat window only: the 2D PDA's frame and the page's name where the PDA prints a
+         section's, at pda_16.xml's offsets -->
+    <flat_bezel x="-10" y="-34" width="819" height="768" stretch="1">
+        <texture>ui_inGame2_pda_texture</texture>
+    </flat_bezel>
+    <flat_caption x="29" y="28" width="748" height="17">
+        <text font="letterica16" align="l" r="170" g="170" b="170"/>
+    </flat_caption>
+
+    <background x="28" y="106" width="764" height="603" stretch="1"/>
+
+    <!-- your side -->
+    <icon x="44" y="116" width="48" height="48" stretch="1"/>
+    <title x="104" y="116" width="440" height="24">
+        <text font="letterica18" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </title>
+    <subtitle x="104" y="142" width="672" height="18">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </subtitle>
+    <status x="104" y="160" width="672" height="18">
+        <text font="letterica16" r="150" g="150" b="150" align="l" vert_align="c"/>
+    </status>
+
+    <!-- each faction's standing with your side: a row of two lines -->
+    <standing_heading x="44" y="188" width="402" height="18">
+        <text font="letterica16" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </standing_heading>
+    <row_icon x="44" y="2" width="28" height="28" stretch="1"/>
+    <row_name x="80" y="0" width="140" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="l" vert_align="c"/>
+    </row_name>
+    <row_standing x="222" y="0" width="110" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </row_standing>
+    <row_change x="334" y="0" width="114" height="16">
+        <text font="letterica16" r="150" g="150" b="150" align="r" vert_align="c"/>
+    </row_change>
+    <row_detail x="80" y="16" width="368" height="16">
+        <text font="letterica16" r="150" g="150" b="150" align="l" vert_align="c"/>
+    </row_detail>
+
+    <!-- the war log, newest first -->
+    <log_heading x="470" y="188" width="306" height="18">
+        <text font="letterica16" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </log_heading>
+    <log_line x="470" y="0" width="306" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </log_line>
+
+    <!-- your members, while you lead a faction -->
+    <members_heading x="470" y="404" width="306" height="18">
+        <text font="letterica16" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </members_heading>
+    <member_line x="470" y="0" width="306" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </member_line>
+
+    <!-- every pair back where it started, after a second click; the label over the plate -->
+    <restore x="470" y="612" width="200" height="28">
+        <texture>ui_button_ordinary</texture>
+    </restore>
+    <restore_label x="470" y="618" width="200" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </restore_label>
+
+    <!-- above the flat frame's inner edge (the PDA's own background ends at 709) -->
+    <credit x="470" y="666" width="306" height="16">
+        <text font="letterica16" r="120" g="120" b="120" align="r" vert_align="c"/>
+    </credit>
+</w>

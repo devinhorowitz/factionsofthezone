@@ -75,6 +75,12 @@ MUTANTS = {
     "own_name": ('        return F and F.name or game.translate_string("st_fotz_default_name")',
                  '        return game.translate_string("st_fotz_default_name")'),
     "own_icon": ("voice ~= OWN and voice or nil", "voice"),
+    "restore_no_apply": ('    log("relations restored to where they started")\n    return apply()',
+                         '    log("relations restored to where they started")\n    return 1'),
+    "restore_keeps_events": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}",
+                             "st.drift, st.pending, st.kills, st.hurt, st.recent = {}, {}, {}, {}, {}"),
+    "restore_keeps_pending": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}",
+                              "st.drift, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}"),
 }
 
 TEST_CONFIG = """
@@ -537,6 +543,23 @@ def your_faction(src):
     check(w2.env.S.kills["dolg/killer"] == 0.5, "after disbanding, your kill counted %s for Duty" % w2.env.S.kills["dolg/killer"])
 
 
+def restore(src):
+    # the Factions tab's "Restore relations": every pair back at its start, events ended, mid-save
+    w = World(src, anchors=DK_ANCHORS)
+    w.run('day("2012-05-01")')
+    w.run('kill("dolg", "killer", "veteran", 200)')
+    for d in ("02", "03", "04"):
+        w.run('day("2012-05-%s")' % d)
+    check(w.event("dolg/killer") == "war", "no war to end: %s" % w.event("dolg/killer"))
+    n = w.env.restore()
+    check(n > 0 and all(w.rel(c) == DK_ANCHORS[c] for c in CELLS), "restored cells: %s" % {c: w.rel(c) for c in CELLS})
+    check(w.drift("dolg/killer") is None and w.pending("dolg/killer") is None and w.event("dolg/killer") is None,
+          "restore left drift %s, pending %s, event %s" % (w.drift("dolg/killer"), w.pending("dolg/killer"), w.event("dolg/killer")))
+    check(w.history()[-1] == "restored", "history %s" % w.history())
+    w.run('day("2012-05-05")')
+    check(w.drift("dolg/killer") is None, "the next day moved a restored pair: %s" % w.drift("dolg/killer"))
+
+
 def caps(src):
     w = World(src)
     w.run('day("2012-05-01")')
@@ -587,9 +610,10 @@ def run(src):
     save_and_load(src, w)
     kills(src)
     your_faction(src)
+    restore(src)
     caps(src)
     real_config(src)
-    return "9 scenarios, 16 pairs from the shipped config"
+    return "10 scenarios, 16 pairs from the shipped config"
 
 
 def main():

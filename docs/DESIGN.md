@@ -220,9 +220,22 @@ its player twin `actor_fotz_own`, team 37).
 
 ## 4. PDA and news
 
-- **A tab of its own** through `pda_dynamic_tabs.register`, plus an MCM key that opens it flat
-  (the 3D PDA softens PDA pages). It shows relations with trend arrows, territory, the war log,
-  leaders, and the player's standing. The vanilla Relations tab stays.
+- **The Factions tab (0.3.0):** `fotz_tab.script` registers it a second into play (Modded Exes'
+  `pda_dynamic_tabs`); `ui_fotz_tab.script` and `configs/ui/ui_fotz_tab.xml` draw it; an MCM key
+  opens the same page flat, sharp in the 3D PDA, and it closes on Escape, the key, or a load.
+  What it shows, all built as text by `fotz_tab.page()`:
+  - your side: the faction you lead (its name, founding, old faction, members) or, without one,
+    your own, with that faction's icon; and whether politics is in charge or why not;
+  - each faction's standing with your side, in words and colors (an event in force first, then
+    the game's lines at -1000 and 1000), how far politics has moved it ("never changes" for fixed
+    pairs and factions), and the ground and fighters of the last census;
+  - the war log, newest first, ten lines; your members, near, away or dead;
+  - "Restore relations" (`fotz_politics.restore`), after a second click: every pair back where it
+    started, events ended, a line in the log.
+  Still to come: trend arrows (yesterday's relation), leaders, and Clear Sky's per-side strength.
+  The vanilla Relations tab stays.
+- **The plan it came from:** relations with trend arrows, territory, the war log, leaders, and the
+  player's standing.
   - The model is Clear Sky's faction-war page: each side's members, strength and leader.
   - Register it from an actor callback, never during a load (a registration during a load
     crashed in testing).

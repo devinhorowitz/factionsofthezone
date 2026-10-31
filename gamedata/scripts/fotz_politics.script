@@ -211,24 +211,24 @@ local function days_between(a, b)
     return day_num(b) - day_num(a)
 end
 
--- why Factions isn't changing relations, or nil while it is
+-- why Factions isn't changing relations, or nil while it is; and a short name for the reason
 function standing_down()
     if ui_mcm and ui_mcm.get("fotz/politics") == false then
-        return "turned off in MCM"
+        return "turned off in MCM", "off"
     end
     if ui_options and ui_options.get("alife/general/dynamic_relations") then
-        return "the base game's dynamic relations are on"
+        return "the base game's dynamic relations are on", "dynamic"
     end
     -- not _G.WARFARE: the base warfare.script sets it true in on_game_start whatever the mode, and
     -- false only on its first actor_on_update, after Factions has applied relations
     if IsWarfare and IsWarfare() then
-        return "Warfare mode is on"
+        return "Warfare mode is on", "warfare"
     end
     if dynamic_faction_relations_customizer then
-        return "Dynamic Faction Relations Customizer is installed"
+        return "Dynamic Faction Relations Customizer is installed", "dfrc"
     end
     if game_relations and game_relations.faction_cares then
-        return "Fluid Relations is installed"
+        return "Fluid Relations is installed", "fluid"
     end
     return nil
 end
@@ -380,7 +380,7 @@ end
 
 -- a faction's name as a group ("Mercenaries"): Factions' own string, else the game's (which is
 -- singular for some, "Mercenary"); yours is the name you gave it
-local function faction_name(f)
+function faction_name(f)
     if f == OWN then
         local F = led()
         return F and F.name or game.translate_string("st_fotz_default_name")
@@ -673,6 +673,17 @@ function on_census(c)
     end
     log("%s: %s pairs off their start, wars: %s, %s cells written", day, moved,
         #wars > 0 and table.concat(wars, " ") or "none", apply())
+end
+
+-- every pair back where it started (the game's relations, or your faction's founding ones),
+-- mid-save: drift, pressure and events go, and the history keeps a line for it. The Factions tab's
+-- "Restore relations"
+function restore()
+    local st = state()
+    st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}
+    remember({ kind = "restored", day = st.day or today() })
+    log("relations restored to where they started")
+    return apply()
 end
 
 -- saving ----------------------------------------------------------------------------------

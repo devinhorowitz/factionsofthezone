@@ -1,0 +1,262 @@
+--[[
+Factions of the Zone: the Factions page, as the PDA's tab and as a window of its own.
+
+It lays out fotz_tab.page() and nothing else: the header (your side's icon, name, a line on it,
+and whether politics is in charge), each faction's standing on the left, the war log and your
+members on the right, and "Restore relations", which asks for a second click. The layout is
+ui_fotz_tab.xml; rows and lines are its templates, moved down by a step.
+
+The art is the game's own (the faction icons, ui_mm_faction_<faction>; the button and the 2D
+PDA's frame), so an HD pack that replaces them shows through, and nothing here can be missing.
+
+CScriptXmlInit:ParseFile does not raise when the file can't be used; every Init* after it gives
+nil, and a method call on nil is an engine fatal. So no widget is used unchecked.
+--]]
+
+local SINGLETON = nil
+local FLAT = nil
+-- the PDA's pages sit this far into the screen (pda_16.xml), and so does the flat window
+local PDA_X, PDA_Y = 112, 34
+local ROWS, ROW_Y, ROW_STEP = 12, 210, 34
+local LOG_Y, MEMBER_Y, LINE_STEP = 210, 426, 18
+local CONFIRM_MS = 4000
+
+local function say(msg)
+    printf("[fotz-tab] %s", tostring(msg))
+end
+
+local function put(w, s)
+    if w then
+        w:SetText(s or "")
+    end
+end
+
+local function show(w, on)
+    if w then
+        w:Show(on)
+    end
+end
+
+-- `s` cut to `n` letters with an ellipsis (133 in windows-1251), for a line narrower than a name
+local function fit(s, n)
+    s = tostring(s or "")
+    if #s <= n then
+        return s
+    end
+    return s:sub(1, n - 1) .. "\133"
+end
+
+-- InitTexture doesn't apply width_factor: a square icon needs its width scaled by 4:3 over the
+-- screen's aspect
+local function aspect()
+    local ok, w, h = pcall(function() return device().width, device().height end)
+    if ok and w and h and h > 0 then
+        return (1024 / 768) / (w / h)
+    end
+    return 0.75
+end
+
+local function square(w)
+    if w then
+        local h = w:GetHeight()
+        w:SetWndSize(vector2():set(h * aspect(), h))
+    end
+end
+
+local function moved(w, x, y)
+    if w then
+        w:SetWndPos(vector2():set(x, y))
+    end
+    return w
+end
+
+class "FactionsTab" (CUIScriptWnd)
+
+function FactionsTab:__init(flat) super()
+    self.flat = flat == true
+    self:InitControls()
+end
+
+function FactionsTab:__finalize()
+    if self.flat then
+        FLAT = nil
+    else
+        SINGLETON = nil
+    end
+end
+
+function FactionsTab:InitControls()
+    local x, y = self.flat and PDA_X or 0, self.flat and PDA_Y or 0
+    self:SetWndRect(Frect():set(x, y, x + 1024, y + 768))
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_fotz_tab.xml")
+    self.xml = xml
+    if self.flat then
+        xml:InitStatic("flat_bezel", self)
+        put(xml:InitTextWnd("flat_caption", self), fotz_tab.text("st_fotz_tab"))
+    end
+    if not xml:InitStatic("background", self) then
+        say("ui_fotz_tab.xml gave no elements: check the file")
+        return
+    end
+    self.icon = xml:InitStatic("icon", self)
+    square(self.icon)
+    self.title = xml:InitTextWnd("title", self)
+    self.subtitle = xml:InitTextWnd("subtitle", self)
+    self.status = xml:InitTextWnd("status", self)
+    put(xml:InitTextWnd("standing_heading", self), fotz_tab.text("st_fotz_tab_standing"))
+    put(xml:InitTextWnd("log_heading", self), fotz_tab.text("st_fotz_tab_log"))
+    self.members_heading = xml:InitTextWnd("members_heading", self)
+    put(self.members_heading, fotz_tab.text("st_fotz_tab_members"))
+
+    self.rows = {}
+    for i = 1, ROWS do
+        local dy = (i - 1) * ROW_STEP
+        local r = {
+            icon = xml:InitStatic("row_icon", self),
+            name = xml:InitTextWnd("row_name", self),
+            standing = xml:InitTextWnd("row_standing", self),
+            change = xml:InitTextWnd("row_change", self),
+            detail = xml:InitTextWnd("row_detail", self),
+        }
+        square(r.icon)
+        for _, w in pairs(r) do
+            moved(w, w:GetWndPos().x, ROW_Y + dy + w:GetWndPos().y)
+        end
+        self.rows[i] = r
+    end
+    self.log = {}
+    for i = 1, fotz_tab.LOG_LINES do
+        local w = xml:InitTextWnd("log_line", self)
+        self.log[i] = moved(w, w and w:GetWndPos().x or 0, LOG_Y + (i - 1) * LINE_STEP)
+    end
+    self.members = {}
+    for i = 1, fotz_tab.MEMBER_LINES + 1 do
+        local w = xml:InitTextWnd("member_line", self)
+        self.members[i] = moved(w, w and w:GetWndPos().x or 0, MEMBER_Y + (i - 1) * LINE_STEP)
+    end
+
+    self.restore = xml:Init3tButton("restore", self)
+    -- the label after its plate, so it draws on top
+    self.restore_label = xml:InitTextWnd("restore_label", self)
+    if self.restore then
+        self:Register(self.restore, "restore")
+        self:AddCallback("restore", ui_events.BUTTON_CLICKED, self.OnRestore, self)
+    end
+    self.credit = xml:InitTextWnd("credit", self)
+end
+
+function FactionsTab:Fill()
+    local p = fotz_tab.page()
+    if self.icon then
+        self.icon:InitTexture(p.icon)
+    end
+    put(self.title, fit(p.title, 40))
+    put(self.subtitle, p.subtitle)
+    put(self.status, p.status)
+    for i, r in ipairs(self.rows or {}) do
+        local row = p.rows[i]
+        for _, w in pairs(r) do
+            show(w, row ~= nil)
+        end
+        if row then
+            if r.icon then
+                r.icon:InitTexture(row.icon)
+            end
+            put(r.name, row.name)
+            put(r.standing, row.standing)
+            if r.standing then
+                r.standing:SetTextColor(GetARGB(255, row.color[1], row.color[2], row.color[3]))
+            end
+            put(r.change, row.change)
+            put(r.detail, fit(row.detail, 58))
+        end
+    end
+    for i, w in ipairs(self.log or {}) do
+        put(w, fit(p.log[i], 46))
+    end
+    show(self.members_heading, p.members ~= nil)
+    for i, w in ipairs(self.members or {}) do
+        put(w, p.members and fit(p.members[i], 46) or "")
+    end
+    put(self.credit, p.credit)
+    self.confirm_until = nil
+    put(self.restore_label, fotz_tab.text("st_fotz_tab_restore"))
+end
+
+function FactionsTab:Reset()
+    local ok, err = pcall(function() self:Fill() end)
+    if not ok then
+        say("! the page could not be filled: " .. tostring(err))
+    end
+end
+
+-- the first click asks, a second within a few seconds restores
+function FactionsTab:OnRestore()
+    local now = time_global()
+    if not (self.confirm_until and now <= self.confirm_until) then
+        self.confirm_until = now + CONFIRM_MS
+        put(self.restore_label, fotz_tab.text("st_fotz_tab_restore_confirm"))
+        return
+    end
+    local ok, err = pcall(fotz_politics.restore)
+    if not ok then
+        say("! restore failed: " .. tostring(err))
+    end
+    self:Reset()
+    put(self.restore_label, fotz_tab.text("st_fotz_tab_restored"))
+end
+
+function FactionsTab:Update()
+    CUIScriptWnd.Update(self)
+    if self.confirm_until and time_global() > self.confirm_until then
+        self.confirm_until = nil
+        put(self.restore_label, fotz_tab.text("st_fotz_tab_restore"))
+    end
+end
+
+function FactionsTab:Close()
+    if self:IsShown() then
+        self:HideDialog()
+    end
+end
+
+-- flat, Escape and the page's key close it; in the PDA, the keys are the PDA's
+function FactionsTab:OnKeyboard(dik, action)
+    local res = CUIScriptWnd.OnKeyboard(self, dik, action)
+    if res then
+        return res
+    end
+    if self.flat and action == ui_events.WINDOW_KEY_PRESSED
+        and (dik == DIK_keys.DIK_ESCAPE or dik == fotz_tab.key()) then
+        self:Close()
+        return true
+    end
+    return false
+end
+
+-- the page for the PDA's tab, filled afresh each time it's shown
+function get_ui()
+    SINGLETON = SINGLETON or FactionsTab()
+    SINGLETON:Reset()
+    return SINGLETON
+end
+
+function open_flat()
+    FLAT = FLAT or FactionsTab(true)
+    if not FLAT:IsShown() then
+        FLAT:Reset()
+        FLAT:ShowDialog(true)
+    end
+    return FLAT
+end
+
+function close_flat()
+    if FLAT then
+        FLAT:Close()
+    end
+end
+
+function flat_window()
+    return (FLAT and FLAT:IsShown()) and FLAT or nil
+end

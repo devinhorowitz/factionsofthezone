@@ -138,6 +138,139 @@
 	<string id="st_fotz_faction_isg">
 		<text>UNISG</text>
 	</string>
+	<!-- the Factions tab (fotz_tab, ui_fotz_tab) and its MCM key -->
+	<string id="st_fotz_tab">
+		<text>Factions</text>
+	</string>
+	<string id="st_fotz_tab_yours">
+		<text>Your faction · founded {date} · came from: {from} · members: {n}</text>
+	</string>
+	<string id="st_fotz_tab_no_faction">
+		<text>You lead no faction of your own. Found one in MCM, under Factions of the Zone.</text>
+	</string>
+	<string id="st_fotz_tab_in_charge">
+		<text>Relations change as the factions fight.</text>
+	</string>
+	<string id="st_fotz_tab_down_off">
+		<text>Relations stand still: turned off in MCM.</text>
+	</string>
+	<string id="st_fotz_tab_down_dynamic">
+		<text>Relations are left to the base game's dynamic relations.</text>
+	</string>
+	<string id="st_fotz_tab_down_warfare">
+		<text>Relations are left to Warfare mode.</text>
+	</string>
+	<string id="st_fotz_tab_down_dfrc">
+		<text>Relations are left to Dynamic Faction Relations Customizer.</text>
+	</string>
+	<string id="st_fotz_tab_down_fluid">
+		<text>Relations are left to Fluid Relations.</text>
+	</string>
+	<string id="st_fotz_tab_standing">
+		<text>Standing</text>
+	</string>
+	<string id="st_fotz_tab_band_war">
+		<text>At war</text>
+	</string>
+	<string id="st_fotz_tab_band_enemies">
+		<text>Enemies</text>
+	</string>
+	<string id="st_fotz_tab_band_truce">
+		<text>Truce</text>
+	</string>
+	<string id="st_fotz_tab_band_neutral">
+		<text>Neutral</text>
+	</string>
+	<string id="st_fotz_tab_band_friends">
+		<text>Friends</text>
+	</string>
+	<string id="st_fotz_tab_band_alliance">
+		<text>Allied</text>
+	</string>
+	<string id="st_fotz_tab_strength">
+		<text>holds {held} · {fighters} fighters</text>
+	</string>
+	<string id="st_fotz_tab_war_since">
+		<text>at war since {date}</text>
+	</string>
+	<string id="st_fotz_tab_truce_until">
+		<text>truce until {date}</text>
+	</string>
+	<string id="st_fotz_tab_alliance_since">
+		<text>allied since {date}</text>
+	</string>
+	<string id="st_fotz_tab_fixed">
+		<text>never changes</text>
+	</string>
+	<string id="st_fotz_tab_change">
+		<text>{n} since the start</text>
+	</string>
+	<string id="st_fotz_tab_log">
+		<text>War log</text>
+	</string>
+	<string id="st_fotz_tab_log_war">
+		<text>War: {a} and {b}</text>
+	</string>
+	<string id="st_fotz_tab_log_war_over">
+		<text>War ends: {a} and {b}</text>
+	</string>
+	<string id="st_fotz_tab_log_truce">
+		<text>Truce: {a} and {b}</text>
+	</string>
+	<string id="st_fotz_tab_log_truce_over">
+		<text>Truce over: {a} and {b}</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance">
+		<text>Alliance: {a} and {b}</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance_over">
+		<text>Alliance over: {a} and {b}</text>
+	</string>
+	<string id="st_fotz_tab_log_restored">
+		<text>Relations restored to their start</text>
+	</string>
+	<string id="st_fotz_tab_log_none">
+		<text>Nothing yet: wars, truces and alliances show here.</text>
+	</string>
+	<string id="st_fotz_tab_members">
+		<text>Members</text>
+	</string>
+	<string id="st_fotz_tab_member_near">
+		<text>{name} ({from}), with you</text>
+	</string>
+	<string id="st_fotz_tab_member_away">
+		<text>{name} ({from}), away</text>
+	</string>
+	<string id="st_fotz_tab_member_dead">
+		<text>{name} ({from}), dead</text>
+	</string>
+	<string id="st_fotz_tab_members_none">
+		<text>No members yet: your companions join.</text>
+	</string>
+	<string id="st_fotz_tab_members_more">
+		<text>and {n} more</text>
+	</string>
+	<string id="st_fotz_tab_restore">
+		<text>Restore relations</text>
+	</string>
+	<string id="st_fotz_tab_restore_confirm">
+		<text>Click again to restore</text>
+	</string>
+	<string id="st_fotz_tab_restored">
+		<text>Relations restored</text>
+	</string>
+	<string id="st_fotz_tab_sep">
+		<text>·</text>
+	</string>
+	<string id="st_fotz_tab_credit">
+		<text>Factions of the Zone {v} · Windwalker</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key">
+		<text>Factions page key</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key_desc">
+		<text>Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page is also the PDA's Factions tab.</text>
+	</string>
 	<!-- the base game's news names a faction by these; your faction's members are stalkers -->
 	<string id="st_dyn_news_comm_fotz_own_1">
 		<text>a stalker</text>

@@ -248,3 +248,179 @@ msgstr "Требуется помощь, выручайте."
 msgctxt "st_dyn_news_comm_fotz_own_14"
 msgid "Brothers, help!"
 msgstr "Братишки! Спасите..."
+
+msgctxt "st_fotz_tab"
+msgid "Factions"
+msgstr "Группировки"
+
+msgctxt "st_fotz_tab_yours"
+msgid "Your faction · founded {date} · came from: {from} · members: {n}"
+msgstr "Ваша группировка · основана {date} · прежняя: «{from}» · бойцов: {n}"
+
+msgctxt "st_fotz_tab_no_faction"
+msgid "You lead no faction of your own. Found one in MCM, under Factions of the Zone."
+msgstr "У вас нет своей группировки. Её можно основать в MCM, в разделе «Фракции Зоны»."
+
+msgctxt "st_fotz_tab_in_charge"
+msgid "Relations change as the factions fight."
+msgstr "Отношения меняются по ходу боёв между группировками."
+
+msgctxt "st_fotz_tab_down_off"
+msgid "Relations stand still: turned off in MCM."
+msgstr "Отношения не меняются: выключено в MCM."
+
+msgctxt "st_fotz_tab_down_dynamic"
+msgid "Relations are left to the base game's dynamic relations."
+msgstr "Отношениями управляют динамические отношения самой игры."
+
+msgctxt "st_fotz_tab_down_warfare"
+msgid "Relations are left to Warfare mode."
+msgstr "Отношениями управляет режим «Война группировок»."
+
+msgctxt "st_fotz_tab_down_dfrc"
+msgid "Relations are left to Dynamic Faction Relations Customizer."
+msgstr "Отношениями управляет Dynamic Faction Relations Customizer."
+
+msgctxt "st_fotz_tab_down_fluid"
+msgid "Relations are left to Fluid Relations."
+msgstr "Отношениями управляет Fluid Relations."
+
+msgctxt "st_fotz_tab_standing"
+msgid "Standing"
+msgstr "Отношения"
+
+msgctxt "st_fotz_tab_band_war"
+msgid "At war"
+msgstr "Война"
+
+msgctxt "st_fotz_tab_band_enemies"
+msgid "Enemies"
+msgstr "Враги"
+
+msgctxt "st_fotz_tab_band_truce"
+msgid "Truce"
+msgstr "Перемирие"
+
+msgctxt "st_fotz_tab_band_neutral"
+msgid "Neutral"
+msgstr "Нейтралы"
+
+msgctxt "st_fotz_tab_band_friends"
+msgid "Friends"
+msgstr "Друзья"
+
+msgctxt "st_fotz_tab_band_alliance"
+msgid "Allied"
+msgstr "Союз"
+
+msgctxt "st_fotz_tab_strength"
+msgid "holds {held} · {fighters} fighters"
+msgstr "позиций: {held} · бойцов: {fighters}"
+
+msgctxt "st_fotz_tab_war_since"
+msgid "at war since {date}"
+msgstr "война с {date}"
+
+msgctxt "st_fotz_tab_truce_until"
+msgid "truce until {date}"
+msgstr "перемирие до {date}"
+
+msgctxt "st_fotz_tab_alliance_since"
+msgid "allied since {date}"
+msgstr "союз с {date}"
+
+msgctxt "st_fotz_tab_fixed"
+msgid "never changes"
+msgstr "не меняется"
+
+msgctxt "st_fotz_tab_change"
+msgid "{n} since the start"
+msgstr "{n} от начала"
+
+msgctxt "st_fotz_tab_log"
+msgid "War log"
+msgstr "Хроника"
+
+msgctxt "st_fotz_tab_log_war"
+msgid "War: {a} and {b}"
+msgstr "Война: «{a}» и «{b}»"
+
+msgctxt "st_fotz_tab_log_war_over"
+msgid "War ends: {a} and {b}"
+msgstr "Конец войны: «{a}» и «{b}»"
+
+msgctxt "st_fotz_tab_log_truce"
+msgid "Truce: {a} and {b}"
+msgstr "Перемирие: «{a}» и «{b}»"
+
+msgctxt "st_fotz_tab_log_truce_over"
+msgid "Truce over: {a} and {b}"
+msgstr "Конец перемирия: «{a}» и «{b}»"
+
+msgctxt "st_fotz_tab_log_alliance"
+msgid "Alliance: {a} and {b}"
+msgstr "Союз: «{a}» и «{b}»"
+
+msgctxt "st_fotz_tab_log_alliance_over"
+msgid "Alliance over: {a} and {b}"
+msgstr "Конец союза: «{a}» и «{b}»"
+
+msgctxt "st_fotz_tab_log_restored"
+msgid "Relations restored to their start"
+msgstr "Отношения возвращены к началу"
+
+msgctxt "st_fotz_tab_log_none"
+msgid "Nothing yet: wars, truces and alliances show here."
+msgstr "Пока ничего: здесь будут войны, перемирия и союзы."
+
+msgctxt "st_fotz_tab_members"
+msgid "Members"
+msgstr "Бойцы"
+
+msgctxt "st_fotz_tab_member_near"
+msgid "{name} ({from}), with you"
+msgstr "{name} («{from}»), рядом"
+
+msgctxt "st_fotz_tab_member_away"
+msgid "{name} ({from}), away"
+msgstr "{name} («{from}»), далеко"
+
+msgctxt "st_fotz_tab_member_dead"
+msgid "{name} ({from}), dead"
+msgstr "{name} («{from}»), погиб"
+
+msgctxt "st_fotz_tab_members_none"
+msgid "No members yet: your companions join."
+msgstr "Бойцов пока нет: ваши спутники вступают сами."
+
+msgctxt "st_fotz_tab_members_more"
+msgid "and {n} more"
+msgstr "и ещё {n}"
+
+msgctxt "st_fotz_tab_restore"
+msgid "Restore relations"
+msgstr "Вернуть отношения"
+
+msgctxt "st_fotz_tab_restore_confirm"
+msgid "Click again to restore"
+msgstr "Нажмите ещё раз"
+
+msgctxt "st_fotz_tab_restored"
+msgid "Relations restored"
+msgstr "Отношения возвращены"
+
+msgctxt "st_fotz_tab_credit"
+msgid "Factions of the Zone {v} · Windwalker"
+msgstr "Фракции Зоны {v} · Windwalker"
+
+msgctxt "ui_mcm_fotz_tab_key"
+msgid "Factions page key"
+msgstr "Клавиша страницы группировок"
+
+msgctxt "ui_mcm_fotz_tab_key_desc"
+msgid "Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page is also the PDA's Factions tab."
+msgstr "Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Та же страница есть во вкладке «Группировки» КПК."
+
+msgctxt "st_fotz_tab_sep"
+msgid "·"
+msgstr "·"
