@@ -2,9 +2,9 @@
 Factions of the Zone: the faction you lead.
 
 Founded from MCM, it is a real faction to the engine, fotz_own (declared in
-configs/mod_system_fotz_faction.ltx), with its members in it and you in its player twin,
-actor_fotz_own. It starts with the relations of the faction you came from, and it and its members
-are your friends. Your companions join it.
+configs/mod_system_fotz_faction.ltx), with its members in it. You lead it from your old faction,
+or, if you choose in MCM, join it in its player twin, actor_fotz_own. It starts with the relations
+of the faction you came from, and it and its members are your friends. Your companions join it.
 
 No save ever holds it. Just before each save, every member's saved faction is set back to the one
 they came from, by an edit of the faction index in their state packet (the live NPC isn't touched),
@@ -325,9 +325,11 @@ local function companions_join()
     return not (ui_mcm and ui_mcm.get("fotz/faction_companions") == false)
 end
 
--- whether you join your faction yourself (MCM); if not, you lead it from your old faction
+-- whether you join your faction yourself (MCM, off unless chosen); if not, you lead it from your
+-- old faction. Joined, G.A.M.M.A. sees you in a faction it doesn't know: the disguise system takes
+-- it for a disguise, and dialogs, tasks and fast travel bound to your old faction go quiet
 local function you_join()
-    return not (ui_mcm and ui_mcm.get("fotz/faction_join") == false)
+    return ui_mcm ~= nil and ui_mcm.get("fotz/faction_join") == true
 end
 
 

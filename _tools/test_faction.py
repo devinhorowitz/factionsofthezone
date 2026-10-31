@@ -63,6 +63,8 @@ MUTANTS = {
                        "        local ok, err = (function(f) return true, f() end)(function()\n            local mod = _G[module]"),
     "partner_log_spam": ("if not ok and not unreadable[module] then", "if not ok then"),
     "no_fair_autocomplete": ('    fair_autocomplete_kill_tracker = { "_player_kills" },\n', ""),
+    "join_by_default": ('return ui_mcm ~= nil and ui_mcm.get("fotz/faction_join") == true',
+                        'return not (ui_mcm and ui_mcm.get("fotz/faction_join") == false)'),
 }
 
 WORLD = r"""
@@ -259,7 +261,10 @@ class World:
         return list(self.g.LOG.values())
 
 
-SETUP = """
+#: most scenarios run with "You join it" chosen; default_leads runs without it
+JOIN = 'MCM["fotz/faction_join"] = true\n'
+
+SETUP = JOIN + """
 REL["ecolog>bandit"] = -1500
 REL["bandit>ecolog"] = -1400
 REL["actor_ecolog>dolg"] = 200
@@ -359,6 +364,20 @@ def you_and_disguise(src):
     check(w.g.ACTOR.comm == "actor_ecolog", "with 'you join it' off you stayed in: %s" % w.g.ACTOR.comm)
     w.run("tick()")
     check(w.g.ACTOR.comm == "actor_ecolog", "you were put back in with the option off")
+
+
+def default_leads(src):
+    # "You join it" is off unless chosen: you lead from your old faction, and only members join
+    w = World(src, setup=SETUP.replace(JOIN, ""))
+    w.env.found("Wolves")
+    check(w.g.ACTOR.comm == "actor_ecolog", "you joined without choosing to: %s" % w.g.ACTOR.comm)
+    check(w.live(501) == "fotz_own" and w.live(503) == "fotz_own", "companions didn't join while you lead")
+    w.run("tick()")
+    check(w.g.ACTOR.comm == "actor_ecolog", "an update put you in: %s" % w.g.ACTOR.comm)
+    # in from an older build that joined you by default: the next update takes you back out
+    w.run('ACTOR.comm = "actor_fotz_own"')
+    w.run("tick()")
+    check(w.g.ACTOR.comm == "actor_ecolog", "you stayed joined without the option: %s" % w.g.ACTOR.comm)
 
 
 def dismissed_and_disband(src, w):
@@ -480,6 +499,8 @@ def strings(src):
     for opt in re.findall(r'id = "(faction\w*)", type = "(?:check|input)"', mcm):
         want |= {"ui_mcm_fotz_" + opt, "ui_mcm_fotz_" + opt + "_desc"}
     check(len(want) == 15, "%d string ids looked for, not 15: %s" % (len(want), sorted(want)))
+    check(re.search(r'id = "faction_join", type = "check", val = 1, def = false', mcm),
+          "MCM's 'You join it' doesn't default to off")
     want |= {"st_dyn_news_comm_fotz_own_%d" % i for i in range(1, 15)}
     missing = sorted(want - set(have))
     check(not missing, "missing from the English table: %s" % missing)
@@ -491,10 +512,11 @@ def run(src):
     w2 = found_save_load(src)
     dismissed_and_disband(src, w2)
     you_and_disguise(src)
+    default_leads(src)
     others(src)
     load_and_untouched(src)
     other_version(src)
-    return "8 scenarios: found, save, load, disguise, dismiss, disband, others, load scrub"
+    return "9 scenarios: found, save, load, disguise, leading, dismiss, disband, others, load scrub"
 
 
 def main():

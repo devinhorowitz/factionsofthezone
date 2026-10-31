@@ -13,8 +13,9 @@ Early development. The plan is in [docs/DESIGN.md](docs/DESIGN.md).
 
 **Your own faction** (0.3.0, first part). Today you're a loner tied to one faction and its
 alliances. In MCM you can found a faction of your own and name it. It's a real faction to the game:
-it starts with the friends and enemies of the faction you came from, you join it (or lead it from
-your old faction, keeping its traders and tasks), and your companions join it. Disband it and
+it starts with the friends and enemies of the faction you came from, you lead it from your old
+faction (keeping its traders and tasks; you can choose to join it instead), and your companions
+join it. Disband it and
 everyone goes back to their old faction. Coming next: settlers who may join as their loyalty
 grows, and a Factions tab.
 
@@ -45,8 +46,8 @@ in `fotz_census.jsonl` in the game's appdata folder (`<Anomaly>\appdata`).
 python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
 
-MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it,
-whether companions join), politics on or off, PDA news (off, wars and truces, or everything), and
+MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
+yourself, off unless you choose it, and whether companions join), politics on or off, PDA news (off, wars and truces, or everything), and
 the census log.
 
 ## Install

@@ -118,8 +118,8 @@ msgid "You join it"
 msgstr "Вы вступаете в неё"
 
 msgctxt "ui_mcm_fotz_faction_join_desc"
-msgid "You stand in your faction yourself, and its friends and enemies are yours. Faction traders and tasks that need your old faction then treat you as an outsider. Turned off, you lead it from your old faction."
-msgstr "Вы сами состоите в своей группировке, и её друзья и враги становятся вашими. Торговцы и задания, которым нужна ваша прежняя группировка, тогда считают вас чужаком. Если выключить, вы руководите ею, оставаясь в прежней группировке."
+msgid "Off unless you choose it: you lead your faction from your old one and keep its traders, tasks and dialogs. On, you stand in your faction yourself and its friends and enemies are yours, but G.A.M.M.A. doesn't know your faction: the disguise system thinks you're in disguise, and traders, tasks, dialogs and fast travel tied to your old faction treat you as an outsider."
+msgstr "Выключено, если вы не выберете иначе: вы руководите группировкой, оставаясь в прежней, и сохраняете её торговцев, задания и диалоги. Если включить, вы сами состоите в своей группировке, и её друзья и враги становятся вашими, но G.A.M.M.A. её не знает: система маскировки считает вас переодетым, а торговцы, задания, диалоги и быстрое перемещение прежней группировки считают вас чужаком."
 
 msgctxt "ui_mcm_fotz_faction_companions"
 msgid "Companions join it"

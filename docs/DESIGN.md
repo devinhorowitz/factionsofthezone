@@ -115,8 +115,11 @@ its player twin `actor_fotz_own`, team 37).
 
 - **Founding** (MCM, per save): it starts with every relation of the faction you came from (both
   directions, for the faction and its player twin), and it and its twin are friends (2000). You
-  join it yourself, unless "You join it" is off; then you lead it from your old faction, keeping its
-  traders and tasks. While you're disguised in another faction's suit, you're left alone.
+  lead it from your old faction, keeping its traders, tasks and dialogs. "You join it" (MCM, off
+  unless chosen) puts you in the player twin instead; G.A.M.M.A. doesn't know that faction (see
+  "Compatibility to watch"), and while it has the same relations as your old one, joining only
+  costs. It earns its place once your faction's relations move on their own. While you're
+  disguised in another faction's suit, you're left alone.
 - **Members:** your companions join, with their own squad and group, and leave when they stop
   being companions. A member who comes online is given the faction on the next update, never
   inside net spawn, and only if their id still names them (their profile is checked; ids are
@@ -341,7 +344,8 @@ squad another mod pinned is never steered.
   - **Latent:** G.A.M.M.A. UI's faction prices script would ask the engine about a faction named
     "fotz" on every trade (a fatal error), but it doesn't load today (its `faction_stocks` is
     missing).
-  - Leading from your old faction ("You join it" off) avoids all of these. A story change of your
+  - Leading from your old faction ("You join it" off, the default since 2026-10-31) avoids all of
+    these. A story change of your
     faction (`set_actor_true_community`) leaves the faction's record of where you came from stale.
 - **Your members, as G.A.M.M.A. sees them:** their bodies get no faction loot, patch or PDA, and
   the news names them with this mod's own strings. Mods that save a member's faction get the old

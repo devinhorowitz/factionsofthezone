@@ -82,7 +82,7 @@
 		<text>You join it</text>
 	</string>
 	<string id="ui_mcm_fotz_faction_join_desc">
-		<text>You stand in your faction yourself, and its friends and enemies are yours. Faction traders and tasks that need your old faction then treat you as an outsider. Turned off, you lead it from your old faction.</text>
+		<text>Off unless you choose it: you lead your faction from your old one and keep its traders, tasks and dialogs. On, you stand in your faction yourself and its friends and enemies are yours, but G.A.M.M.A. doesn't know your faction: the disguise system thinks you're in disguise, and traders, tasks, dialogs and fast travel tied to your old faction treat you as an outsider.</text>
 	</string>
 	<string id="ui_mcm_fotz_faction_companions">
 		<text>Companions join it</text>
