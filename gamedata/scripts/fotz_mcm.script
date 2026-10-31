@@ -19,6 +19,7 @@ function on_mcm_load()
             { id = "line1", type = "line" },
             { id = "politics", type = "check", val = 1, def = true },
             { id = "territory", type = "check", val = 1, def = true },
+            { id = "map", type = "check", val = 1, def = true },
             { id = "news", type = "list", val = 0, def = "events", content = {
                 { "off", "fotz_news_off" },
                 { "events", "fotz_news_events" },

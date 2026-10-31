@@ -33,8 +33,9 @@ relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mod
 go next, ground held by an enemy weighs more where its faction outnumbers that enemy on the level,
 and less where it's outnumbered. It's only a bias in the game's own choice: nothing is ordered or
 spawned, and story squads, squads on a scripted errand, your companions and Homestead's garrisons
-are left alone. The Factions page lists the fronts with each side's fighters, and a side that takes
-the upper hand on one says so on your PDA.
+are left alone. The Factions page lists the fronts with each side's fighters, a side that takes
+the upper hand on one says so on your PDA, and the PDA map marks each level's fronts: red where
+your side fights, amber elsewhere, with the fronts listed when you hover the marker.
 
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before
@@ -65,7 +66,7 @@ works either way.
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
 yourself, off unless you choose it, and whether companions join), politics on or off, the
-territory steer, PDA news (off, wars and truces, or everything), the census log, the Factions
+territory steer, the fronts on the PDA map, PDA news (off, wars and truces, or everything), the census log, the Factions
 page key, and, with Mod App Creator, the page's own PDA tab.
 
 ## For other mods
@@ -81,8 +82,8 @@ if fotz_territory and fotz_territory.add_owner then
 end
 ```
 
-Squads claimed in AlifePlus's owner registry (`ap_api.register_owner`), and the squads Homestead
-holds, are left alone too.
+Squads claimed in AlifePlus's owner registry (`ap_api.register_owner`), the squads Homestead
+holds, and Capture the Zone's campaign squads are left alone too.
 
 ## Install
 
@@ -99,10 +100,17 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   your faction through founding, saves (byte-level packets), loads, disguise and disbanding,
   `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
-  scoring, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (174 so far); every
+  scoring, `test_map.py` runs the fronts on the PDA map against a stand-in for its spots, and
+  `test_text.py` checks the Russian tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (198 so far); every
   one must fail.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
+
+## Credits
+
+- Capture the Zone, by Queen Jadwiga: its design shaped Factions' territory, and Factions leaves
+  its campaign squads alone. Any code taken from it is used with her blessing and credited where
+  it's used.
 
 ## License
 

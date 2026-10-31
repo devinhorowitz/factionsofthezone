@@ -36,7 +36,7 @@ MUTANTS = {
     "member_state": ('local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")',
                      'local state = "near"'),
     "member_cap": ("        if i > MEMBER_LINES then", "        if false then"),
-    "side": ("local side = F and P.OWN or get_actor_true_community()", "local side = get_actor_true_community()"),
+    "side": ("    return F and fotz_politics.OWN or get_actor_true_community()", "    return get_actor_true_community()"),
     "held": ("        if holder == f then", "        if true then"),
     "status": ('p.status = why and text("st_fotz_tab_down_" .. why) or text("st_fotz_tab_in_charge")',
                'p.status = text("st_fotz_tab_in_charge")'),

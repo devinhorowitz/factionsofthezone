@@ -15,6 +15,12 @@
 	<string id="ui_mcm_fotz_territory_desc">
 		<text>Группировка чаще посылает отряды к позициям врагов там, где на этой локации её бойцов больше, и реже туда, где больше вражеских. Это лишь перевес в собственном выборе игры, куда идти отрядам: без приказов и без новых отрядов. Выключено в режиме «Война группировок», где отрядами управляет он сам.</text>
 	</string>
+	<string id="ui_mcm_fotz_map">
+		<text>Фронты на карте КПК</text>
+	</string>
+	<string id="ui_mcm_fotz_map_desc">
+		<text>Метка на каждой локации, где на фронте 10 бойцов или больше и не меньше 3 с каждой стороны: красная там, где воюет ваша сторона, янтарная в остальных местах, а под ней самый крупный фронт. Наведите на метку, чтобы увидеть фронты локации. Метки никогда не сохраняются.</text>
+	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>Новости в КПК</text>
 	</string>
@@ -248,6 +254,18 @@
 	</string>
 	<string id="st_fotz_tab_fronts_none">
 		<text>Нет: ни на одной локации нет двух воюющих группировок.</text>
+	</string>
+	<string id="st_fotz_map_hint">
+		<text>Фронты в районе «{place}»:</text>
+	</string>
+	<string id="st_fotz_map_line">
+		<text>«{a}» {na}, «{b}» {nb}</text>
+	</string>
+	<string id="st_fotz_map_more">
+		<text>и ещё {n}</text>
+	</string>
+	<string id="st_fotz_map_label">
+		<text>{a} {na} : {nb} {b}</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Бойцы</text>

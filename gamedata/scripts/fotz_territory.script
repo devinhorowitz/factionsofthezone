@@ -92,6 +92,11 @@ function owner_of(squad)
             return name
         end
     end
+    -- Capture the Zone's campaign squads (Queen Jadwiga's mod), which it marks on the squad and
+    -- holds at their forts by their stay time
+    if squad.ctz_campaign_owned then
+        return "ctz"
+    end
     -- Homestead's camps, their reinforcements and convoys (what it registers with AlifePlus)
     local hs = stalker_camp_builder
     if hs and type(hs.is_held_squad) == "function" then
@@ -308,6 +313,13 @@ local function on_census(c)
     local ok, err = pcall(take_fronts, c)
     if not ok then
         log("! fronts: %s", tostring(err))
+    end
+    -- the fronts on the PDA map, from the same census
+    if fotz_map and fotz_map.update then
+        ok, err = pcall(fotz_map.update, c)
+        if not ok then
+            log("! the map: %s", tostring(err))
+        end
     end
     local n = rebuild(c)
     local factions = 0

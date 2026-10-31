@@ -21,6 +21,14 @@ msgctxt "ui_mcm_fotz_politics_desc"
 msgid "Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it."
 msgstr "Раз в игровые сутки убийства, захваченные позиции и линии фронта меняют отношения между группировками, а за ними следуют войны, перемирия и союзы. Если выключить, каждая группировка вернётся к отношениям, заданным игрой."
 
+msgctxt "ui_mcm_fotz_map"
+msgid "Fronts on the PDA map"
+msgstr "Фронты на карте КПК"
+
+msgctxt "ui_mcm_fotz_map_desc"
+msgid "A marker on each level with a front of 10 fighters or more and at least 3 a side, red where your side fights and amber elsewhere, with the biggest front named under it. Hover it for the level's fronts. The markers are never saved."
+msgstr "Метка на каждой локации, где на фронте 10 бойцов или больше и не меньше 3 с каждой стороны: красная там, где воюет ваша сторона, янтарная в остальных местах, а под ней самый крупный фронт. Наведите на метку, чтобы увидеть фронты локации. Метки никогда не сохраняются."
+
 msgctxt "ui_mcm_fotz_news"
 msgid "News on the PDA"
 msgstr "Новости в КПК"
@@ -388,6 +396,22 @@ msgstr "{place}: «{a}» {na}, «{b}» {nb}"
 msgctxt "st_fotz_tab_fronts_none"
 msgid "None: no two factions at war share a level."
 msgstr "Нет: ни на одной локации нет двух воюющих группировок."
+
+msgctxt "st_fotz_map_hint"
+msgid "Fronts in {place}:"
+msgstr "Фронты в районе «{place}»:"
+
+msgctxt "st_fotz_map_line"
+msgid "{a} {na}, {b} {nb}"
+msgstr "«{a}» {na}, «{b}» {nb}"
+
+msgctxt "st_fotz_map_more"
+msgid "and {n} more"
+msgstr "и ещё {n}"
+
+msgctxt "st_fotz_map_label"
+msgid "{a} {na} : {nb} {b}"
+msgstr "{a} {na} : {nb} {b}"
 
 msgctxt "st_fotz_tab_members"
 msgid "Members"

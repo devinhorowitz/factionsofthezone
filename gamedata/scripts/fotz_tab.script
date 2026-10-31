@@ -224,10 +224,16 @@ local function member_lines(P, F)
 end
 
 -- everything the page shows
+-- your side: the faction you lead, or without one your own
+function side()
+    local F = fotz_faction and fotz_faction.F
+    return F and fotz_politics.OWN or get_actor_true_community()
+end
+
 function page()
     local P = fotz_politics
     local F = fotz_faction and fotz_faction.F
-    local side = F and P.OWN or get_actor_true_community()
+    local side = side()
     local p = { leading = F ~= nil, side = side }
     if F then
         local n = 0

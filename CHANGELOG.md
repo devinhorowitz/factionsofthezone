@@ -8,14 +8,19 @@
   factions at war both have fighters on, with each side's count, the bigger side first. Your own
   faction's fronts come first, then the biggest, five in all. To make room, the war log shows its
   last six events and your members list five.
+- **Fronts on the PDA map.** A marker on each level with a front of 10 fighters or more (and 3
+  a side: a big force and a few stragglers isn't a front), at a smart where its biggest front meets: red where your side fights, amber elsewhere, with the
+  biggest front named under it. Hover it for the level's fronts. The markers are never saved,
+  so removing the mod leaves nothing in a save, and MCM can turn them off.
 - **News from the fronts.** When a side takes the upper hand on a front (two thirds of the
   fighters there), it says so in its own voice, with PDA news set to everything. Only a front that
   was there at the last census and has at least 10 fighters on it counts, and at most two such
   news a day, the biggest fronts first. Loading a save never sets it off.
 - **Other mods' squads are left alone.** The steer only weighs squads the game routes itself, so
   squads AlifePlus or ZHOPA direct are never touched. Squads Homestead holds (its camps'
-  garrisons, reinforcements and convoys) and squads claimed in AlifePlus's owner registry are
-  left alone too, and any mod can claim squads it holds with `fotz_territory.add_owner`.
+  garrisons, reinforcements and convoys), Capture the Zone's campaign squads (Queen Jadwiga's
+  mod) and squads claimed in AlifePlus's owner registry are left alone too, and any mod can claim
+  squads it holds with `fotz_territory.add_owner`.
 - **Squads lean toward winning fronts.** When a squad picks where to go next, a smart held by a
   faction its own is at war with weighs more where its faction outnumbers the holder on that
   level, and less where it's outnumbered (from 0.6 to 1.5 times), on levels both sides are on. It's a bias in the game's own

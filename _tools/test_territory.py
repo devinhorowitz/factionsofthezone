@@ -77,6 +77,9 @@ MUTANTS = {
     "bad_claim_taken": ('    if type(name) ~= "string" or type(fn) ~= "function" then', "    if false then"),
     "homestead_held_ignored": ("    local hs = stalker_camp_builder\n", "    local hs = nil\n"),
     "homestead_failure_steers": ("        if held or not ok then", "        if ok and held then"),
+    "map_not_updated": ("        ok, err = pcall(fotz_map.update, c)\n", "        ok, err = true, nil\n"),
+    "map_unguarded": ("        ok, err = pcall(fotz_map.update, c)\n", "        ok, err = true, fotz_map.update(c)\n"),
+    "ctz_ignored": ("    if squad.ctz_campaign_owned then\n        return \"ctz\"\n    end\n", ""),
 }
 
 WORLD = r"""
@@ -116,6 +119,9 @@ fotz_politics = {
         return true
     end,
     faction_name = function(f) return "N:" .. f end }
+-- the PDA map's fronts, updated from each census
+MAPPED = {}
+fotz_map = { update = function(c) MAPPED[#MAPPED + 1] = c.date end }
 SIMBOARD = { smarts_by_names = {} }
 function smart(name, id, level) SIMBOARD.smarts_by_names[name] = { id = id }; LEVEL[id] = level end
 
@@ -233,6 +239,7 @@ def steer(src):
     w.census(CENSUS)
     log = [l for l in w.log() if l.startswith("[fotz-territory] 2012-05-02")]
     check(", 3 raised, 1 lowered" in log[1] and w.env.STATS.raised == 0, "the next census's line: %s" % log[1])
+    check(list(w.g.MAPPED.values()) == ["2012-05-02 08:00"] * 2, "the map updated %s" % list(w.g.MAPPED.values()))
     return w
 
 
@@ -262,6 +269,10 @@ stalker_camp_builder.rival_camps.camp_a = { squad_id = 903 }
     check(got == [10, 10, 10, 10, 10, 10, 10, 12.5],
           "claimed by add_owner, by AlifePlus, failing twice, AlifePlus failing, Homestead's, Homestead "
           "failing, ordinary: %s" % got)
+    # Capture the Zone's campaign squads, marked on the squad
+    ctz = w.eval("simulation_objects.evaluate_prior")({"id": 101}, w.eval("{ id = 912, player_id = 'dolg', ctz_campaign_owned = true }"))
+    check(ctz == 10 and env.owner_of(w.eval("{ id = 912, ctz_campaign_owned = true }")) == "ctz",
+          "a CtZ campaign squad: %s" % ctz)
     fails = [l for l in w.log() if "broken's claim failed" in l]
     check(len(fails) == 1, "the failed claim logged %d times" % len(fails))
     check(env.owner_of(w.eval("{ id = 907 }")) == "warfare" and env.owner_of(w.eval("{ id = 905 }")) is None,
@@ -379,10 +390,12 @@ def fronts(src):
     # the news failing doesn't stop the steer
     w = World(src, SETUP)
     w.run('fotz_politics.say = function() error("no news today") end')
+    w.run('fotz_map.update = function() error("no map today") end')
     w.census(census_of(c1))
     w.census(census_of(c3).replace("smarts = {}", 'smarts = { s1 = "killer" }'))
-    check(w.env.STEER["dolg"] is not None and any("! fronts:" in l for l in w.log()),
-          "after the news failed: steer %s, log %s" % (w.env.STEER["dolg"], w.log()[-2:]))
+    check(w.env.STEER["dolg"] is not None and any("! fronts:" in l for l in w.log())
+          and any("! the map:" in l for l in w.log()),
+          "after the news and the map failed: steer %s, log %s" % (w.env.STEER["dolg"], w.log()[-3:]))
 
 
 def shipped_config(src):

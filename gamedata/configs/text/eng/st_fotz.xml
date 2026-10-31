@@ -15,6 +15,12 @@
 	<string id="ui_mcm_fotz_territory_desc">
 		<text>A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself.</text>
 	</string>
+	<string id="ui_mcm_fotz_map">
+		<text>Fronts on the PDA map</text>
+	</string>
+	<string id="ui_mcm_fotz_map_desc">
+		<text>A marker on each level with a front of 10 fighters or more and at least 3 a side, red where your side fights and amber elsewhere, with the biggest front named under it. Hover it for the level's fronts. The markers are never saved.</text>
+	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>News on the PDA</text>
 	</string>
@@ -249,6 +255,18 @@
 	</string>
 	<string id="st_fotz_tab_fronts_none">
 		<text>None: no two factions at war share a level.</text>
+	</string>
+	<string id="st_fotz_map_hint">
+		<text>Fronts in {place}:</text>
+	</string>
+	<string id="st_fotz_map_line">
+		<text>{a} {na}, {b} {nb}</text>
+	</string>
+	<string id="st_fotz_map_more">
+		<text>and {n} more</text>
+	</string>
+	<string id="st_fotz_map_label">
+		<text>{a} {na} : {nb} {b}</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Members</text>

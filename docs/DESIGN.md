@@ -242,9 +242,9 @@ its player twin `actor_fotz_own`, team 37).
   - A mod can hold squads without a script target: a garrison kept at its post by
     `current_action` and `stay_time`, which asks the board again once its stay runs out. For
     these, `fotz_territory.add_owner(name, fn)` (and `remove_owner`) lets the mod claim them; so
-    does AlifePlus's owner registry (`ap_api.get_owner`), and Homestead's `is_held_squad` (its
-    camps' garrisons, reinforcements and convoys) is read directly. A claim that fails counts as a
-    claim, logged once.
+    does AlifePlus's owner registry (`ap_api.get_owner`). Homestead's `is_held_squad` (its
+    camps' garrisons, reinforcements and convoys) and Capture the Zone's `ctz_campaign_owned`
+    mark are read directly. A claim that fails counts as a claim, logged once.
 - **The switch:** MCM's "Squads lean toward winning fronts", and Warfare mode, which runs the
   squads itself (politics' own switch doesn't matter: enmity exists without it). Off, the
   original is put back if Factions' wrapper is still the one in place. If another mod wrapped
@@ -262,6 +262,26 @@ its player twin `actor_fotz_own`, team 37).
   (10) fighters, and at most `NEWS_PER_DAY` (2), the biggest first. Who had the upper hand where
   is kept in memory only, so the first census after a load sets it and says nothing. An error
   there is logged and the steer is rebuilt anyway.
+- **The fronts on the PDA map** (`fotz_map.script`, spot types from `modxml_fotz_map.script`,
+  label layout `ui_fotz_map.xml`; MCM "Fronts on the PDA map", on by default):
+  - One marker per level whose fronts include one of `FRONT_MIN` fighters or more and `SIDE_MIN`
+    (3) a side: seen in game, many fronts were a big force and one or two stragglers ("Monolith
+    37, Freedom 1"), which the map leaves out (the page shows every front as it is). The game's
+    attack-base ring (`ui_pda2_attack_base2`), red where your side fights on the level, amber
+    elsewhere. Hovering it lists the level's fronts (four, then "and N more"); a label under it
+    names the biggest ("Duty 30 : 12 Mercenaries").
+  - It sits at a smart where the level's biggest front meets: one either side holds that the
+    census found contested, else one the side behind holds (where an attack would go), else one
+    the side ahead holds. A level where neither holds a smart gets no marker.
+  - Rebuilt at each census, from territory's `on_census`. A marker that hasn't changed is left
+    alone; one that changed, or that another mod removed, is taken off and put back, so a label
+    is only ever made on a marker just added and no stale widget is touched.
+  - Never saved: `map_add_object_spot`, not `_ser`. Capture the Zone's notes record that its
+    custom spot types, saved, were its strongest load-crash suspect: a save holding a spot whose
+    type is gone can't load. Factions' markers come off as a game unloads and with the switch.
+  - The label needs Modded Exes' `map_get_object_spot_static`; without it, or without a widget,
+    the marker and its hint still show. mmmint's PDA Map Location Labels has no hook to feed, so
+    Factions draws its own, on its own spot types, beside that mod's labels.
 
 **The plan it came from:**
 
@@ -279,8 +299,8 @@ its player twin `actor_fotz_own`, team 37).
   AlifeBalance and ZCP gate on the latter; Factions leaves them alone.
 - **Uninstall-safe wrappers** (after ZHOPA): one switch unwinds every callback and wrapper, and
   a wrapper is put back only if it is still ours.
-- **Fronts** show up as news, on the Factions tab and, with mmmint's PDA Map Location Labels, on
-  the map.
+- **Fronts** show up as news, on the Factions tab and on the map (built: its own markers, since
+  mmmint's PDA Map Location Labels has no hook).
 - **Spawns** follow later and carefully: ZCP and Squad Filler own them in G.A.M.M.A.
 
 ## 4. PDA and news
@@ -363,8 +383,8 @@ Queen-Jadwiga's Capture the Zone (CtZ) is a strategic campaign for Anomaly. Its 
 longer public (404 on 2026-10-31), and a search that day found no fork, mirror, archive snapshot
 or ModDB page, and no player reports. What is known comes from the Anomaly Development Reference,
 which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario). Its
-author has since shared a newer build with us privately; how the two could work together is
-noted outside this repo until it's public. The points below are about 0.0.5j.
+author has since shared a newer build with us, and is glad for Factions to use its code, with
+credit. The points below are about 0.0.5j.
 
 - **What it does:** faction-owned forts at named smarts, campaign squads ("detachments") it marks
   with its own fields and pins to forts or sends on assaults, field and fort battles, a rouble
@@ -384,8 +404,9 @@ noted outside this repo until it's public. The points below are about 0.0.5j.
     a save loads. Factions' load only reapplies relations.
   - A schema nobody checks. CtZ stamps a save version but never reads it. Factions' key carries a
     version that the load migrates or refuses.
-- **Living with it:** if CtZ comes back, Factions leaves squads with its `ctz_campaign_owned`
-  mark alone, and its forts could feed the territory score.
+- **Living with it:** the territory steer leaves squads with CtZ's `ctz_campaign_owned` mark
+  alone (0.4.0; its garrisons are held by stay time, not a script target), and its forts could
+  feed the territory score.
 
 Homestead, CtZ and Factions would all move squads; only one should steer a given squad, and a
 squad another mod pinned is never steered.
