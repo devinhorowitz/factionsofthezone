@@ -1,0 +1,25 @@
+# Russian for Factions of the Zone's string tables.
+# msgctxt is the string id, msgid the English text it was translated from, msgstr the Russian.
+# build_text.py writes gamedata/configs/text/rus/ from this file and the English table, and
+# refuses an id whose English has changed since it was translated (msgid differs) or that has
+# no Russian yet. Term choices follow Seasons of the Zone's.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: ru\n"
+
+msgctxt "ui_mcm_menu_fotz"
+msgid "Factions of the Zone"
+msgstr "Фракции Зоны"
+
+msgctxt "ui_mcm_fotz_census"
+msgid "Keep a census"
+msgstr "Вести перепись"
+
+msgctxt "ui_mcm_fotz_census_desc"
+msgid "Once a game day, and once after each load, count every faction's squads and the ground they hold, and write it to fotz_census.jsonl in the game's appdata folder. It changes nothing in the game."
+msgstr "Раз в игровые сутки и после каждой загрузки считать отряды каждой фракции и занятую ими территорию и записывать это в fotz_census.jsonl в папке appdata игры. На игру это не влияет."
+
+msgctxt "ui_mcm_fotz_about"
+msgid "This version only takes a census: it watches the factions and changes nothing yet."
+msgstr "Эта версия только ведёт перепись: она наблюдает за фракциями и пока ничего не меняет."

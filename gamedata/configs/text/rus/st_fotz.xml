@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+	<string id="ui_mcm_menu_fotz">
+		<text>Фракции Зоны</text>
+	</string>
+	<string id="ui_mcm_fotz_census">
+		<text>Вести перепись</text>
+	</string>
+	<string id="ui_mcm_fotz_census_desc">
+		<text>Раз в игровые сутки и после каждой загрузки считать отряды каждой фракции и занятую ими территорию и записывать это в fotz_census.jsonl в папке appdata игры. На игру это не влияет.</text>
+	</string>
+	<string id="ui_mcm_fotz_about">
+		<text>Эта версия только ведёт перепись: она наблюдает за фракциями и пока ничего не меняет.</text>
+	</string>
+</string_table>

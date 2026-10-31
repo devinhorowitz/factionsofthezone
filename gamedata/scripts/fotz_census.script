@@ -1,0 +1,302 @@
+--[[
+Factions of the Zone: the census.
+
+Once a game day, and once after each load, it counts what the alife holds: each faction's squads
+and fighters by tier, rank and level, which faction holds each smart terrain, and the relations
+between the factions and toward the player. It only reads. Each census is one JSON line in
+$app_data_root$\fotz_census.jsonl and one summary line in the game's log.
+
+A smart is held by the faction with the most fighters in squads assigned to it that have arrived,
+by the smart's own arrival test (squads on their way don't count). It is contested while squads
+of two hostile factions are there at once. Mutant squads count as "monster" and never hold or
+contest a smart.
+--]]
+
+VERSION = "0.1.0"
+FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
+             "renegade", "greh", "isg" }
+FILE = "fotz_census.jsonl"
+
+CHECK_MS = 5000     -- how often the update looks at the date
+FIRST_MS = 30000    -- the wait after a load before its census
+
+local TIERS = { novice = true, advanced = true, veteran = true }
+
+-- the squad section's tier (<faction>_sim_squad_<tier>), or "other"
+function tier_of(section)
+    local t = section and section:match("_sim_squad_(%a+)$")
+    return TIERS[t] and t or "other"
+end
+
+local level_by_gv = {}
+
+-- the level a server object stands on, by its game vertex
+function level_of(se)
+    local gv = se.m_game_vertex_id
+    if gv == nil then
+        return "?"
+    end
+    local name = level_by_gv[gv]
+    if name == nil then
+        local ok, n = pcall(function() return alife():level_name(game_graph():vertex(gv):level_id()) end)
+        name = ok and n or "?"
+        level_by_gv[gv] = name
+    end
+    return name
+end
+
+local function add(t, k, n)
+    t[k] = (t[k] or 0) + (n or 1)
+end
+
+local function faction_entry(c, f)
+    local e = c.factions[f]
+    if not e then
+        e = { squads = 0, fighters = 0, story = 0, tiers = {}, ranks = {}, levels = {} }
+        c.factions[f] = e
+    end
+    return e
+end
+
+-- whether a squad is at the smart it's assigned to, by the smart's own arrival test (the squad's
+-- current_action isn't saved, so after a load it reads nil until the squad's next update)
+function at_its_smart(sq)
+    local s = sq.smart_id and SIMBOARD.smarts[sq.smart_id]
+    if not s then
+        return false
+    end
+    local ok, reached = pcall(function() return s.smrt:am_i_reached(sq) end)
+    return ok and reached == true
+end
+
+local function count_squad(c, sim, id, present)
+    local sq = sim:object(id)
+    if not sq then
+        return
+    end
+    local f = sq:get_squad_community() or "?"
+    local e = faction_entry(c, f)
+    e.squads = e.squads + 1
+    if get_object_story_id(id) then
+        e.story = e.story + 1
+    end
+    add(e.tiers, tier_of(sq:section_name()))
+    local n = 0
+    for k in sq:squad_members() do
+        local se = k.object or sim:object(k.id)
+        if se then
+            n = n + 1
+            if IsStalker(nil, se:clsid()) then
+                add(e.ranks, ranks.get_se_obj_rank_name(se) or "?")
+            end
+        end
+    end
+    e.fighters = e.fighters + n
+    local lv = level_of(sq)
+    local at = e.levels[lv]
+    if not at then
+        at = { squads = 0, fighters = 0 }
+        e.levels[lv] = at
+    end
+    at.squads = at.squads + 1
+    at.fighters = at.fighters + n
+    if f ~= "monster" and n > 0 and at_its_smart(sq) then
+        local p = present[sq.smart_id]
+        if not p then
+            p = {}
+            present[sq.smart_id] = p
+        end
+        add(p, f, n)
+    end
+end
+
+-- the faction with the most fighters present (ties go to the first name), and whether two of the
+-- factions present are hostile
+function holder_of(p)
+    local names = {}
+    for f in pairs(p) do
+        names[#names + 1] = f
+    end
+    table.sort(names)
+    local best
+    for _, f in ipairs(names) do
+        if best == nil or p[f] > p[best] then
+            best = f
+        end
+    end
+    local contested = false
+    for i = 1, #names do
+        for j = i + 1, #names do
+            if game_relations.is_factions_enemies(names[i], names[j]) then
+                contested = true
+            end
+        end
+    end
+    return best, contested
+end
+
+-- the game's date and time, "YYYY-MM-DD HH:MM"
+function game_date()
+    local y, mo, d, h, mi = game.get_game_time():get(0, 0, 0, 0, 0, 0, 0)
+    return string.format("%04d-%02d-%02d %02d:%02d", y, mo, d, h, mi)
+end
+
+-- one census of the alife, as a table
+function take(cause)
+    local t0 = os.clock()
+    local sim = alife()
+    local c = { v = VERSION, cause = cause, date = game_date(), real = os.date("%Y-%m-%d %H:%M:%S"),
+                factions = {}, smarts = {}, levels = {}, contested = {}, relations = {}, goodwill = {},
+                toward_actor = {} }
+    local present = {}
+    for id in pairs(SIMBOARD.squads) do
+        count_squad(c, sim, id, present)
+    end
+    local held = 0
+    for id, s in pairs(SIMBOARD.smarts) do
+        local smart = s.smrt
+        local lv = level_of(smart)
+        local l = c.levels[lv]
+        if not l then
+            l = { smarts = 0, held = {}, contested = 0 }
+            c.levels[lv] = l
+        end
+        l.smarts = l.smarts + 1
+        local p = present[id]
+        if p then
+            local f, contested = holder_of(p)
+            c.smarts[smart:name()] = f
+            add(l.held, f)
+            held = held + 1
+            if contested then
+                l.contested = l.contested + 1
+                c.contested[#c.contested + 1] = smart:name()
+            end
+        end
+    end
+    table.sort(c.contested)
+    local actor_comm = db.actor and db.actor:character_community()
+    c.actor = actor_comm
+    for _, a in ipairs(FACTIONS) do
+        local row = {}
+        for _, b in ipairs(FACTIONS) do
+            if a ~= b then
+                row[b] = relation_registry.community_relation(a, b)
+            end
+        end
+        c.relations[a] = row
+        c.goodwill[a] = relation_registry.community_goodwill(a, AC_ID)
+        if actor_comm then
+            c.toward_actor[a] = relation_registry.community_relation(a, actor_comm)
+        end
+    end
+    c.held = held
+    c.ms = math.floor((os.clock() - t0) * 10000 + 0.5) / 10
+    return c
+end
+
+-- JSON, with object keys sorted so that two censuses of one world read the same
+local function escape(s)
+    return (s:gsub('[%c"\\]', function(ch)
+        if ch == '"' then return '\\"' end
+        if ch == "\\" then return "\\\\" end
+        return string.format("\\u%04x", ch:byte())
+    end))
+end
+
+function to_json(v)
+    local ty = type(v)
+    if ty == "table" then
+        if v[1] ~= nil then
+            local out = {}
+            for i = 1, #v do
+                out[i] = to_json(v[i])
+            end
+            return "[" .. table.concat(out, ",") .. "]"
+        end
+        local keys = {}
+        for k in pairs(v) do
+            keys[#keys + 1] = tostring(k)
+        end
+        table.sort(keys)
+        local out = {}
+        for i, k in ipairs(keys) do
+            out[i] = '"' .. escape(k) .. '":' .. to_json(v[k])
+        end
+        return "{" .. table.concat(out, ",") .. "}"
+    elseif ty == "number" then
+        if v ~= v or v == math.huge or v == -math.huge then
+            return "null"
+        end
+        if v == math.floor(v) and math.abs(v) < 2 ^ 53 then
+            return string.format("%d", v)
+        end
+        return string.format("%.6g", v)
+    elseif ty == "string" then
+        return '"' .. escape(v) .. '"'
+    elseif ty == "boolean" then
+        return tostring(v)
+    end
+    return "null"
+end
+
+function path()
+    return getFS():update_path("$app_data_root$", FILE)
+end
+
+local function summary(c)
+    local squads, fighters = 0, 0
+    for _, e in pairs(c.factions) do
+        squads = squads + e.squads
+        fighters = fighters + e.fighters
+    end
+    return string.format("%s (%s): %d squads, %d fighters, %d smarts held, %d contested, %.1f ms",
+        c.date, c.cause, squads, fighters, c.held, #c.contested, c.ms)
+end
+
+-- take a census and write it; nothing it meets can break the game's update
+function run(cause)
+    local ok, err = pcall(function()
+        local c = take(cause)
+        local f = assert(io.open(path(), "a"))
+        f:write(to_json(c), "\n")
+        f:close()
+        printf("[fotz-census] %s", summary(c))
+    end)
+    if not ok then
+        printf("! [fotz-census] %s", tostring(err))
+    end
+    return ok
+end
+
+function enabled()
+    local v = ui_mcm and ui_mcm.get("fotz/census")
+    return v ~= false
+end
+
+local last_day, next_check
+
+local function actor_on_first_update()
+    next_check = time_global() + FIRST_MS
+end
+
+local function actor_on_update()
+    if next_check == nil or time_global() < next_check then
+        return
+    end
+    next_check = time_global() + CHECK_MS
+    if not enabled() then
+        return
+    end
+    local day = game_date():sub(1, 10)
+    if day ~= last_day then
+        local cause = last_day and "day" or "load"
+        last_day = day
+        run(cause)
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+end

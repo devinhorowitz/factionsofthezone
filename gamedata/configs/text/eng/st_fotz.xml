@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="windows-1251"?>
+<string_table>
+	<string id="ui_mcm_menu_fotz">
+		<text>Factions of the Zone</text>
+	</string>
+	<string id="ui_mcm_fotz_census">
+		<text>Keep a census</text>
+	</string>
+	<string id="ui_mcm_fotz_census_desc">
+		<text>Once a game day, and once after each load, count every faction's squads and the ground they hold, and write it to fotz_census.jsonl in the game's appdata folder. It changes nothing in the game.</text>
+	</string>
+	<string id="ui_mcm_fotz_about">
+		<text>This version only takes a census: it watches the factions and changes nothing yet.</text>
+	</string>
+</string_table>
