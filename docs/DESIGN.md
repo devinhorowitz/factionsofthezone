@@ -5,6 +5,12 @@ make war and truces, and talk about it on the PDA. The player can stand with one
 them, or stay out of it. It is built for G.A.M.M.A. (Anomaly 1.5.3 with Modded Exes, LuaJIT
 2.0.4), next to Seasons of the Zone and Arsenal.
 
+**Why.** Today the player is a loner tied to one faction and bound to whatever alliances that
+faction has. Factions of the Zone fills that gap: make a faction of your own, with a Homestead
+settlement as its base; recruit settlers who may, as their loyalty grows, join it; build your own
+alliances; and face rival factions that compete with the Zone's own. That also gives warfare
+mods, Warfare mode or Capture the Zone, a reason to fight.
+
 This is a plan, not a manual. What exists today is the census (0.1.0) and the politics engine
 (0.2.0).
 
@@ -327,6 +333,16 @@ by how many different people raised each. They shape the plan:
   pays you in cash and standing; a front-line informant who sells who holds what; a front that
   falls back a phase when a camp is lost.
 - **A base's stock changes hands** when the base does (CoC's Faction Stash Raid).
+- **Shared factions ("invasions").** Players share the factions they make, and others let them
+  into their own single-player games as rivals, a little like invasions in Dark Souls: turn it on,
+  and a faction someone real built competes in your Zone.
+  - The game can't go online from Lua. A launcher tool would fetch shared factions before the game
+    starts, the way Seasons of the Zone's `play.bat` fetches the weather, and the mod reads them.
+  - A shared faction is data only (name, emblem, members, temperament, strength), never code,
+    checked on import, names filtered.
+  - Each one needs a declared community slot, so the mod would ship a few spare slots beside the
+    player's own.
+  - Open: the file format, where they're hosted, and how strong an imported faction may start.
 - Players have asked AlifePlus for some of the same: NPCs who rise in rank and switch factions
   (#24), leaders, mechanics, medics and traders replaced when killed, with the old bodies cleared
   (#25), a squad member who betrays the rest for loot and turns renegade (#31), and payback for
