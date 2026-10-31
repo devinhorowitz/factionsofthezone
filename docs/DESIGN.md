@@ -5,7 +5,8 @@ make war and truces, and talk about it on the PDA. The player can stand with one
 them, or stay out of it. It is built for G.A.M.M.A. (Anomaly 1.5.3 with Modded Exes, LuaJIT
 2.0.4), next to Seasons of the Zone and Arsenal.
 
-This is a plan, not a manual. What exists today is the census (0.1.0).
+This is a plan, not a manual. What exists today is the census (0.1.0) and the politics engine
+(0.2.0).
 
 ## Decisions (2026-10-31)
 
@@ -71,41 +72,48 @@ gained or lost, smarts that changed hands, relations that moved. The point is to
 G.A.M.M.A.'s world does on its own before anything changes it. The census is also the politics
 engine's input: strength and territory are its counts.
 
-## 2. The politics engine
+## 2. The politics engine (0.2.0)
 
-- **State per faction:** strength and territory (from the census), supply (a few abstract
-  stocks), mood, and an attitude toward every other faction.
-- **A daily tick** turns what happened into change: losses and gains by census, ground won or
-  lost, kills between factions, emissions, the season (Seasons' `sotz_api` when present), and the
-  player's deeds.
-- **Wars, truces and alliances are events**, each with a date, a cause, a duration and terms
-  ("Duty and Freedom at war since 14 May over the Army Warehouses"). The relation between two
-  factions is the configured value plus the effects of the events in force, inside the pair's
-  caps. Only events are saved; relations are rebuilt from them.
-- **The event deck** (after Zone Frontline): a truce after heavy losses on both sides, a coalition
-  against the strongest, incidents, trade, betrayal, ultimatums, prisoner exchanges, escalation.
-  A ceasefire waits for the fighting to stop (after DFRC): it is refused while the pair is in
-  combat, and alliances can lapse.
-- **Paced, not per death** (after Warfare Alife Overhaul 1.6): what happens adds to a pending
-  total per pair, applied a few times a game day within a daily budget, with a pull back toward
-  the configured value. Relations stay inside ±4750, since `change_faction_relations` resets a
-  pair at the limit to 0 half the time. The matrix's columns come from an explicit list:
-  `game_relations.factions_table_all` doesn't follow the order of `[communities_relations]`.
+`fotz_politics.script`, tuned by `configs/plugins/fotz_politics.ltx`.
+
+- **Pressure per pair.** Kills between two factions (online through `npc_on_death_callback`,
+  offline by listening in on `game_relations.offline_npc_on_death`), weighted by the victim's rank;
+  the player's kills count half, for the player's own faction. From each day's census: smarts one
+  faction took from the other since the day before, and fronts, the smarts both are fighting
+  over. And a third faction both are at war with pushes two factions together.
+- **Paced, not per death** (after Warfare Alife Overhaul 1.6): pressure waits per pair and moves
+  the relation once a game day, within a daily budget, and what has built up fades back toward the
+  start by a tenth a day, except in a war, which only a truce ends. Changed relations stay inside
+  ±4750, since the base game's `change_faction_relations` resets a pair at ±5000 to 0 half the
+  time.
+- **Events.** A war when a pair crosses -1000, an alliance at 1000; each is dated, with a cause
+  (the biggest of recent kills, ground and fronts, and where) and a voice (the side that bled
+  most). A war ends in a truce once the pair has two quiet days, or after two weeks; the truce
+  holds the line above -1000 for five days and halves new grievances (after DFRC's ceasefires that
+  wait for the fighting to stop). An alliance lapses when nothing holds it up.
+- **What's saved:** `m_data.fotz`, keyed by faction and smart names: each pair's drift from where
+  the game started it, the pressure waiting, the events in force, recent grievances and a history
+  of the last 50 events. Relations are rebuilt from the drift on every load (see the save, below).
+- **Pairs that start at war stay at war.** In G.A.M.M.A., 7 of the 16 changeable pairs start at
+  -2000 (among them Duty–Mercenaries and Clear Sky–Military); they can be pushed further but a
+  peace between them is later work. Wars can be declared among the other 9, which start neutral.
 - **Lore guardrails:**
   - Monolith, Sin, ISG, Renegades, traders, mutants and Zombified never change, as in the base
     game's dynamic relations.
   - The base game's 12 fixed lore pairs stay fixed, among them Duty–Freedom, Army–Loners and
     Bandits–Duty.
-  - Every other pair has caps in a config that DLTX can edit, in the spirit of Fluid Relations.
-  - Story characters and quest factions are left alone.
-- **One system changes relations.** If the player turns on the base game's dynamic relations,
-  or runs Fluid Relations (which replaces `game_relations.script`), Dynamic Faction Relations
-  Customizer, or Warfare mode (with Warfare Alife Overhaul's relation pacing), Factions only
-  watches and reports. Each of them saves and reapplies relations itself, so reapplying ours on
-  load would overwrite theirs. Killing Friends Reduces Goodwill changes the player's goodwill,
-  not the matrix, and can run beside it.
-- **`game_relations` functions are looked up at call time.** DFRC, Show All Faction Relations and
-  Faction Story Safeguard replace or wrap several of them.
+  - Every other pair moves at most -3000 to +2500 from its start; a pair can have its own caps.
+  - Story characters and quest factions are left alone: nothing here touches a character.
+- **One system changes relations.** While the base game's dynamic relations, Fluid Relations
+  (which replaces `game_relations.script`), Dynamic Faction Relations Customizer, or Warfare mode
+  (with Warfare Alife Overhaul's relation pacing) run, Factions writes the game's relations back
+  and stops counting. Each of them saves and reapplies relations itself. Killing Friends Reduces
+  Goodwill changes the player's goodwill, not the matrix, and can run beside it.
+- **Someone else's change wins.** If another script sets a cell Factions manages, that value
+  becomes the cell's new start, and Factions' drift goes on top of it.
+- **Later:** strength and supply per faction, emissions, the season, the player's deeds beyond
+  kills, and the rest of the event deck (after Zone Frontline): a coalition against the strongest,
+  incidents, trade, betrayal, ultimatums, prisoner exchanges.
 
 ## 3. Territory
 
@@ -183,12 +191,18 @@ squad another mod pinned is never steered.
 
 ## The save
 
-- **0.1.0 writes nothing to the save.** The census file is outside it.
-- **From 0.2.0:** one key, `m_data.fotz`, with a version, the events in force, a short history of
-  past ones, and per-faction stocks. Keys are faction and smart names, never object ids.
+- **The census writes nothing to the save.** Its file is outside it.
+- **0.2.0 adds one key, `m_data.fotz`,** with a version (a save of another version is set aside
+  and the engine starts over), each pair's drift, the pressure waiting, the events in force,
+  recent grievances, the last census's holders, and a history of past events. Keys are faction and
+  smart names, never object ids.
+- **Every load** reads each managed cell of the matrix as the game has it after the base game's
+  own reapply (at the first update), and sets it to that start plus the pair's drift: the faction
+  rows and the player's `actor_` rows, as the base game's dynamic relations do. Turned off in MCM,
+  or standing down, it sets the starts back.
 - **Uninstalling:** the key is ignored, relations return to the configs at the next load, and
-  goodwill the player earned stays. Squads the steer moved stay where they went; nothing else in
-  the alife is changed.
+  goodwill the player earned stays. Squads the steer moved (from 0.4.0) stay where they went;
+  nothing else in the alife is changed.
 - The base game's `drx_df_*` pstor keys belong to its dynamic relations; Factions never writes
   them.
 
@@ -213,7 +227,7 @@ squad another mod pinned is never steered.
 ## Milestones
 
 1. **0.1.0, the census.** Read-only; learn the world.
-2. **0.2.0, the politics engine.** Events, relations rebuilt on load, news.
+2. **0.2.0, the politics engine.** Events, relations rebuilt on load, news. (Built.)
 3. **0.3.0, the Factions tab.** Relations, territory, the war log, the player's standing.
 4. **0.4.0, territory.** The light steer, fronts in the news and on the map.
 5. **0.5.0, partners.** Seasons and Homestead.

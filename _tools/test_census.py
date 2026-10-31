@@ -42,6 +42,10 @@ MUTANTS = {
     "unsorted": ("        table.sort(keys)\n", ""),
     "quote": ("if ch == '\"' then return '\\\\\"' end", "if ch == '\"' then return '\"' end"),
     "overwrite": ('io.open(path(), "a")', 'io.open(path(), "w")'),
+    "no_front_count": ("                fr.n = fr.n + 1\n", ""),
+    "listeners_need_log": ("if not (enabled() or #LISTENERS > 0) then", "if not enabled() then"),
+    "write_when_off": ("        if enabled() then\n            local f = assert",
+                       "        if true then\n            local f = assert"),
 }
 
 WORLD = r"""
@@ -275,6 +279,7 @@ def run(src):
         check(c["smarts"] == {"bar_dolg_general": "dolg", "bar_zastava": "bandit", "bar_visitors": "dolg",
                               'esc_"odd"\\name': "stalker"}, "holders %s" % c["smarts"])
         check(c["contested"] == ["bar_zastava"], "contested %s" % c["contested"])
+        check(c["fronts"] == {"bandit/stalker": {"n": 1, "at": "bar_zastava"}}, "fronts %s" % c["fronts"])
         check(c["held"] == 4, "held %s" % c["held"])
         check(c["levels"]["l05_bar"] == {"smarts": 4, "held": {"dolg": 2, "bandit": 1}, "contested": 1},
               "the Bar %s" % c["levels"]["l05_bar"])
@@ -295,6 +300,17 @@ def run(src):
             d.pop("real"), d.pop("ms")
         check(a == b, "two censuses of one world differ")
 
+        # with the log off, a listener still gets each census, and nothing is written
+        lua.execute("GOT = {}")
+        env.listen(lua.eval("function(c) GOT[#GOT + 1] = c.date end"))
+        g.MCM["fotz/census"] = False
+        g.DATE[3] = 16
+        g.NOW = 105000
+        cb["actor_on_update"]()
+        check(list(g.GOT.values()) == ["2012-05-16 08:00"], "the listener got %s" % list(g.GOT.values()))
+        check(len(lines()) == 2, "a census was written with the log off")
+        g.MCM["fotz/census"] = None
+
         # an error stays inside the census: logged, nothing written, nothing thrown
         g.OBJ[10].get_squad_community = lua.eval("function() error('boom') end")
         g.DATE[3] = 17
@@ -305,7 +321,7 @@ def run(src):
               "the error wasn't logged")
 
         log = list(g.LOG.values())
-        check(sum(l.startswith("[fotz-census] ") for l in log) == 2, "summary lines: %s" % log)
+        check(sum(l.startswith("[fotz-census] ") for l in log) == 3, "summary lines: %s" % log)
         check(all("%" not in l for l in log), "a %% reached the log: %s" % log)
         check("2012-05-14 08:00 (load): 11 squads, 22 fighters, 4 smarts held, 1 contested" in log[0],
               "summary %s" % log[0])

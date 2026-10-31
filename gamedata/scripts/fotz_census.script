@@ -3,16 +3,17 @@ Factions of the Zone: the census.
 
 Once a game day, and once after each load, it counts what the alife holds: each faction's squads
 and fighters by tier, rank and level, which faction holds each smart terrain, and the relations
-between the factions and toward the player. It only reads. Each census is one JSON line in
-$app_data_root$\fotz_census.jsonl and one summary line in the game's log.
+between the factions and toward the player. It only reads. With the log on, each census is one
+JSON line in $app_data_root$\fotz_census.jsonl; each one also gives a summary line in the game's
+log and goes to the listeners (the politics engine).
 
 A smart is held by the faction with the most fighters in squads assigned to it that have arrived,
 by the smart's own arrival test (squads on their way don't count). It is contested while squads
-of two hostile factions are there at once. Mutant squads count as "monster" and never hold or
-contest a smart.
+of two hostile factions are there at once, and each such pair has a front. Mutant squads count as
+"monster" and never hold or contest a smart.
 --]]
 
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
              "renegade", "greh", "isg" }
 FILE = "fotz_census.jsonl"
@@ -110,8 +111,8 @@ local function count_squad(c, sim, id, present)
     end
 end
 
--- the faction with the most fighters present (ties go to the first name), and whether two of the
--- factions present are hostile
+-- the faction with the most fighters present (ties go to the first name), and the hostile pairs
+-- among the factions present, each as "a/b" in name order
 function holder_of(p)
     local names = {}
     for f in pairs(p) do
@@ -124,15 +125,15 @@ function holder_of(p)
             best = f
         end
     end
-    local contested = false
+    local hostile = {}
     for i = 1, #names do
         for j = i + 1, #names do
             if game_relations.is_factions_enemies(names[i], names[j]) then
-                contested = true
+                hostile[#hostile + 1] = names[i] .. "/" .. names[j]
             end
         end
     end
-    return best, contested
+    return best, hostile
 end
 
 -- the game's date and time, "YYYY-MM-DD HH:MM"
@@ -146,8 +147,8 @@ function take(cause)
     local t0 = os.clock()
     local sim = alife()
     local c = { v = VERSION, cause = cause, date = game_date(), real = os.date("%Y-%m-%d %H:%M:%S"),
-                factions = {}, smarts = {}, levels = {}, contested = {}, relations = {}, goodwill = {},
-                toward_actor = {} }
+                factions = {}, smarts = {}, levels = {}, contested = {}, fronts = {}, relations = {},
+                goodwill = {}, toward_actor = {} }
     local present = {}
     for id in pairs(SIMBOARD.squads) do
         count_squad(c, sim, id, present)
@@ -164,13 +165,26 @@ function take(cause)
         l.smarts = l.smarts + 1
         local p = present[id]
         if p then
-            local f, contested = holder_of(p)
-            c.smarts[smart:name()] = f
+            local name = smart:name()
+            local f, hostile = holder_of(p)
+            c.smarts[name] = f
             add(l.held, f)
             held = held + 1
-            if contested then
+            if #hostile > 0 then
                 l.contested = l.contested + 1
-                c.contested[#c.contested + 1] = smart:name()
+                c.contested[#c.contested + 1] = name
+            end
+            -- a front: how many smarts a hostile pair shares, and the first by name
+            for _, pair in ipairs(hostile) do
+                local fr = c.fronts[pair]
+                if not fr then
+                    fr = { n = 0, at = name }
+                    c.fronts[pair] = fr
+                end
+                fr.n = fr.n + 1
+                if name < fr.at then
+                    fr.at = name
+                end
             end
         end
     end
@@ -254,14 +268,30 @@ local function summary(c)
         c.date, c.cause, squads, fighters, c.held, #c.contested, c.ms)
 end
 
--- take a census and write it; nothing it meets can break the game's update
+-- functions that receive each census, such as the politics engine's daily tick
+LISTENERS = {}
+
+function listen(fn)
+    LISTENERS[#LISTENERS + 1] = fn
+end
+
+-- take a census, write it if the log is on, and hand it to the listeners; nothing it meets can
+-- break the game's update
 function run(cause)
     local ok, err = pcall(function()
         local c = take(cause)
-        local f = assert(io.open(path(), "a"))
-        f:write(to_json(c), "\n")
-        f:close()
+        if enabled() then
+            local f = assert(io.open(path(), "a"))
+            f:write(to_json(c), "\n")
+            f:close()
+        end
         printf("[fotz-census] %s", summary(c))
+        for _, fn in ipairs(LISTENERS) do
+            local ok2, err2 = pcall(fn, c)
+            if not ok2 then
+                printf("! [fotz-census] a listener failed: %s", tostring(err2))
+            end
+        end
     end)
     if not ok then
         printf("! [fotz-census] %s", tostring(err))
@@ -269,6 +299,7 @@ function run(cause)
     return ok
 end
 
+-- whether the census log is on
 function enabled()
     local v = ui_mcm and ui_mcm.get("fotz/census")
     return v ~= false
@@ -285,7 +316,7 @@ local function actor_on_update()
         return
     end
     next_check = time_global() + CHECK_MS
-    if not enabled() then
+    if not (enabled() or #LISTENERS > 0) then
         return
     end
     local day = game_date():sub(1, 10)

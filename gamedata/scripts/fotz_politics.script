@@ -1,0 +1,626 @@
+--[[
+Factions of the Zone: the politics engine.
+
+What happens between two factions adds up to pressure on their relation: kills (online, and
+offline through game_relations.offline_npc_on_death), smarts one took from the other since the day
+before, fronts where both are fighting, and a third faction both are at war with. Once a game day,
+on the census, the pressure moves the pair's relation within a daily budget, and what has built up
+fades back toward the start. Crossing the game's thresholds makes events: a war at -1000, an
+alliance at 1000. A war ends in a truce after days without fighting; an alliance lapses when the
+relation falls back. Each event is news in the factions' own voices.
+
+What changes is a pair's drift from the relation the game starts it with, which is read live after
+every load, after the base game has reapplied its own. Every load sets anchor plus drift again
+(the engine resets the matrix from the configs on every level load), on the faction rows and the
+player's actor_ rows alike, as the base game's dynamic relations do. Turned off, or with another
+system in charge of relations, it writes the anchors back and stops. Its state is m_data.fotz,
+keyed by faction and smart names.
+--]]
+
+VERSION = "0.2.0"
+SAVE_VERSION = 1
+CONFIG = "plugins\\fotz_politics.ltx"
+
+local ENEMIES, FRIENDS = -1000, 1000
+local FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
+                   "renegade", "greh", "isg" }
+
+cfg = nil          -- the tuning, from CONFIG
+PAIRS = {}         -- the pairs whose relation can change, in name order
+local PAIR = {}    -- "a/b" (either order) -> pair
+S = nil            -- the saved state
+
+local anchor = {}  -- "x>y" -> the cell's value before Factions wrote it, this session
+local written = {} -- "x>y" -> what Factions last wrote there
+
+local function log(fmt, ...)
+    printf("[fotz-politics] " .. fmt, ...)
+end
+
+local function clamp(v, lo, hi)
+    return v < lo and lo or (v > hi and hi or v)
+end
+
+local function add(t, k, n)
+    t[k] = (t[k] or 0) + n
+end
+
+local function split_numbers(s)
+    local out = {}
+    for x in string.gmatch(s or "", "[^,%s]+") do
+        out[#out + 1] = tonumber(x)
+    end
+    return out
+end
+
+-- the tuning and the pairs that can change, from the config
+function load_config(ini)
+    ini = ini or ini_file(CONFIG)
+    local function num(key, def)
+        return ini:r_float_ex("politics", key) or def
+    end
+    cfg = {
+        kill = num("kill", -12), player_kill = num("player_kill", 0.5), ground = num("ground", -150),
+        front = num("front", -40), common_enemy = num("common_enemy", 60), recover = num("recover", 0.1),
+        daily_budget = num("daily_budget", 400), pending_max = num("pending_max", 1500),
+        limit = num("limit", 4750), min_war_days = num("min_war_days", 3), quiet_days = num("quiet_days", 2),
+        max_war_days = num("max_war_days", 14),
+        truce_relation = num("truce_relation", -600), truce_days = num("truce_days", 5),
+        history = num("history", 50), rank_weight = {}, caps = {},
+    }
+    local function lines(section, fn)
+        if not ini:section_exist(section) then
+            return
+        end
+        for i = 0, ini:line_count(section) - 1 do
+            local _, id, value = ini:r_line(section, i, "", "")
+            fn(id, value)
+        end
+    end
+    lines("rank_weight", function(id, value) cfg.rank_weight[id] = tonumber(value) end)
+    lines("caps", function(id, value) cfg.caps[id] = split_numbers(value) end)
+    local fixed = {}
+    lines("fixed_factions", function(id) fixed[id] = true end)
+    local fixed_pair = {}
+    lines("fixed_pairs", function(_, value)
+        local a, b = string.match(value or "", "^%s*([%w_]+)%s*,%s*([%w_]+)%s*$")
+        if a then
+            fixed_pair[a .. "/" .. b], fixed_pair[b .. "/" .. a] = true, true
+        end
+    end)
+    local managed = {}
+    for _, f in ipairs(FACTIONS) do
+        if not fixed[f] then
+            managed[#managed + 1] = f
+        end
+    end
+    table.sort(managed)
+    PAIRS, PAIR = {}, {}
+    for i = 1, #managed do
+        for j = i + 1, #managed do
+            local a, b = managed[i], managed[j]
+            if not fixed_pair[a .. "/" .. b] then
+                local p = { a = a, b = b, key = a .. "/" .. b,
+                            cells = { { a, b }, { b, a }, { "actor_" .. a, b }, { b, "actor_" .. a },
+                                      { a, "actor_" .. b }, { "actor_" .. b, a } } }
+                local cap = cfg.caps[a .. "_" .. b] or cfg.caps.default or { -3000, 2500 }
+                p.lo, p.hi = cap[1] or -3000, cap[2] or 2500
+                PAIRS[#PAIRS + 1] = p
+                PAIR[a .. "/" .. b], PAIR[b .. "/" .. a] = p, p
+            end
+        end
+    end
+    MANAGED = managed
+end
+
+function pair_of(x, y)
+    return x and y and PAIR[x .. "/" .. y]
+end
+
+local function fresh()
+    return { v = SAVE_VERSION, drift = {}, pending = {}, kills = {}, hurt = {}, recent = {},
+             last_fight = {}, events = {}, history = {} }
+end
+
+local function state()
+    if not S then
+        S = fresh()
+    end
+    return S
+end
+
+-- dates as "YYYY-MM-DD" and as day numbers
+function day_num(s)
+    local y, m, d = string.match(s, "^(%d+)-(%d+)-(%d+)")
+    return math.floor(os.time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }) / 86400)
+end
+
+function day_str(n)
+    return os.date("%Y-%m-%d", n * 86400 + 43200)
+end
+
+local function days_between(a, b)
+    return day_num(b) - day_num(a)
+end
+
+-- why Factions isn't changing relations, or nil while it is
+function standing_down()
+    if ui_mcm and ui_mcm.get("fotz/politics") == false then
+        return "turned off in MCM"
+    end
+    if ui_options and ui_options.get("alife/general/dynamic_relations") then
+        return "the base game's dynamic relations are on"
+    end
+    -- not _G.WARFARE: the base warfare.script sets it true in on_game_start whatever the mode, and
+    -- false only on its first actor_on_update, after Factions has applied relations
+    if IsWarfare and IsWarfare() then
+        return "Warfare mode is on"
+    end
+    if dynamic_faction_relations_customizer then
+        return "Dynamic Faction Relations Customizer is installed"
+    end
+    if game_relations and game_relations.faction_cares then
+        return "Fluid Relations is installed"
+    end
+    return nil
+end
+
+local said
+function active()
+    local why = standing_down()
+    if why ~= said then
+        log("%s", why and ("standing down: " .. why) or "in charge of relations")
+        said = why
+    end
+    return why == nil
+end
+
+local function anchor_of(p)
+    return anchor[p.a .. ">" .. p.b] or relation_registry.community_relation(p.a, p.b)
+end
+
+-- a pair's relation as Factions has it
+function relation(p)
+    return anchor_of(p) + (state().drift[p.key] or 0)
+end
+
+-- set every changeable cell to its anchor plus the pair's drift (only the anchor while standing
+-- down); returns how many cells it wrote
+function apply()
+    local on = active()
+    local n = 0
+    for _, p in ipairs(PAIRS) do
+        local d = on and (state().drift[p.key] or 0) or 0
+        for _, c in ipairs(p.cells) do
+            local k = c[1] .. ">" .. c[2]
+            local live = relation_registry.community_relation(c[1], c[2])
+            if anchor[k] == nil then
+                anchor[k] = live
+            elseif written[k] ~= nil and live ~= written[k] then
+                -- something else set this cell since: its value is the new start
+                anchor[k] = live - (written[k] - anchor[k])
+                log("%s was set to %s by something else; it now starts there", k, live)
+            end
+            local v = d == 0 and anchor[k] or clamp(anchor[k] + d, -cfg.limit, cfg.limit)
+            if v ~= live then
+                relation_registry.set_community_relation(c[1], c[2], v)
+                n = n + 1
+            end
+            written[k] = v
+        end
+    end
+    return n
+end
+
+-- grievances ------------------------------------------------------------------------------
+
+local function strip(comm)
+    return comm and (string.gsub(comm, "^actor_", ""))
+end
+
+function today()
+    return fotz_census.game_date():sub(1, 10)
+end
+
+-- a kill between two factions, weighted by the victim's rank
+function record_kill(victim_comm, killer_comm, rank, weight)
+    if not active() then
+        return
+    end
+    local v, k = strip(victim_comm), strip(killer_comm)
+    local p = pair_of(v, k)
+    if not p then
+        return
+    end
+    local w = (cfg.rank_weight[rank] or 1) * (weight or 1)
+    local st = state()
+    add(st.kills, p.key, w)
+    st.hurt[p.key] = st.hurt[p.key] or {}
+    add(st.hurt[p.key], v, w)
+    st.last_fight[p.key] = today()
+end
+
+local function npc_on_death_callback(victim, killer)
+    if not (victim and killer and IsStalker(victim)) then
+        return
+    end
+    local comm, weight
+    if killer:id() == AC_ID then
+        comm, weight = get_actor_true_community(), cfg.player_kill
+    elseif IsStalker(killer) then
+        comm = killer:character_community()
+    else
+        -- a silent kill: the weapon is the killer
+        local owner = killer:parent()
+        if owner and owner:id() == AC_ID then
+            comm, weight = get_actor_true_community(), cfg.player_kill
+        end
+    end
+    if comm then
+        record_kill(victim:character_community(), comm, ranks.get_obj_rank_name(victim), weight)
+    end
+end
+
+local function offline_death(victim_se, killer_se)
+    if victim_se and killer_se then
+        record_kill(alife_character_community(victim_se), alife_character_community(killer_se),
+            ranks.get_se_obj_rank_name(victim_se), 1)
+    end
+end
+
+-- offline combat calls game_relations.offline_npc_on_death directly; Factions listens in and passes
+-- every call on
+local function wrap_offline_death()
+    local gr = game_relations
+    if not (gr and gr.offline_npc_on_death) then
+        log("no game_relations.offline_npc_on_death: offline kills aren't counted")
+        return
+    end
+    local orig = gr.offline_npc_on_death
+    gr.offline_npc_on_death = function(...)
+        local ok, err = pcall(offline_death, ...)
+        if not ok then
+            log("! an offline kill failed: %s", tostring(err))
+        end
+        return orig(...)
+    end
+end
+
+-- news ------------------------------------------------------------------------------------
+
+-- the MCM news level: "off", "events" (wars, truces and alliances) or "all" (also ground taken)
+function news_level()
+    local v = ui_mcm and ui_mcm.get("fotz/news")
+    return v == nil and "events" or v
+end
+
+-- a faction's name as a group ("Mercenaries"): Factions' own string, else the game's (which is
+-- singular for some, "Mercenary")
+local function faction_name(f)
+    local id = "st_fotz_faction_" .. f
+    local s = game.translate_string(id)
+    if s == id then
+        s = game.translate_string(f)
+    end
+    return s
+end
+
+local function place_name(smart)
+    local ok, name = pcall(function()
+        local se = SIMBOARD.smarts_by_names[smart]
+        return se and smart_terrain.get_smart_terrain_name(se)
+    end)
+    return ok and name or smart
+end
+
+-- one PDA message in a faction's voice, with that faction's news icon
+function say(level, id, voice, fields)
+    local lv = news_level()
+    if lv == "off" or (level == "all" and lv ~= "all") then
+        return false
+    end
+    local text = game.translate_string(id)
+    text = string.gsub(text, "{(%w+)}", function(k) return fields[k] or ("{" .. k .. "}") end)
+    text = faction_name(voice) .. ": " .. text
+    if db.actor and news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, text, nil, voice, 12000)
+        log("news: %s", text)
+        return true
+    end
+    return false
+end
+
+-- events ----------------------------------------------------------------------------------
+
+local function remember(rec)
+    local h = state().history
+    h[#h + 1] = rec
+    while #h > cfg.history do
+        table.remove(h, 1)
+    end
+end
+
+local function other(p, f)
+    return f == p.a and p.b or p.a
+end
+
+-- what pushed a pair to war, from its recent grievances: the biggest of ground, front and kills
+local function war_cause(p)
+    local r = state().recent[p.key] or {}
+    local best, size = "kills", r.kills or 0
+    if (r.front or 0) > size then
+        best, size = "front", r.front
+    end
+    if (r.ground or 0) > size then
+        best = "ground"
+    end
+    local hurt = r.hurt or {}
+    local voice = (hurt[p.b] or 0) > (hurt[p.a] or 0) and p.b or p.a
+    return best, r[best .. "_at"], voice
+end
+
+local function start(p, kind, day, ev)
+    ev.kind, ev.since, ev.a, ev.b = kind, day, p.a, p.b
+    state().events[p.key] = ev
+    remember({ kind = kind, a = p.a, b = p.b, day = day, voice = ev.voice, cause = ev.cause, at = ev.at,
+               enemy = ev.enemy })
+    log("%s: %s between %s and %s (%s)", day, kind, p.a, p.b, ev.cause or ev.enemy or "-")
+end
+
+local function finish(p, day, how)
+    local ev = state().events[p.key]
+    state().events[p.key] = nil
+    remember({ kind = how, a = p.a, b = p.b, day = day, since = ev and ev.since })
+    log("%s: %s between %s and %s", day, how, p.a, p.b)
+end
+
+local function at_war(x, y)
+    local p = pair_of(x, y)
+    local ev = p and state().events[p.key]
+    return ev ~= nil and ev.kind == "war"
+end
+
+-- the day's tick --------------------------------------------------------------------------
+
+local function note(t, p, what, delta, at, hurt_faction, hurt)
+    local e = t[p.key]
+    if not e then
+        e = { delta = 0, hurt = {} }
+        t[p.key] = e
+    end
+    e.delta = e.delta + delta
+    e[what] = (e[what] or 0) + math.abs(delta)
+    if at and not e[what .. "_at"] then
+        e[what .. "_at"] = at
+    end
+    if hurt_faction then
+        add(e.hurt, hurt_faction, hurt)
+    end
+end
+
+-- everything that happened since the last tick, as pressure per pair
+local function grievances(c, prev, day)
+    local st, t = state(), {}
+    for key, w in pairs(st.kills) do
+        local p = PAIR[key]
+        if p then
+            note(t, p, "kills", cfg.kill * w)
+            for f, n in pairs(st.hurt[key] or {}) do
+                add(t[key].hurt, f, n * math.abs(cfg.kill))
+            end
+        end
+    end
+    st.kills, st.hurt = {}, {}
+    local names = {}
+    for smart in pairs(prev or {}) do
+        names[#names + 1] = smart
+    end
+    table.sort(names)
+    for _, smart in ipairs(names) do
+        local was, now = prev[smart], c.smarts[smart]
+        local p = now and now ~= was and pair_of(was, now)
+        if p then
+            note(t, p, "ground", cfg.ground, smart, was, math.abs(cfg.ground))
+            st.last_fight[p.key] = day
+            if not t.taken then
+                t.taken = {}
+            end
+            t.taken[#t.taken + 1] = { by = now, from = was, at = smart }
+        end
+    end
+    for key, fr in pairs(c.fronts or {}) do
+        local p = PAIR[key]
+        if p then
+            note(t, p, "front", cfg.front * fr.n, fr.at)
+            st.last_fight[p.key] = day
+        end
+    end
+    for _, p in ipairs(PAIRS) do
+        if not at_war(p.a, p.b) then
+            for _, f in ipairs(MANAGED) do
+                if f ~= p.a and f ~= p.b and at_war(p.a, f) and at_war(p.b, f) then
+                    note(t, p, "common", cfg.common_enemy)
+                    t[p.key].enemy = f
+                    break
+                end
+            end
+        end
+    end
+    return t
+end
+
+-- a pair's recent grievances, which name the cause of a war: they halve each day
+local function remember_grievances(k, g)
+    local st = state()
+    local r = st.recent[k]
+    if not (r or g) then
+        return
+    end
+    r = r or { hurt = {} }
+    for _, what in ipairs({ "kills", "ground", "front" }) do
+        r[what] = (r[what] or 0) / 2 + (g and g[what] or 0)
+        if g and g[what .. "_at"] then
+            r[what .. "_at"] = g[what .. "_at"]
+        end
+    end
+    for f, n in pairs(r.hurt) do
+        r.hurt[f] = n / 2
+    end
+    for f, n in pairs(g and g.hurt or {}) do
+        add(r.hurt, f, n)
+    end
+    st.recent[k] = r
+end
+
+-- one pair's day: pressure in, recovery, the budget, the events
+local function step(p, g, day)
+    local st = state()
+    local k = p.key
+    if g then
+        st.pending[k] = clamp((st.pending[k] or 0) + g.delta, -cfg.pending_max, cfg.pending_max)
+    end
+    remember_grievances(k, g)
+
+    local ev = st.events[k]
+    local base = anchor_of(p)
+    local before = base + (st.drift[k] or 0)
+    local d = st.drift[k] or 0
+    -- the change fades, except in a war, which only a truce ends; an alliance lapses once nothing
+    -- holds it up
+    if not (ev and ev.kind == "war") then
+        d = d - d * cfg.recover
+        if math.abs(d) < 5 then
+            d = 0
+        end
+    end
+    local pending = st.pending[k] or 0
+    local move = clamp(pending, -cfg.daily_budget, cfg.daily_budget)
+    st.pending[k] = pending - move
+    if ev and ev.kind == "truce" and move < 0 then
+        move = move / 2
+    end
+    d = clamp(d + move, p.lo, p.hi)
+    if ev and ev.kind == "war" then
+        d = math.min(d, ENEMIES - base)
+    elseif ev and ev.kind == "truce" then
+        d = math.max(d, ENEMIES + 1 - base)
+    end
+    d = math.floor(d + 0.5)
+    st.drift[k] = d ~= 0 and d or nil
+    if st.pending[k] == 0 then
+        st.pending[k] = nil
+    end
+    local after = base + d
+
+    -- events end, then begin
+    if ev and ev.kind == "truce" and days_between(ev["until"], day) >= 0 then
+        finish(p, day, "truce_over")
+        ev = nil
+    elseif ev and ev.kind == "alliance" and after < FRIENDS then
+        finish(p, day, "alliance_over")
+        say("events", "st_fotz_news_alliance_over", p.a, { b = faction_name(p.b) })
+        ev = nil
+    elseif ev and ev.kind == "war" and days_between(ev.since, day) >= cfg.min_war_days
+            and (days_between(st.last_fight[k] or ev.since, day) >= cfg.quiet_days
+                 or days_between(ev.since, day) >= cfg.max_war_days) then
+        finish(p, day, "war_over")
+        st.drift[k] = cfg.truce_relation - base
+        st.pending[k] = nil
+        local voice = ev.voice or p.a
+        start(p, "truce", day, { voice = voice, ["until"] = day_str(day_num(day) + cfg.truce_days) })
+        say("events", "st_fotz_news_truce", voice, { b = faction_name(other(p, voice)) })
+        return
+    end
+    if not ev and before > ENEMIES and after <= ENEMIES then
+        local cause, at, voice = war_cause(p)
+        start(p, "war", day, { voice = voice, cause = cause, at = at })
+        say("events", "st_fotz_news_war_" .. cause, voice,
+            { b = faction_name(other(p, voice)), place = at and place_name(at) or "" })
+    elseif not ev and before < FRIENDS and after >= FRIENDS then
+        local enemy = g and g.enemy
+        start(p, "alliance", day, { voice = p.a, enemy = enemy })
+        if enemy then
+            say("events", "st_fotz_news_alliance", p.a, { b = faction_name(p.b), enemy = faction_name(enemy) })
+        else
+            say("events", "st_fotz_news_alliance_plain", p.a, { b = faction_name(p.b) })
+        end
+    end
+end
+
+-- the daily tick, on each census whose date is a new day
+function on_census(c)
+    local st = state()
+    local day = c.date:sub(1, 10)
+    if st.day == day then
+        return
+    end
+    local prev, first = st.ground, st.day == nil
+    st.ground, st.day = c.smarts, day
+    if first or not active() then
+        st.kills, st.hurt = {}, {}
+        apply()
+        return
+    end
+    local g = grievances(c, prev, day)
+    for _, p in ipairs(PAIRS) do
+        step(p, g[p.key], day)
+    end
+    local shown = 0
+    for _, tk in ipairs(g.taken or {}) do
+        if shown < 3 and say("all", "st_fotz_news_ground", tk.by, { b = faction_name(tk.from), place = place_name(tk.at) }) then
+            shown = shown + 1
+        end
+    end
+    local moved, wars = 0, {}
+    for _, p in ipairs(PAIRS) do
+        if st.drift[p.key] then
+            moved = moved + 1
+        end
+        local ev = st.events[p.key]
+        if ev and ev.kind == "war" then
+            wars[#wars + 1] = p.key
+        end
+    end
+    log("%s: %s pairs off their start, wars: %s, %s cells written", day, moved,
+        #wars > 0 and table.concat(wars, " ") or "none", apply())
+end
+
+-- saving ----------------------------------------------------------------------------------
+
+local function save_state(m_data)
+    m_data.fotz = S
+end
+
+local function load_state(m_data)
+    local d = m_data.fotz
+    if type(d) == "table" and d.v == SAVE_VERSION then
+        S = d
+        for _, k in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "history" }) do
+            S[k] = S[k] or {}
+        end
+    elseif d ~= nil then
+        log("! the save's state is version %s, this build reads %s: starting over", tostring(type(d) == "table" and d.v), SAVE_VERSION)
+        S = fresh()
+    else
+        S = fresh()
+    end
+end
+
+local function actor_on_first_update()
+    log("%s cells written at load", apply())
+end
+
+local function on_option_change()
+    apply()
+end
+
+function on_game_start()
+    load_config()
+    RegisterScriptCallback("save_state", save_state)
+    RegisterScriptCallback("load_state", load_state)
+    RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+    RegisterScriptCallback("npc_on_death_callback", npc_on_death_callback)
+    RegisterScriptCallback("on_option_change", on_option_change)
+    wrap_offline_death()
+    fotz_census.listen(on_census)
+end

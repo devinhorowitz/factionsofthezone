@@ -3,6 +3,27 @@
 	<string id="ui_mcm_menu_fotz">
 		<text>Фракции Зоны</text>
 	</string>
+	<string id="ui_mcm_fotz_politics">
+		<text>Группировки меняют отношения</text>
+	</string>
+	<string id="ui_mcm_fotz_politics_desc">
+		<text>Раз в игровые сутки убийства, захваченные позиции и линии фронта меняют отношения между группировками, а за ними следуют войны, перемирия и союзы. Если выключить, каждая группировка вернётся к отношениям, заданным игрой.</text>
+	</string>
+	<string id="ui_mcm_fotz_news">
+		<text>Новости в КПК</text>
+	</string>
+	<string id="ui_mcm_fotz_news_desc">
+		<text>Группировки объявляют в КПК войны, перемирия и союзы. В режиме «Всё» они ещё сообщают о захваченных позициях.</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_off">
+		<text>Выкл.</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_events">
+		<text>Войны, перемирия и союзы</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_all">
+		<text>Всё</text>
+	</string>
 	<string id="ui_mcm_fotz_census">
 		<text>Вести перепись</text>
 	</string>
@@ -10,6 +31,66 @@
 		<text>Раз в игровые сутки и после каждой загрузки считать отряды каждой фракции и занятую ими территорию и записывать это в fotz_census.jsonl в папке appdata игры. На игру это не влияет.</text>
 	</string>
 	<string id="ui_mcm_fotz_about">
-		<text>Эта версия только ведёт перепись: она наблюдает за фракциями и пока ничего не меняет.</text>
+		<text>Отношения меняются только между группировками, которым это позволяет сама игра, и в пределах лора. Мод уступает, пока отношениями занимаются динамические отношения самой игры, Fluid Relations, Dynamic Faction Relations Customizer или режим «Война группировок».</text>
+	</string>
+	<string id="st_fotz_news_war_kills">
+		<text>Слишком много наших погибло от рук группировки «{b}». С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_war_ground">
+		<text>Группировка «{b}» отняла у нас позицию «{place}». С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_war_front">
+		<text>Который день мы бьёмся с группировкой «{b}» у позиции «{place}». С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_truce">
+		<text>На линии с группировкой «{b}» стало тихо. Пока не стреляем.</text>
+	</string>
+	<string id="st_fotz_news_alliance">
+		<text>Мы вместе с группировкой «{b}» против группировки «{enemy}». Относитесь к ним как к друзьям.</text>
+	</string>
+	<string id="st_fotz_news_alliance_plain">
+		<text>Теперь мы союзники группировки «{b}». Относитесь к ним как к друзьям.</text>
+	</string>
+	<string id="st_fotz_news_alliance_over">
+		<text>Наш союз с группировкой «{b}» окончен.</text>
+	</string>
+	<string id="st_fotz_news_ground">
+		<text>Мы заняли позицию «{place}», выбив оттуда группировку «{b}».</text>
+	</string>
+	<string id="st_fotz_faction_stalker">
+		<text>Одиночки</text>
+	</string>
+	<string id="st_fotz_faction_bandit">
+		<text>Бандиты</text>
+	</string>
+	<string id="st_fotz_faction_csky">
+		<text>Чистое Небо</text>
+	</string>
+	<string id="st_fotz_faction_dolg">
+		<text>Долг</text>
+	</string>
+	<string id="st_fotz_faction_freedom">
+		<text>Свобода</text>
+	</string>
+	<string id="st_fotz_faction_killer">
+		<text>Наёмники</text>
+	</string>
+	<string id="st_fotz_faction_army">
+		<text>Военные</text>
+	</string>
+	<string id="st_fotz_faction_ecolog">
+		<text>Экологи</text>
+	</string>
+	<string id="st_fotz_faction_monolith">
+		<text>Монолит</text>
+	</string>
+	<string id="st_fotz_faction_renegade">
+		<text>Ренегаты</text>
+	</string>
+	<string id="st_fotz_faction_greh">
+		<text>Грех</text>
+	</string>
+	<string id="st_fotz_faction_isg">
+		<text>UNISG</text>
 	</string>
 </string_table>

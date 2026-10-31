@@ -1,0 +1,66 @@
+; Factions of the Zone: the politics engine's tuning and its lore limits.
+; Another mod can change any line here with DLTX (a mod_fotz_politics_*.ltx with ![section]).
+;
+; Relations run from -5000 to 5000. Two factions are enemies at -1000 or below and friends at
+; 1000 or above. Each pair's change is kept apart from the relation the game starts it with, so
+; turning the engine off, or removing the mod, puts every pair back where the game had it.
+
+[politics]
+kill            = -12   ; per kill between two factions, times the victim's rank weight below
+player_kill     = 0.5   ; a kill by the player counts this much, for the player's own faction
+ground          = -150  ; per smart terrain one faction took from the other since the day before
+front           = -40   ; per smart terrain where both are fighting today
+common_enemy    = 60    ; per day, for two factions at war with the same third
+recover         = 0.1   ; the share of a pair's change that fades each day, except at war or in an alliance
+daily_budget    = 400   ; the most a pair's relation moves in one day; the rest waits
+pending_max     = 1500  ; the most change a pair can have waiting
+limit           = 4750  ; changed relations stay inside +-limit
+min_war_days    = 3     ; a war lasts at least this many days
+quiet_days      = 2     ; days without fighting between them before a war ends in a truce
+max_war_days    = 14    ; a war ends in a truce after this many days even if the fighting goes on
+truce_relation  = -600  ; where a truce sets the pair
+truce_days      = 5     ; how long a truce holds; while it does, new grievances count half
+history         = 50    ; how many past events the save keeps
+
+; the victim's rank, for kills
+[rank_weight]
+novice          = 1
+trainee         = 1
+experienced     = 1.5
+professional    = 1.5
+veteran         = 2
+expert          = 2.5
+master          = 3
+legend          = 4
+
+; how far each pair may move from where the game starts it, as lowest, highest
+; a pair's own line is the two faction names in name order, joined by "_": csky_killer = -4000, 1000
+[caps]
+default         = -3000, 2500
+
+; factions whose relations never change (as the base game's dynamic relations)
+[fixed_factions]
+monolith
+greh
+isg
+renegade
+greh_npc
+army_npc
+trader
+monster
+zombied
+
+; pairs whose relation never changes (the base game's lore pairs)
+[fixed_pairs]
+pair_1          = army,bandit
+pair_2          = army,dolg
+pair_3          = army,ecolog
+pair_4          = army,stalker
+pair_5          = bandit,csky
+pair_6          = bandit,dolg
+pair_7          = bandit,stalker
+pair_9          = dolg,ecolog
+pair_10         = dolg,freedom
+pair_12         = dolg,stalker
+pair_14         = ecolog,stalker
+pair_15         = freedom,stalker

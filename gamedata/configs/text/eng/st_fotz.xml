@@ -3,6 +3,27 @@
 	<string id="ui_mcm_menu_fotz">
 		<text>Factions of the Zone</text>
 	</string>
+	<string id="ui_mcm_fotz_politics">
+		<text>Factions change their relations</text>
+	</string>
+	<string id="ui_mcm_fotz_politics_desc">
+		<text>Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it.</text>
+	</string>
+	<string id="ui_mcm_fotz_news">
+		<text>News on the PDA</text>
+	</string>
+	<string id="ui_mcm_fotz_news_desc">
+		<text>Factions announce wars, truces and alliances on the PDA. With Everything, they also report the ground they take.</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_off">
+		<text>Off</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_events">
+		<text>Wars, truces and alliances</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_all">
+		<text>Everything</text>
+	</string>
 	<string id="ui_mcm_fotz_census">
 		<text>Keep a census</text>
 	</string>
@@ -10,6 +31,66 @@
 		<text>Once a game day, and once after each load, count every faction's squads and the ground they hold, and write it to fotz_census.jsonl in the game's appdata folder. It changes nothing in the game.</text>
 	</string>
 	<string id="ui_mcm_fotz_about">
-		<text>This version only takes a census: it watches the factions and changes nothing yet.</text>
+		<text>Relations change only between factions the base game lets change, within lore limits. Factions of the Zone steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations.</text>
+	</string>
+	<string id="st_fotz_news_war_kills">
+		<text>Too many of ours have died at the hands of {b}. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_war_ground">
+		<text>{b} took {place} from us. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_war_front">
+		<text>We have fought {b} at {place} for days. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_truce">
+		<text>The line with {b} has gone quiet. We hold our fire, for now.</text>
+	</string>
+	<string id="st_fotz_news_alliance">
+		<text>We stand with {b} against {enemy}. Treat them as friends.</text>
+	</string>
+	<string id="st_fotz_news_alliance_plain">
+		<text>We are allies of {b} now. Treat them as friends.</text>
+	</string>
+	<string id="st_fotz_news_alliance_over">
+		<text>Our alliance with {b} is over.</text>
+	</string>
+	<string id="st_fotz_news_ground">
+		<text>We took {place} from {b}.</text>
+	</string>
+	<string id="st_fotz_faction_stalker">
+		<text>Loners</text>
+	</string>
+	<string id="st_fotz_faction_bandit">
+		<text>Bandits</text>
+	</string>
+	<string id="st_fotz_faction_csky">
+		<text>Clear Sky</text>
+	</string>
+	<string id="st_fotz_faction_dolg">
+		<text>Duty</text>
+	</string>
+	<string id="st_fotz_faction_freedom">
+		<text>Freedom</text>
+	</string>
+	<string id="st_fotz_faction_killer">
+		<text>Mercenaries</text>
+	</string>
+	<string id="st_fotz_faction_army">
+		<text>Military</text>
+	</string>
+	<string id="st_fotz_faction_ecolog">
+		<text>Ecologists</text>
+	</string>
+	<string id="st_fotz_faction_monolith">
+		<text>Monolith</text>
+	</string>
+	<string id="st_fotz_faction_renegade">
+		<text>Renegades</text>
+	</string>
+	<string id="st_fotz_faction_greh">
+		<text>Sin</text>
+	</string>
+	<string id="st_fotz_faction_isg">
+		<text>UNISG</text>
 	</string>
 </string_table>

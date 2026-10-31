@@ -2,7 +2,8 @@
 # msgctxt is the string id, msgid the English text it was translated from, msgstr the Russian.
 # build_text.py writes gamedata/configs/text/rus/ from this file and the English table, and
 # refuses an id whose English has changed since it was translated (msgid differs) or that has
-# no Russian yet. Term choices follow Seasons of the Zone's.
+# no Russian yet. Term choices follow Seasons of the Zone's. A name filled into a sentence stays
+# nominative, so it is framed: группировка «{b}», позиция «{place}».
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -11,6 +12,34 @@ msgstr ""
 msgctxt "ui_mcm_menu_fotz"
 msgid "Factions of the Zone"
 msgstr "Фракции Зоны"
+
+msgctxt "ui_mcm_fotz_politics"
+msgid "Factions change their relations"
+msgstr "Группировки меняют отношения"
+
+msgctxt "ui_mcm_fotz_politics_desc"
+msgid "Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it."
+msgstr "Раз в игровые сутки убийства, захваченные позиции и линии фронта меняют отношения между группировками, а за ними следуют войны, перемирия и союзы. Если выключить, каждая группировка вернётся к отношениям, заданным игрой."
+
+msgctxt "ui_mcm_fotz_news"
+msgid "News on the PDA"
+msgstr "Новости в КПК"
+
+msgctxt "ui_mcm_fotz_news_desc"
+msgid "Factions announce wars, truces and alliances on the PDA. With Everything, they also report the ground they take."
+msgstr "Группировки объявляют в КПК войны, перемирия и союзы. В режиме «Всё» они ещё сообщают о захваченных позициях."
+
+msgctxt "ui_mcm_lst_fotz_news_off"
+msgid "Off"
+msgstr "Выкл."
+
+msgctxt "ui_mcm_lst_fotz_news_events"
+msgid "Wars, truces and alliances"
+msgstr "Войны, перемирия и союзы"
+
+msgctxt "ui_mcm_lst_fotz_news_all"
+msgid "Everything"
+msgstr "Всё"
 
 msgctxt "ui_mcm_fotz_census"
 msgid "Keep a census"
@@ -21,5 +50,85 @@ msgid "Once a game day, and once after each load, count every faction's squads a
 msgstr "Раз в игровые сутки и после каждой загрузки считать отряды каждой фракции и занятую ими территорию и записывать это в fotz_census.jsonl в папке appdata игры. На игру это не влияет."
 
 msgctxt "ui_mcm_fotz_about"
-msgid "This version only takes a census: it watches the factions and changes nothing yet."
-msgstr "Эта версия только ведёт перепись: она наблюдает за фракциями и пока ничего не меняет."
+msgid "Relations change only between factions the base game lets change, within lore limits. Factions of the Zone steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations."
+msgstr "Отношения меняются только между группировками, которым это позволяет сама игра, и в пределах лора. Мод уступает, пока отношениями занимаются динамические отношения самой игры, Fluid Relations, Dynamic Faction Relations Customizer или режим «Война группировок»."
+
+msgctxt "st_fotz_news_war_kills"
+msgid "Too many of ours have died at the hands of {b}. From today we are at war with them."
+msgstr "Слишком много наших погибло от рук группировки «{b}». С сегодняшнего дня мы с ними воюем."
+
+msgctxt "st_fotz_news_war_ground"
+msgid "{b} took {place} from us. From today we are at war with them."
+msgstr "Группировка «{b}» отняла у нас позицию «{place}». С сегодняшнего дня мы с ними воюем."
+
+msgctxt "st_fotz_news_war_front"
+msgid "We have fought {b} at {place} for days. From today we are at war with them."
+msgstr "Который день мы бьёмся с группировкой «{b}» у позиции «{place}». С сегодняшнего дня мы с ними воюем."
+
+msgctxt "st_fotz_news_truce"
+msgid "The line with {b} has gone quiet. We hold our fire, for now."
+msgstr "На линии с группировкой «{b}» стало тихо. Пока не стреляем."
+
+msgctxt "st_fotz_news_alliance"
+msgid "We stand with {b} against {enemy}. Treat them as friends."
+msgstr "Мы вместе с группировкой «{b}» против группировки «{enemy}». Относитесь к ним как к друзьям."
+
+msgctxt "st_fotz_news_alliance_plain"
+msgid "We are allies of {b} now. Treat them as friends."
+msgstr "Теперь мы союзники группировки «{b}». Относитесь к ним как к друзьям."
+
+msgctxt "st_fotz_news_alliance_over"
+msgid "Our alliance with {b} is over."
+msgstr "Наш союз с группировкой «{b}» окончен."
+
+msgctxt "st_fotz_news_ground"
+msgid "We took {place} from {b}."
+msgstr "Мы заняли позицию «{place}», выбив оттуда группировку «{b}»."
+
+msgctxt "st_fotz_faction_stalker"
+msgid "Loners"
+msgstr "Одиночки"
+
+msgctxt "st_fotz_faction_bandit"
+msgid "Bandits"
+msgstr "Бандиты"
+
+msgctxt "st_fotz_faction_csky"
+msgid "Clear Sky"
+msgstr "Чистое Небо"
+
+msgctxt "st_fotz_faction_dolg"
+msgid "Duty"
+msgstr "Долг"
+
+msgctxt "st_fotz_faction_freedom"
+msgid "Freedom"
+msgstr "Свобода"
+
+msgctxt "st_fotz_faction_killer"
+msgid "Mercenaries"
+msgstr "Наёмники"
+
+msgctxt "st_fotz_faction_army"
+msgid "Military"
+msgstr "Военные"
+
+msgctxt "st_fotz_faction_ecolog"
+msgid "Ecologists"
+msgstr "Экологи"
+
+msgctxt "st_fotz_faction_monolith"
+msgid "Monolith"
+msgstr "Монолит"
+
+msgctxt "st_fotz_faction_renegade"
+msgid "Renegades"
+msgstr "Ренегаты"
+
+msgctxt "st_fotz_faction_greh"
+msgid "Sin"
+msgstr "Грех"
+
+msgctxt "st_fotz_faction_isg"
+msgid "UNISG"
+msgstr "UNISG"

@@ -9,6 +9,12 @@ function on_mcm_load()
         gr = {
             { id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_menu_fotz",
               size = { 512, 50 }, spacing = 20 },
+            { id = "politics", type = "check", val = 1, def = true },
+            { id = "news", type = "list", val = 0, def = "events", content = {
+                { "off", "fotz_news_off" },
+                { "events", "fotz_news_events" },
+                { "all", "fotz_news_all" },
+            } },
             { id = "census", type = "check", val = 1, def = true },
             { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
         },
