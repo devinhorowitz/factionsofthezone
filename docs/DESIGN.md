@@ -144,8 +144,19 @@ engine's input: strength and territory are its counts.
 - **A tab of its own** through `pda_dynamic_tabs.register`, plus an MCM key that opens it flat
   (the 3D PDA softens PDA pages). It shows relations with trend arrows, territory, the war log,
   leaders, and the player's standing. The vanilla Relations tab stays.
+  - The model is Clear Sky's faction-war page: each side's members, strength and leader.
+  - Register it from an actor callback, never during a load (a registration during a load
+    crashed in testing; Capture the Zone defers the same way).
+  - The war log keeps strategic events only (wars, truces, alliances, ground lost and taken), not
+    every message.
+  - A "restore relations" button: clearing the drift puts every pair back where the game started
+    it, mid-save. Six players asked for a way back without a new game.
+- **Art by reference only.** The tab points at textures the game already has: the faction icon
+  atlas (`ui_mm_faction_<faction>`, 64 px, with inactive variants), leader portraits and the news
+  icons. HD packs that replace them (HD Faction Patches, BBFI) show through, and Factions ships no
+  art: almost no art addon on ModDB grants reuse.
 - **News in the factions' own voices,** signed with portraits, on the PDA only; the player plays
-  nearly HUD-less. MCM sets how much.
+  nearly HUD-less. MCM sets how much. Never an internal id ("dolg", "killer") in a message.
 - English and Russian.
 
 ## 5. Partners
@@ -164,14 +175,18 @@ engine's input: strength and territory are its counts.
   can switch Factions' options by date.
 - **Arsenal:** a faction's supply could thin its traders' stock and its squads' gear.
 - **Immersive Identification:** identifications could log "last seen" squads for the tab.
+- **Candidates to ask:** PDA Map Location Labels and Faction Icons (mmmint) for a hook to show
+  holders and fronts on the map; KUD Tactical Net (NPCs radio sightings, with an API) for front
+  reports; Word of Mouth (NPCs say what they and the area are up to) for gossip about the war.
 
 ## 6. Capture the Zone
 
 Queen-Jadwiga's Capture the Zone (CtZ) is a strategic campaign for Anomaly. Its repository is no
 longer public (404 on 2026-10-31), and a search that day found no fork, mirror, archive snapshot
 or ModDB page, and no player reports. What is known comes from the Anomaly Development Reference,
-which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario). We
-don't plan around it.
+which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario). Its
+author has since shared a newer build with us privately; how the two could work together is
+noted outside this repo until it's public. The points below are about 0.0.5j.
 
 - **What it does:** faction-owned forts at named smarts, campaign squads ("detachments") it marks
   with its own fields and pins to forts or sends on assaults, field and fort battles, a rouble
@@ -236,6 +251,42 @@ squad another mod pinned is never steered.
   with.
 - **Performance:** daily work only, nothing per frame. The census reports its own cost.
 
+## What players ask for
+
+From the newest comments on 27 faction addons and 12 forum threads on ModDB (2026-10-31), counted
+by how many different people raised each. They shape the plan:
+
+- **A war that keeps moving (about 15).** The top complaint about every faction mod is a Zone where
+  nothing happens: factions take ground and stop, relations barely move in two weeks. The census
+  should count days with no change on each front, and a front stalled for days gets a nudge.
+- **Lore first (about 13).** Players argue pair by pair, and peace mid-firefight or Duty friendly
+  with the Military breaks the game for them. This backs the fixed pairs and caps; per-pair caps
+  might belong in MCM.
+- **No runaway winner (about 9).** Monolith or the Ecologists ending up with the whole map. The
+  census should track each faction's share of held smarts; expansion should cost something.
+  These two pull against the first, so pacing, caps and fading stay central.
+- **A faction or base of one's own (about 9)** and **ground you can see change hands, bases
+  included (about 8):** the player's faction (later) and the territory steer (0.4.0).
+- **Neutral hubs and peace zones (about 8):** the Bar, the Skadovsk, Yanov. This leans the open
+  question about hubs toward sparing them.
+- **Deeds, not only kills, move politics (about 8):** tasks done for a faction, rescues. DFRC's
+  rule that unseen kills don't count was praised.
+- **A way back mid-save (about 6):** the tab's "restore relations" button.
+- **News the player controls (about 5),** with no internal names: already the MCM news level.
+
+**What failed in other faction mods, and Factions' answer:**
+
+- Spawn bloat (hundreds of squads stacked on one smart): Factions spawns nothing.
+- Saves bricked during play or after removal: one versioned key, relations rebuilt on load, and
+  an uninstall leaves only the key behind.
+- Chaos (peace mid-firefight, mutant kills souring relations, everything at war): kills count only
+  between two human factions, changes are paced, and the lore pairs never move.
+- Story breakage (leaders and traders gone, quest targets killed): Factions never removes or kills
+  anyone.
+- A whole-file `pda.script` stripping looted PDAs, and Relations-tab patches breaking each other:
+  Factions keeps its own tab and ships none of those files.
+- Constant polling (a map-labels mod checks every location): daily work only.
+
 ## Milestones
 
 1. **0.1.0, the census.** Read-only; learn the world.
@@ -265,6 +316,17 @@ squad another mod pinned is never steered.
   sabotage a depot.
 - **Standing beyond goodwill:** trust tiers that unlock services, favors, debts, bounties.
 - Leaders with temperaments, faction economies that move prices, prisoners and exchanges.
+- **Factions with a state of mind** that moves with history: expansion, consolidation, recovery,
+  desperation. A defeat makes one faction dig in and another lash out. Holding ground takes
+  surviving strength, a faction may raid instead of occupy, and expansion costs exposed fronts, so
+  no one snowballs.
+- **Not every faction expands** (an idea from CoC Warfare's author): Ecologists go after anomalies
+  and data, traders after trade.
+- **A Monolith threat from the north** that pushes south now and then (four players asked).
+- **Ideas from Clear Sky's Faction War mods:** a squad in trouble radios for help and its faction
+  pays you in cash and standing; a front-line informant who sells who holds what; a front that
+  falls back a phase when a camp is lost.
+- **A base's stock changes hands** when the base does (CoC's Faction Stash Raid).
 - Players have asked AlifePlus for some of the same: NPCs who rise in rank and switch factions
   (#24), leaders, mechanics, medics and traders replaced when killed, with the old bodies cleared
   (#25), a squad member who betrays the rest for loot and turns renegade (#31), and payback for
