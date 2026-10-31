@@ -1,4 +1,4 @@
-"""The Factions page's tile for Mod App Creator's launcher: a banner on a pole, drawn here, as flat
+"""The Factions page's tile for Mod App Creator's launcher: a hanging banner, drawn here, as flat
 art in the PDA's colors like the tiles beside it (Arsenal's, Seasons'): light gray (enabled), amber
 (highlighted), white (touched), dim gray (disabled). A 512x512 four-state atlas: e top-left,
 h top-right, t bottom-left, d bottom-right, described by configs/ui/textures_descr/ui_fotz_app.xml.
@@ -25,7 +25,8 @@ SS = 4                                # supersampling for smooth edges
 
 
 def shape():
-    """The banner's mask, 256x256: a pole with a knob, a swallowtail flag, a ring cut through it."""
+    """The banner's mask, 256x256: a banner hanging from a crossbar, notched below, a ring cut
+    through it (the user's pick of six, 2026-10-31)."""
     n = 256 * SS
     m = Image.new("L", (n, n), 0)
     d = ImageDraw.Draw(m)
@@ -33,15 +34,15 @@ def shape():
     def s(*v):
         return [x * SS for x in v]
 
-    d.rectangle(s(62, 34, 74, 226), fill=255)                         # the pole
-    d.ellipse(s(56, 18, 80, 42), fill=255)                            # its knob
-    d.rectangle(s(52, 220, 84, 232), fill=255)                        # its foot
-    d.polygon(s(74, 46, 214, 46, 182, 96, 214, 146, 74, 146), fill=255)  # the flag, swallowtailed
+    d.rectangle(s(40, 30, 216, 42), fill=255)                          # the crossbar
+    d.ellipse(s(30, 26, 50, 46), fill=255)                             # its ends
+    d.ellipse(s(206, 26, 226, 46), fill=255)
+    d.polygon(s(64, 46, 192, 46, 192, 224, 128, 186, 64, 224), fill=255)  # the banner, notched
     ring = Image.new("L", (n, n), 0)
     r = ImageDraw.Draw(ring)
-    r.ellipse(s(110, 70, 162, 122), fill=255)
-    r.ellipse(s(122, 82, 150, 110), fill=0)
-    m = ImageChops.subtract(m, ring)                                  # a ring cut through the flag
+    r.ellipse(s(96, 80, 160, 144), fill=255)
+    r.ellipse(s(113, 97, 143, 127), fill=0)
+    m = ImageChops.subtract(m, ring)                                   # a ring cut through it
     return m.resize((256, 256), Image.LANCZOS)
 
 
