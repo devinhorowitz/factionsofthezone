@@ -82,6 +82,15 @@ engine's input: strength and territory are its counts.
   ("Duty and Freedom at war since 14 May over the Army Warehouses"). The relation between two
   factions is the configured value plus the effects of the events in force, inside the pair's
   caps. Only events are saved; relations are rebuilt from them.
+- **The event deck** (after Zone Frontline): a truce after heavy losses on both sides, a coalition
+  against the strongest, incidents, trade, betrayal, ultimatums, prisoner exchanges, escalation.
+  A ceasefire waits for the fighting to stop (after DFRC): it is refused while the pair is in
+  combat, and alliances can lapse.
+- **Paced, not per death** (after Warfare Alife Overhaul 1.6): what happens adds to a pending
+  total per pair, applied a few times a game day within a daily budget, with a pull back toward
+  the configured value. Relations stay inside ±4750, since `change_faction_relations` resets a
+  pair at the limit to 0 half the time. The matrix's columns come from an explicit list:
+  `game_relations.factions_table_all` doesn't follow the order of `[communities_relations]`.
 - **Lore guardrails:**
   - Monolith, Sin, ISG, Renegades, traders, mutants and Zombified never change, as in the base
     game's dynamic relations.
@@ -89,20 +98,31 @@ engine's input: strength and territory are its counts.
     Bandits–Duty.
   - Every other pair has caps in a config that DLTX can edit, in the spirit of Fluid Relations.
   - Story characters and quest factions are left alone.
-- **One system changes relations.** If the player turns on the base game's dynamic relations, or
-  enables Fluid Relations (which replaces `game_relations.script`), Factions only watches and
-  reports. Killing Friends Reduces Goodwill changes the player's goodwill, not the matrix, and
-  can run beside it.
+- **One system changes relations.** If the player turns on the base game's dynamic relations,
+  or runs Fluid Relations (which replaces `game_relations.script`), Dynamic Faction Relations
+  Customizer, or Warfare mode (with Warfare Alife Overhaul's relation pacing), Factions only
+  watches and reports. Each of them saves and reapplies relations itself, so reapplying ours on
+  load would overwrite theirs. Killing Friends Reduces Goodwill changes the player's goodwill,
+  not the matrix, and can run beside it.
+- **`game_relations` functions are looked up at call time.** DFRC, Show All Faction Relations and
+  Faction Story Safeguard replace or wrap several of them.
 
 ## 3. Territory
 
 - **Control per level** comes from the census: smarts held per faction, contested smarts, and
   fighters on the level.
-- **A light steer:** squads of a faction at war lean toward contested and enemy smarts on fronts
-  it is winning, and away from fronts it is losing. The hook is the target choice
-  (`simulation_board:get_squad_target` and the smart's `evaluate_prior`), not Warfare mode. It
-  never touches story squads, squads with a script target, Homestead's garrisons or another mod's
-  campaign squads.
+- **A light steer, a bias and not a command:** squads of a faction at war lean toward contested
+  and enemy smarts on fronts it is winning, and away from fronts it is losing. The hook is the
+  smart's score in the target choice (`evaluate_prior`, which `simulation_board:get_squad_target`
+  ranks), with a bounded multiplier (ZHOPA clamps its own to 0.35-1.5). Factions never sets a
+  squad's `scripted_target`; AlifePlus, ZHOPA, P.O.L.I.C.Y and Pathfinder all do, and two
+  commanders fight. It never touches story squads, squads with a script target, squads another
+  mod owns (AlifePlus's `ap_api.get_owner`, ZHOPA's managed flag, CtZ's mark), or Homestead's
+  garrisons.
+- **No spawn rows.** AlifePlus writes `respawn_params` and `last_respawn_update` on smarts,
+  AlifeBalance and ZCP gate on the latter; Factions leaves them alone.
+- **Uninstall-safe wrappers** (after ZHOPA): one switch unwinds every callback and wrapper, and
+  a wrapper is put back only if it is still ours.
 - **Fronts** show up as news, on the Factions tab and, with mmmint's PDA Map Location Labels, on
   the map.
 - **Spawns** follow later and carefully: ZCP and Squad Filler own them in G.A.M.M.A.
@@ -132,8 +152,10 @@ engine's input: strength and territory are its counts.
 ## 6. Capture the Zone
 
 Queen-Jadwiga's Capture the Zone (CtZ) is a strategic campaign for Anomaly. Its repository is no
-longer public (404 on 2026-10-31); what is known comes from the Anomaly Development Reference,
-which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario).
+longer public (404 on 2026-10-31), and a search that day found no fork, mirror, archive snapshot
+or ModDB page, and no player reports. What is known comes from the Anomaly Development Reference,
+which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario). We
+don't plan around it.
 
 - **What it does:** faction-owned forts at named smarts, campaign squads ("detachments") it marks
   with its own fields and pins to forts or sends on assaults, field and fort battles, a rouble
@@ -172,12 +194,20 @@ squad another mod pinned is never steered.
 
 ## Compatibility to watch
 
-- **Relations:** the base dynamic relations, Fluid Relations, Killing Friends Reduces Goodwill,
+- **Relations:** the base dynamic relations, Fluid Relations, Dynamic Faction Relations
+  Customizer, Warfare Alife Overhaul's pacing, Zone Frontline, Killing Friends Reduces Goodwill,
   Sin and Mutants are Allies, GhenTuong's Rostok peace zone, and ZCP's civil war option (it sets
   Monolith's relation to itself; off here).
-- **Squads and spawns:** ZCP (owns the squad scripts), Squad Filler, Warfare mode (unstable in
-  G.A.M.M.A.), Homestead's garrisons (re-pinned every 10 s).
-- **Other:** disguise, faction tasks (dominance tasks target a faction's squads).
+- **Squads and spawns:** ZCP (owns the squad scripts), Squad Filler, AlifePlus and Xlib (in
+  G.A.M.M.A., off in this profile), AlifeBalance, ZHOPA, P.O.L.I.C.Y, Pathfinder, Warfare mode
+  (unstable in G.A.M.M.A.), Homestead's garrisons (re-pinned every 10 s).
+- **PDA:** Show All Faction Relations patches the Relations tab; DFRC and DNM Fixes (on in
+  G.A.M.M.A.) patch `dynamic_news_manager`, PDA Message Core reorders news, and AlifePlus holds
+  lines. News goes through the helpers, rate-limited.
+- **Other:** disguise, faction tasks (dominance tasks target a faction's squads), Faction Story
+  Safeguard and Immersive Faction Swap.
+- These come from a survey of 23 Anomaly mods on 2026-10-31, as the ones to stay compatible
+  with.
 - **Performance:** daily work only, nothing per frame. The census reports its own cost.
 
 ## Milestones
@@ -196,8 +226,15 @@ squad another mod pinned is never steered.
   player brings them into a faction of their own. Members' loyalty rises with prosperity, service
   and victories and falls with losses, hunger and the player's absence; a rival faction's pull
   grows with rank and war. Members defect from a faction that is losing ground. It needs either a
-  declared community slot the player names (a game_relations.ltx change) or a script-only
-  allegiance kept by per-NPC goodwill.
+  declared community slot the player names, or a script-only allegiance kept by per-NPC goodwill.
+  The Trashman faction mod shows the declared route through DLTX: append the community and its
+  `actor_` twin to `communities`, a column to every row of `[communities_relations]`, the two new
+  rows and `[communities_sympathy]`, then register it in `squad_community_by_behaviour`, the news
+  channels and the Relations tab. Community indices collide between such mods (Trashman takes 32
+  and 33), so the slot needs a check at load. NPCs join with `set_character_community` (Convert
+  Surrendering Enemies re-registers them in place afterward); the player's own faction change
+  goes through `set_actor_true_community`, which Faction Story Safeguard owns, and
+  `xr_effects.drx_sl_change_factions`, which Immersive Faction Swap wraps.
 - **Diplomacy work** that moves relations: carry terms, broker a ceasefire, escort a convoy,
   sabotage a depot.
 - **Standing beyond goodwill:** trust tiers that unlock services, favors, debts, bounties.
