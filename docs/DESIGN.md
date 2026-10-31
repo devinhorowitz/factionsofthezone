@@ -207,18 +207,32 @@ its player twin `actor_fotz_own`, team 37).
   `simulation_objects.evaluate_prior`. G.A.M.M.A. Economy's `target_prior.script` replaces both
   as it loads. `axr_main` loads every script before it calls any `on_game_start`, so Factions
   wraps G.A.M.M.A.'s version from its own `on_game_start`.
-- **The weight:** for a smart held by a faction the squad's own is at war with, its score is
+- **The weight:** for a smart held by a faction the squad's own is at war with (the game's
+  enmity, -1000 or below, read live at each census), its score is
   multiplied by `1 + k * (2 * share - 1)`, where `share` is the squad's faction's share of the
   two factions' fighters on that level (the census's per-level counts). It's kept within `lo` and
   `hi` (`[territory]` in `plugins\fotz_politics.ltx`: 0.5, 0.6, 1.5; three to one gives 1.25,
-  one to three 0.75). A score of 0 stays 0. Truces, alliances and your own faction's wars don't
-  steer: your faction has no squads.
+  one to three 0.75). A score of 0 stays 0. A truce lifts a pair out of enmity, so it doesn't
+  steer; your own faction has no squads to steer.
+- **Fronts only:** a level both sides have fighters on. Deep in enemy country, with none of its
+  own on the level, a faction's squads choose as the game would. Seen in game: weighing every
+  level put most entries at the 0.6 floor (Duty toward Limansk, the Swamp base, the CNPP) and
+  lowered 8% of all scores; fronts only weighs 349 smarts and changes 3.7% (422 raised, 756
+  lowered in a minute of play, of 31,493).
+- **Cost, measured in game:** 2.55 us a score unwrapped, 2.75 us wrapped, on a real smart and
+  squad; about 525 scores a second in play, so about 0.1 ms a second.
+- **Why enmity, not politics' wars:** G.A.M.M.A. starts 7 of the 16 changeable pairs at -2000
+  (Duty and the Mercenaries among them). They never cross -1000, so politics never declares a war
+  between them, though they are at war. Seen in game: Duty and the Mercenaries reached -1084 with
+  no war event, and a steer on events weighed nothing. A war politics declares holds its pair
+  below the line, so enmity covers it.
 - **The table** (faction, then smart id, then weight) is rebuilt from each census and the
-  politics engine's wars. A score looks up two tables; a squad with nothing weighed for it costs
+  relations then in force. A score looks up two tables; a squad with nothing weighed for it costs
   no more than that.
 - **Left alone:** story squads, squads with a scripted target, the player's companions, and
   Homestead's outpost garrisons (`stalker_camp_builder.rival_camps[*].squad_id`).
-- **The switch:** MCM's "Squads lean toward winning fronts", and politics standing down. Off, the
+- **The switch:** MCM's "Squads lean toward winning fronts", and Warfare mode, which runs the
+  squads itself (politics' own switch doesn't matter: enmity exists without it). Off, the
   original is put back if Factions' wrapper is still the one in place. If another mod wrapped
   over it, it stays and passes everything through, and turning the steer back on doesn't wrap
   again (that would weigh twice, or recurse). Nothing is saved.

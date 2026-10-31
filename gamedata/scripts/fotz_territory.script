@@ -4,13 +4,15 @@ Factions of the Zone: territory, the light steer.
 A bias, not a command. When a squad picks its next target, the game scores the smart terrains
 (simulation_objects.evaluate_prior, which G.A.M.M.A. Economy's target_prior replaces) and takes one
 of the best. Factions multiplies the score of a smart held by a faction the squad's own is at war
-with: up where its faction outnumbers the holder on that level, down where it is outnumbered,
+with (the game's enmity, -1000 or below, read live): up where its faction outnumbers the holder on
+that level, down where it is outnumbered (on levels where both sides have fighters: fronts),
 within the config's bounds. No squad's scripted target is set, no spawn rows are written, and a
 score of 0 (not allowed) stays 0.
 
-The table is rebuilt from each census (once a game day, and after each load) and the politics
-engine's wars. Left alone: story squads, squads with a scripted target, the player's companions
-and Homestead's outpost garrisons. It stands down with politics and with its MCM switch. One
+The table is rebuilt from each census (once a game day, and after each load) and the relations
+then in force, the politics engine's wars among them. Left alone: story squads, squads with a
+scripted target, the player's companions and Homestead's outpost garrisons. It stands down for
+Warfare mode, which runs the squads itself, and with its MCM switch. One
 wrapper, put in place as the game starts (after every script has loaded, so it wraps the version
 G.A.M.M.A. Economy put there), and unwound when the switch goes off if it is still the one in
 place. It saves nothing.
@@ -18,6 +20,7 @@ place. It saves nothing.
 
 VERSION = "0.3.0"
 CONFIG = "plugins\\fotz_politics.ltx"
+ENEMIES = -1000           -- the game's line: a faction at or below it toward another is at war
 
 cfg = nil
 STEER = {}                -- faction -> smart id -> multiplier
@@ -79,15 +82,17 @@ function rebuild(c)
             end
         end
     end
-    local P = fotz_politics
+    -- who is at war with whom: the game's own enmity, read live (a war the politics engine
+    -- declared holds its pair there; a truce lifts it out). G.A.M.M.A. starts some pairs at -2000,
+    -- enemies with no war ever declared. The census's factions only: your own has no squads
     local wars = {}
-    for _, ev in pairs(P and P.S and P.S.events or {}) do
-        -- your faction has no squads of its own to steer
-        if ev.kind == "war" and ev.a and ev.b and ev.a ~= P.OWN and ev.b ~= P.OWN then
-            wars[ev.a] = wars[ev.a] or {}
-            wars[ev.a][ev.b] = true
-            wars[ev.b] = wars[ev.b] or {}
-            wars[ev.b][ev.a] = true
+    local list = fotz_census.FACTIONS
+    for _, f in ipairs(list) do
+        for _, h in ipairs(list) do
+            if f ~= h and relation_registry.community_relation(f, h) <= ENEMIES then
+                wars[h] = wars[h] or {}
+                wars[h][f] = true
+            end
         end
     end
     local n = 0
@@ -97,7 +102,10 @@ function rebuild(c)
         if se then
             local lv = fotz_census.level_of(se)
             for f in pairs(enemies) do
-                local m = multiplier(fighters(c, f, lv), fighters(c, holder, lv))
+                -- a front is a level both sides are on; deep in enemy country, with none of its
+                -- own there, a faction's squads choose as the game would
+                local mine = fighters(c, f, lv)
+                local m = mine > 0 and multiplier(mine, fighters(c, holder, lv)) or 1
                 if m ~= 1 then
                     STEER[f] = STEER[f] or {}
                     STEER[f][se.id] = m
@@ -156,11 +164,13 @@ function uninstall()
     return false
 end
 
+-- on unless MCM turns it off, or Warfare mode runs the squads (not _G.WARFARE, which the base
+-- warfare.script sets true as the game starts whatever the mode)
 function enabled()
     if ui_mcm and ui_mcm.get("fotz/territory") == false then
         return false
     end
-    return not (fotz_politics and fotz_politics.standing_down and fotz_politics.standing_down())
+    return not (IsWarfare and IsWarfare())
 end
 
 -- the switch: in place and steering, or out of the way

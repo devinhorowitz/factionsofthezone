@@ -6,10 +6,12 @@
 
 - **Squads lean toward winning fronts.** When a squad picks where to go next, a smart held by a
   faction its own is at war with weighs more where its faction outnumbers the holder on that
-  level, and less where it's outnumbered (from 0.6 to 1.5 times). It's a bias in the game's own
+  level, and less where it's outnumbered (from 0.6 to 1.5 times), on levels both sides are on. It's a bias in the game's own
   choice, not an order: no squad is sent anywhere, no squads are added, and story squads, squads
-  on a scripted errand, your companions and Homestead's garrisons are left alone. MCM can turn it
-  off, and it's off whenever politics is. Nothing goes into your save.
+  on a scripted errand, your companions and Homestead's garrisons are left alone. "At war" is the
+  game's own enmity, so pairs G.A.M.M.A. starts as enemies (Duty and the Mercenaries) count, and
+  so do the wars politics declares. MCM can turn it off, and it's off in Warfare mode. Nothing
+  goes into your save.
 
 ### 0.3.0: a faction of your own (first part)
 

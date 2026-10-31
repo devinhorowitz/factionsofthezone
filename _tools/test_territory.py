@@ -28,18 +28,21 @@ CONFIG = os.path.join(GD, "configs", "plugins", "fotz_politics.ltx")
 MUTANTS = {
     "no_clamp": ("    return math.max(cfg.lo, math.min(cfg.hi, m))", "    return m"),
     "share_flipped": ("local m = 1 + cfg.k * (2 * (mine or 0) / total - 1)", "local m = 1 + cfg.k * (1 - 2 * (mine or 0) / total)"),
-    "any_event": ('if ev.kind == "war" and ev.a and ev.b', 'if ev.a and ev.b'),
-    "own_wars": ("and ev.a ~= P.OWN and ev.b ~= P.OWN then", "then"),
-    "holder_side": ("local m = multiplier(fighters(c, f, lv), fighters(c, holder, lv))",
-                    "local m = multiplier(fighters(c, holder, lv), fighters(c, f, lv))"),
+    "line_strict": ("if f ~= h and relation_registry.community_relation(f, h) <= ENEMIES then",
+                    "if f ~= h and relation_registry.community_relation(f, h) < ENEMIES then"),
+    "direction": ("if f ~= h and relation_registry.community_relation(f, h) <= ENEMIES then",
+                  "if f ~= h and relation_registry.community_relation(h, f) <= ENEMIES then"),
+    "no_front_check": ("local m = mine > 0 and multiplier(mine, fighters(c, holder, lv)) or 1",
+                       "local m = multiplier(mine, fighters(c, holder, lv))"),
+    "holder_side": ("local m = mine > 0 and multiplier(mine, fighters(c, holder, lv)) or 1",
+                    "local m = mine > 0 and multiplier(fighters(c, holder, lv), mine) or 1"),
     "story": ("e = get_object_story_id(id) ~= nil or (comp", "e = (comp"),
     "companions": ("or (comp ~= nil and comp[id] ~= nil) or garrison[id] == true", "or garrison[id] == true"),
     "garrisons": ("or (comp ~= nil and comp[id] ~= nil) or garrison[id] == true", "or (comp ~= nil and comp[id] ~= nil)"),
     "scripted": ("    return e or squad.scripted_target ~= nil", "    return e"),
     "off_steers": ("    if not on then\n        return prior\n    end\n    STATS.calls", "    STATS.calls"),
     "mcm_ignored": ('    if ui_mcm and ui_mcm.get("fotz/territory") == false then', "    if false then"),
-    "politics_ignored": ("    return not (fotz_politics and fotz_politics.standing_down and fotz_politics.standing_down())",
-                         "    return true"),
+    "warfare_ignored": ("    return not (IsWarfare and IsWarfare())", "    return true"),
     "unwrap_theirs": ("    if wrapper and simulation_objects and simulation_objects.evaluate_prior == wrapper then",
                       "    if wrapper and simulation_objects then"),
     "wrap_twice": ("    if wrapper then\n        return true\n    end\n    orig", "    orig"),
@@ -61,15 +64,19 @@ ui_mcm = { get = function(id) return MCM[id] end }
 CALLBACKS = {}
 function RegisterScriptCallback(name, fn) CALLBACKS[name] = fn end
 
--- the politics engine: wars in S.events, and whether it stands down
-DOWN = nil
-fotz_politics = { OWN = "fotz_own", S = { events = {} }, standing_down = function() return DOWN end }
-function war(a, b) fotz_politics.S.events[a .. "/" .. b] = { kind = "war", a = a, b = b } end
+-- relations, as the game has them now; Warfare mode
+REL = {}
+relation_registry = { community_relation = function(a, b) return REL[a .. ">" .. b] or 0 end }
+function war(a, b) REL[a .. ">" .. b] = -1500; REL[b .. ">" .. a] = -1500 end
+WARFARE = false
+function IsWarfare() return WARFARE end
 
 -- the census: smarts by name, their levels, listeners
 LEVEL = {}
 LISTENERS = {}
-fotz_census = { level_of = function(se) return LEVEL[se.id] end,
+fotz_census = { FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog",
+                               "monolith", "renegade", "greh", "isg" },
+                level_of = function(se) return LEVEL[se.id] end,
                 listen = function(fn) LISTENERS[#LISTENERS + 1] = fn end }
 SIMBOARD = { smarts_by_names = {} }
 function smart(name, id, level) SIMBOARD.smarts_by_names[name] = { id = id }; LEVEL[id] = level end
@@ -129,19 +136,25 @@ class World:
 #: (Agroprom, Duty 10 to 30); dolg holds s2 (Agroprom); freedom holds s3 (Garbage, no war);
 #: wolves (your faction) at war with bandits, who hold s5
 CENSUS = """{ date = "2012-05-02 08:00",
-    smarts = { s1 = "killer", s2 = "dolg", s3 = "freedom", s4 = "killer", s5 = "bandit" },
+    smarts = { s1 = "killer", s2 = "dolg", s3 = "freedom", s4 = "killer", s5 = "bandit", s6 = "killer" },
     factions = {
         dolg = { levels = { l02_garbage = { fighters = 30 }, l03_agroprom = { fighters = 10 } } },
-        killer = { levels = { l02_garbage = { fighters = 10 }, l03_agroprom = { fighters = 30 } } },
+        killer = { levels = { l02_garbage = { fighters = 10 }, l03_agroprom = { fighters = 30 }, l07_military = { fighters = 40 } } },
         freedom = { levels = { l02_garbage = { fighters = 20 } } },
         csky = { levels = { l02_garbage = { fighters = 60 } } },
-        bandit = { levels = { l02_garbage = { fighters = 5 } } } } }"""
+        bandit = { levels = { l02_garbage = { fighters = 5 } } },
+        army = { levels = { l02_garbage = { fighters = 15 } } } } }"""
 SETUP = """
 smart("s1", 101, "l02_garbage"); smart("s2", 102, "l03_agroprom"); smart("s3", 103, "l02_garbage")
 smart("s4", 104, "l03_agroprom"); smart("s5", 105, "l02_garbage")
+-- s6: the Mercenaries' on the Army Warehouses, where Duty has no one: not a front
+smart("s6", 106, "l07_military")
 war("dolg", "killer"); war("bandit", "fotz_own")
 -- a truce isn't a war: Clear Sky (stronger on Garbage) isn't steered at Freedom's s3
-fotz_politics.S.events["csky/freedom"] = { kind = "truce", a = "csky", b = "freedom" }
+REL["csky>freedom"], REL["freedom>csky"] = -600, -600
+-- the line itself is enmity, and one-sided: the Military are enemies of the Bandits (s5) at
+-- exactly -1000, the Bandits don't count the Military as enemies
+REL["army>bandit"], REL["bandit>army"] = -1000, 0
 """
 
 
@@ -157,11 +170,14 @@ def steer(src):
     w.census(CENSUS)
     S = w.env.STEER
     check(S["dolg"][101] == 1.25 and S["dolg"][104] == 0.75, "Duty on s1 %s, s4 %s" % (S["dolg"][101], S["dolg"][104]))
+    check(S["dolg"][106] is None, "Duty weighed s6, on a level it has no one on: %s" % S["dolg"][106])
     check(S["killer"][102] == 1.25 and S["killer"][101] is None, "the Mercenaries on s2 %s, on their own s1 %s"
           % (S["killer"][102], S["killer"][101]))
     check(S["freedom"] is None and S["fotz_own"] is None and S["bandit"] is None and S["csky"] is None,
           "steered without a war of their own: %s" % [k for k in ("freedom", "fotz_own", "bandit", "csky")
                                                       if S[k] is not None])
+    check(S["army"] is not None and S["army"][105] == 1.25, "the Military at the line, toward the Bandits' s5: %s"
+          % (S["army"] and S["army"][105]))
     # the scores: up, down, through
     got = [w.eval('score(101, "dolg")'), w.eval('score(104, "dolg")'), w.eval('score(101, "freedom")'),
            w.eval('score(103, "dolg")'), w.eval('score(900, "dolg")')]
@@ -172,7 +188,7 @@ def steer(src):
     w.eval('simulation_objects.evaluate_prior')({"id": 101}, w.eval("{ id = 1, player_id = 'dolg' }"), 1, 2)
     check(w.g.ARGS == 2, "the wrapper passed on %d extra arguments, not 2" % w.g.ARGS)
     log = [l for l in w.log() if l.startswith("[fotz-territory] 2012-05-02")]
-    check(log and "3 smarts weighed for 2 factions (steering)" in log[0], "log %s" % log)
+    check(log and "4 smarts weighed for 3 factions (steering)" in log[0], "log %s" % log)
     # raised: s1 for Duty, its 0 score, and the varargs call; lowered: s4
     check(w.env.STATS.raised == 3 and w.env.STATS.lowered == 1, "counted %s raised, %s lowered"
           % (w.env.STATS.raised, w.env.STATS.lowered))
@@ -205,12 +221,12 @@ def switch(src):
     w.run('MCM["fotz/territory"] = nil')
     w.cb["on_option_change"]()
     check(w.eval('score(101, "dolg")') == 12.5, "back on, not steering")
-    # politics stands down: the steer too
-    w.run('DOWN = "turned off in MCM"')
+    # Warfare mode runs the squads: the steer stands down
+    w.run("WARFARE = true")
     w.cb["on_option_change"]()
     check(w.eval("simulation_objects.evaluate_prior == base_prior") and w.eval('score(101, "dolg")') == 10,
-          "steering while politics stands down")
-    w.run("DOWN = nil")
+          "steering in Warfare mode")
+    w.run("WARFARE = false")
     w.cb["on_option_change"]()
     # another mod wraps over ours: turning off leaves both in place and ours passes through;
     # turning on again doesn't wrap twice

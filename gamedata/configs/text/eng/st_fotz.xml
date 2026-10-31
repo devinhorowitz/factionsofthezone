@@ -13,7 +13,7 @@
 		<text>Squads lean toward winning fronts</text>
 	</string>
 	<string id="ui_mcm_fotz_territory_desc">
-		<text>A faction at war sends its squads toward ground its enemy holds where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off while politics is off.</text>
+		<text>A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself.</text>
 	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>News on the PDA</text>

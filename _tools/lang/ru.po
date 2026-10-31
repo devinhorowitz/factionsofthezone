@@ -446,5 +446,5 @@ msgid "Squads lean toward winning fronts"
 msgstr "Отряды тянутся к выигрышным фронтам"
 
 msgctxt "ui_mcm_fotz_territory_desc"
-msgid "A faction at war sends its squads toward ground its enemy holds where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off while politics is off."
-msgstr "Группировка на войне чаще посылает отряды к позициям врага там, где на этой локации её бойцов больше, и реже туда, где больше вражеских. Это лишь перевес в собственном выборе игры, куда идти отрядам: без приказов и без новых отрядов. Выключено, пока выключена политика."
+msgid "A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself."
+msgstr "Группировка чаще посылает отряды к позициям врагов там, где на этой локации её бойцов больше, и реже туда, где больше вражеских. Это лишь перевес в собственном выборе игры, куда идти отрядам: без приказов и без новых отрядов. Выключено в режиме «Война группировок», где отрядами управляет он сам."
