@@ -29,6 +29,12 @@ limits. The faction you lead is a side too: its members' kills and yours move it
 it goes to war and makes peace in its own name. It steps aside while the base game's dynamic
 relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations.
 
+**Territory.** Factions at war lean toward the fronts they're winning. When a squad picks where to
+go next, ground held by an enemy weighs more where its faction outnumbers that enemy on the level,
+and less where it's outnumbered. It's only a bias in the game's own choice: nothing is ordered or
+spawned, and story squads, squads on a scripted errand, your companions and Homestead's garrisons
+are left alone.
+
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before
 each save, everyone is put back in their old faction in the save itself, and gets your faction
@@ -57,9 +63,9 @@ without it the page has its tab; with it, the tile, or the tab if you choose it 
 works either way.
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
-yourself, off unless you choose it, and whether companions join), politics on or off, PDA news
-(off, wars and truces, or everything), the census log, the Factions page key, and, with Mod App
-Creator, the page's own PDA tab.
+yourself, off unless you choose it, and whether companions join), politics on or off, the
+territory steer, PDA news (off, wars and truces, or everything), the census log, the Factions
+page key, and, with Mod App Creator, the page's own PDA tab.
 
 ## Install
 
@@ -74,9 +80,10 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
 - `_tools/test_census.py` runs the census against a made-up alife, `test_politics.py` runs the
   politics engine through wars, truces, alliances, saves and stand-downs, `test_faction.py` runs
   your faction through founding, saves (byte-level packets), loads, disguise and disbanding,
-  `test_tab.py` checks what the Factions tab shows on top of the real politics engine, and
-  `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (113 so far); every
+  `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
+  ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
+  scoring, and `test_text.py` checks the Russian tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (148 so far); every
   one must fail.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
 

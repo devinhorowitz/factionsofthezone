@@ -9,6 +9,12 @@
 	<string id="ui_mcm_fotz_politics_desc">
 		<text>Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it.</text>
 	</string>
+	<string id="ui_mcm_fotz_territory">
+		<text>Squads lean toward winning fronts</text>
+	</string>
+	<string id="ui_mcm_fotz_territory_desc">
+		<text>A faction at war sends its squads toward ground its enemy holds where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off while politics is off.</text>
+	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>News on the PDA</text>
 	</string>

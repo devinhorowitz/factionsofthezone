@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### 0.4.0: territory (first part)
+
+- **Squads lean toward winning fronts.** When a squad picks where to go next, a smart held by a
+  faction its own is at war with weighs more where its faction outnumbers the holder on that
+  level, and less where it's outnumbered (from 0.6 to 1.5 times). It's a bias in the game's own
+  choice, not an order: no squad is sent anywhere, no squads are added, and story squads, squads
+  on a scripted errand, your companions and Homestead's garrisons are left alone. MCM can turn it
+  off, and it's off whenever politics is. Nothing goes into your save.
+
 ### 0.3.0: a faction of your own (first part)
 
 - In MCM, found a faction of your own and name it. It is a real faction to the game: it starts

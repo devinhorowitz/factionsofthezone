@@ -23,7 +23,7 @@ ROOT = os.path.dirname(HERE)
 GD = os.path.join(ROOT, "gamedata")
 NAME = "Factions of the Zone"
 VERSION = "0.3.0"
-TESTS = ["test_census.py", "test_text.py", "test_politics.py", "test_faction.py", "test_tab.py"]
+TESTS = ["test_census.py", "test_text.py", "test_politics.py", "test_faction.py", "test_tab.py", "test_territory.py"]
 
 META = """[General]
 modid=0

@@ -200,6 +200,33 @@ its player twin `actor_fotz_own`, team 37).
 
 ## 3. Territory
 
+**Built (0.4.0, first part): `fotz_territory.script`.**
+
+- **The hook:** `simulation_board:get_squad_target` asks each target for its score
+  (`se:evaluate_prior`), which a smart resolves at call time to
+  `simulation_objects.evaluate_prior`. G.A.M.M.A. Economy's `target_prior.script` replaces both
+  as it loads. `axr_main` loads every script before it calls any `on_game_start`, so Factions
+  wraps G.A.M.M.A.'s version from its own `on_game_start`.
+- **The weight:** for a smart held by a faction the squad's own is at war with, its score is
+  multiplied by `1 + k * (2 * share - 1)`, where `share` is the squad's faction's share of the
+  two factions' fighters on that level (the census's per-level counts). It's kept within `lo` and
+  `hi` (`[territory]` in `plugins\fotz_politics.ltx`: 0.5, 0.6, 1.5; three to one gives 1.25,
+  one to three 0.75). A score of 0 stays 0. Truces, alliances and your own faction's wars don't
+  steer: your faction has no squads.
+- **The table** (faction, then smart id, then weight) is rebuilt from each census and the
+  politics engine's wars. A score looks up two tables; a squad with nothing weighed for it costs
+  no more than that.
+- **Left alone:** story squads, squads with a scripted target, the player's companions, and
+  Homestead's outpost garrisons (`stalker_camp_builder.rival_camps[*].squad_id`).
+- **The switch:** MCM's "Squads lean toward winning fronts", and politics standing down. Off, the
+  original is put back if Factions' wrapper is still the one in place. If another mod wrapped
+  over it, it stays and passes everything through, and turning the steer back on doesn't wrap
+  again (that would weigh twice, or recurse). Nothing is saved.
+- **Each census logs** how many smarts are weighed for how many factions, and how many scores
+  it raised and lowered since the last.
+
+**The plan it came from:**
+
 - **Control per level** comes from the census: smarts held per faction, contested smarts, and
   fighters on the level.
 - **A light steer, a bias and not a command:** squads of a faction at war lean toward contested

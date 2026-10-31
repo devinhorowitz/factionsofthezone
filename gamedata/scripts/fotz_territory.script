@@ -1,0 +1,194 @@
+--[[
+Factions of the Zone: territory, the light steer.
+
+A bias, not a command. When a squad picks its next target, the game scores the smart terrains
+(simulation_objects.evaluate_prior, which G.A.M.M.A. Economy's target_prior replaces) and takes one
+of the best. Factions multiplies the score of a smart held by a faction the squad's own is at war
+with: up where its faction outnumbers the holder on that level, down where it is outnumbered,
+within the config's bounds. No squad's scripted target is set, no spawn rows are written, and a
+score of 0 (not allowed) stays 0.
+
+The table is rebuilt from each census (once a game day, and after each load) and the politics
+engine's wars. Left alone: story squads, squads with a scripted target, the player's companions
+and Homestead's outpost garrisons. It stands down with politics and with its MCM switch. One
+wrapper, put in place as the game starts (after every script has loaded, so it wraps the version
+G.A.M.M.A. Economy put there), and unwound when the switch goes off if it is still the one in
+place. It saves nothing.
+--]]
+
+VERSION = "0.3.0"
+CONFIG = "plugins\\fotz_politics.ltx"
+
+cfg = nil
+STEER = {}                -- faction -> smart id -> multiplier
+STATS = { calls = 0, raised = 0, lowered = 0 }
+local orig, wrapper       -- the scoring we wrapped, and ours
+local on = false          -- steering now
+local exempt = {}         -- squad id -> whether the steer leaves it alone, until the next census
+local garrison = {}       -- Homestead's outpost garrisons, by squad id
+
+local function log(fmt, ...)
+    printf("[fotz-territory] " .. fmt, ...)
+end
+
+function load_config(ini)
+    ini = ini or ini_file(CONFIG)
+    local function num(k, d)
+        return ini:r_float_ex("territory", k) or d
+    end
+    cfg = { k = num("k", 0.5), lo = num("lo", 0.6), hi = num("hi", 1.5) }
+end
+
+-- the multiplier for a front where one side has `mine` fighters on the level and the other `theirs`
+function multiplier(mine, theirs)
+    local total = (mine or 0) + (theirs or 0)
+    if total <= 0 then
+        return 1
+    end
+    local m = 1 + cfg.k * (2 * (mine or 0) / total - 1)
+    return math.max(cfg.lo, math.min(cfg.hi, m))
+end
+
+local function fighters(c, f, lv)
+    local e = c.factions and c.factions[f]
+    local l = e and e.levels and e.levels[lv]
+    return l and l.fighters or 0
+end
+
+-- whether the steer leaves a squad alone: a story squad, the player's companions, a Homestead
+-- garrison (kept per census), or one with a scripted target (checked each time)
+local function left_alone(squad)
+    local id = squad.id
+    local e = exempt[id]
+    if e == nil then
+        local comp = axr_companions and axr_companions.companion_squads
+        e = get_object_story_id(id) ~= nil or (comp ~= nil and comp[id] ~= nil) or garrison[id] == true
+        exempt[id] = e
+    end
+    return e or squad.scripted_target ~= nil
+end
+
+-- the table, from a census and the wars in force; returns how many smarts it weighs
+function rebuild(c)
+    STEER, exempt, garrison = {}, {}, {}
+    local sb = stalker_camp_builder
+    if type(sb) == "table" and type(sb.rival_camps) == "table" then
+        for _, camp in pairs(sb.rival_camps) do
+            if type(camp) == "table" and camp.squad_id then
+                garrison[camp.squad_id] = true
+            end
+        end
+    end
+    local P = fotz_politics
+    local wars = {}
+    for _, ev in pairs(P and P.S and P.S.events or {}) do
+        -- your faction has no squads of its own to steer
+        if ev.kind == "war" and ev.a and ev.b and ev.a ~= P.OWN and ev.b ~= P.OWN then
+            wars[ev.a] = wars[ev.a] or {}
+            wars[ev.a][ev.b] = true
+            wars[ev.b] = wars[ev.b] or {}
+            wars[ev.b][ev.a] = true
+        end
+    end
+    local n = 0
+    for name, holder in pairs(c and c.smarts or {}) do
+        local enemies = wars[holder]
+        local se = enemies and SIMBOARD.smarts_by_names[name]
+        if se then
+            local lv = fotz_census.level_of(se)
+            for f in pairs(enemies) do
+                local m = multiplier(fighters(c, f, lv), fighters(c, holder, lv))
+                if m ~= 1 then
+                    STEER[f] = STEER[f] or {}
+                    STEER[f][se.id] = m
+                    n = n + 1
+                end
+            end
+        end
+    end
+    return n
+end
+
+-- the wrapper: two table reads for a squad the steer has nothing for
+local function steered(target, squad, ...)
+    local prior = orig(target, squad, ...)
+    if not on then
+        return prior
+    end
+    STATS.calls = STATS.calls + 1
+    local t = STEER[squad.player_id]
+    local m = t and t[target.id]
+    if m == nil or left_alone(squad) then
+        return prior
+    end
+    if m > 1 then
+        STATS.raised = STATS.raised + 1
+    else
+        STATS.lowered = STATS.lowered + 1
+    end
+    return prior * m
+end
+
+function install()
+    if not (simulation_objects and type(simulation_objects.evaluate_prior) == "function") then
+        log("! no simulation_objects.evaluate_prior: no steer")
+        return false
+    end
+    -- still in place, or still inside a wrapper another mod put over ours: wrapping again would
+    -- weigh twice
+    if wrapper then
+        return true
+    end
+    orig = simulation_objects.evaluate_prior
+    wrapper = steered
+    simulation_objects.evaluate_prior = wrapper
+    return true
+end
+
+-- the original put back, but only if ours is still the one in place: a mod that wrapped over it
+-- keeps its wrapper, and ours passes everything through while the steer is off
+function uninstall()
+    if wrapper and simulation_objects and simulation_objects.evaluate_prior == wrapper then
+        simulation_objects.evaluate_prior = orig
+        wrapper = nil
+        return true
+    end
+    return false
+end
+
+function enabled()
+    if ui_mcm and ui_mcm.get("fotz/territory") == false then
+        return false
+    end
+    return not (fotz_politics and fotz_politics.standing_down and fotz_politics.standing_down())
+end
+
+-- the switch: in place and steering, or out of the way
+function refresh()
+    on = enabled()
+    if on then
+        on = install()
+    else
+        uninstall()
+    end
+    return on
+end
+
+local function on_census(c)
+    refresh()
+    local n = rebuild(c)
+    local factions = 0
+    for _ in pairs(STEER) do
+        factions = factions + 1
+    end
+    log("%s: %s smarts weighed for %s factions (%s); since the last census %s scores, %s raised, %s lowered",
+        tostring(c and c.date), n, factions, on and "steering" or "off", STATS.calls, STATS.raised, STATS.lowered)
+    STATS.calls, STATS.raised, STATS.lowered = 0, 0, 0
+end
+
+function on_game_start()
+    load_config()
+    refresh()
+    fotz_census.listen(on_census)
+    RegisterScriptCallback("on_option_change", refresh)
+end

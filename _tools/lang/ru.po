@@ -440,3 +440,11 @@ msgstr "Своя вкладка КПК"
 msgctxt "ui_mcm_fotz_pda_tab_desc"
 msgid "The Factions page opens your way: from its tile in Mod App Creator's launcher, from a PDA tab of its own (check this), or in a window of its own with the key below. Without Mod App Creator it always has its tab."
 msgstr "Страница группировок открывается как вам удобнее: из значка в меню приложений Mod App Creator, из своей вкладки КПК (отметьте) или в отдельном окне по клавише ниже. Без Mod App Creator у неё всегда своя вкладка."
+
+msgctxt "ui_mcm_fotz_territory"
+msgid "Squads lean toward winning fronts"
+msgstr "Отряды тянутся к выигрышным фронтам"
+
+msgctxt "ui_mcm_fotz_territory_desc"
+msgid "A faction at war sends its squads toward ground its enemy holds where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off while politics is off."
+msgstr "Группировка на войне чаще посылает отряды к позициям врага там, где на этой локации её бойцов больше, и реже туда, где больше вражеских. Это лишь перевес в собственном выборе игры, куда идти отрядам: без приказов и без новых отрядов. Выключено, пока выключена политика."
