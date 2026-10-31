@@ -26,9 +26,10 @@ This is a plan, not a manual. What exists today is the census (0.1.0) and the po
   outposts and settlers, and changes Homestead only through public hooks.
 - **Faithful caps.** The base game's fixed factions and lore pairs stay fixed, every other pair
   has caps, and MCM can loosen them.
-- **The player's own faction comes after 1.0.** It is one faction among many, of the player's
-  making, competing for members (see "Later"). Whether it is a declared engine community or a
-  script-only allegiance is still open.
+- **The player's own faction comes next,** ahead of the territory steer: it's why the mod exists.
+  It is one faction among many, of the player's making, competing for members (see "Later" for
+  the full idea). Whether it is a declared engine community or a script-only allegiance is being
+  settled by a prototype.
 
 ## Engine facts it rests on
 
@@ -297,9 +298,12 @@ by how many different people raised each. They shape the plan:
 
 1. **0.1.0, the census.** Read-only; learn the world.
 2. **0.2.0, the politics engine.** Events, relations rebuilt on load, news. (Built.)
-3. **0.3.0, the Factions tab.** Relations, territory, the war log, the player's standing.
+3. **0.3.0, your faction.** Found it (a name and an emblem), with a Homestead settlement as its
+   base; residents who may join as their loyalty grows, and members who may leave; your faction's
+   relations moved by the politics engine like any other. The Factions tab comes with it: your
+   faction's roster, every faction's relations, the war log, your standing.
 4. **0.4.0, territory.** The light steer, fronts in the news and on the map.
-5. **0.5.0, partners.** Seasons and Homestead.
+5. **0.5.0, partners.** Seasons, Homestead's hooks, Capture the Zone.
 6. **1.0.0.**
 
 ## Later
