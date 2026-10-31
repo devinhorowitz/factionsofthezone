@@ -37,6 +37,12 @@ MUTANTS = {
                'p.status = text("st_fotz_tab_in_charge")'),
     "date": ('return m and (dd .. "." .. m) or tostring(d or "")', 'return tostring(d or "")'),
     "drift_shown": ('change = d ~= 0 and text("st_fotz_tab_change", { n = signed(d) }) or ""', 'change = ""'),
+    "leader_alive": ("    if se and (se.alive == nil or se:alive()) then", "    if se then"),
+    "leader_trader": ("    if se and (se.alive == nil or se:alive()) then", "    if se and se:alive() then"),
+    "leader_gone": ("local name = se and se:character_name() or (fp.leader_name and game.translate_string(fp.leader_name))",
+                    "local name = se and se:character_name()"),
+    "trend_sign": ('return t > 0 and "up" or "down"', 'return t > 0 and "down" or "up"'),
+    "event_split": ('event = event_line(ev) or ""', 'event = ""'),
 }
 
 FACTIONS = ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
@@ -61,6 +67,24 @@ class Tab:
         g.fotz_politics = self.p.env
         lua.execute("fotz_census.FACTIONS = { %s }" % ", ".join('"%s"' % f for f in FACTIONS))
         lua.execute("NEAR = {}; level = { object_by_id = function(id) return NEAR[id] end }")
+        # the game's faction leaders: Voronin alive, Dushman dead, Kuznetsov gone from the alife
+        lua.execute("""
+faction_expansions = { faction = {
+    stalker = { leader = "esc_m_trader", leader_name = "st_sid" },
+    dolg = { leader = "bar_dolg_leader", leader_name = "st_voronin" },
+    killer = { leader = "cit_merc_leader", leader_name = "st_dushman" },
+    army = { leader = "agr_colonel", leader_name = "st_kuznetsov" } } }
+STR["st_kuznetsov"] = "Kuznetsov"
+LEADERS = { bar_dolg_leader = { name = "Voronin", alive = true }, cit_merc_leader = { name = "Dushman", alive = false } }
+function get_story_se_object(id)
+    -- Sidorovich is a trader: his server object has no alive()
+    if id == "esc_m_trader" then
+        return { character_name = function() return "Sidorovich" end }
+    end
+    local l = LEADERS[id]
+    return l and { character_name = function() return l.name end, alive = function() return l.alive end }
+end
+""")
         lua.execute("function CreateTimeEvent() end")
         self.env = lua.eval("function(src) local env = setmetatable({}, { __index = _G }) "
                             "local f = assert(loadstring(src, 'fotz_tab')) setfenv(f, env) f() return env end")(src)
@@ -114,11 +138,21 @@ def your_own(src):
     r = rows(t.page())
     check(r["killer"].standing == "At war (-1200)" and r["killer"].band == "war", "killer: %s" % r["killer"].standing)
     check(r["killer"].change == "-1200 since the start", "killer change: %s" % r["killer"].change)
-    check(r["killer"].detail == "holds 2 · 40 fighters · at war since 03.05", "killer detail: %r" % r["killer"].detail)
+    check(r["killer"].detail == "Dushman (dead) · holds 2 · 40 fighters", "killer detail: %r" % r["killer"].detail)
+    check(r["killer"].event == "at war since 03.05" and r["bandit"].event == "", "events: %r, %r" % (r["killer"].event, r["bandit"].event))
+    check(r["army"].detail.startswith("Kuznetsov (dead)"), "a leader gone from the alife: %r" % r["army"].detail)
     check(r["bandit"].standing == "Enemies (-1000)" and r["csky"].standing == "Friends (+1000)" and r["army"].band == "neutral",
           "lines: %s, %s, %s" % (r["bandit"].standing, r["csky"].standing, r["army"].standing))
     check(list(r["killer"].color.values()) == [230, 80, 70], "war color %s" % list(r["killer"].color.values()))
-    check(r["stalker"].detail == "holds 0 · 0 fighters", "a faction with nothing: %r" % r["stalker"].detail)
+    check(r["stalker"].detail == "Sidorovich · holds 0 · 0 fighters", "a trader leading, a faction with nothing: %r"
+          % r["stalker"].detail)
+
+    # which way politics moved each pair on its last day
+    t.p.env.S.trend["dolg/killer"] = -360
+    t.p.env.S.trend["bandit/dolg"] = 120
+    r = rows(t.page())
+    check(r["killer"].trend == "down" and r["bandit"].trend == "up" and r["csky"].trend is None,
+          "trends %s %s %s" % (r["killer"].trend, r["bandit"].trend, r["csky"].trend))
 
     # the war log: newest first, ten at most
     for i in range(12):
@@ -152,6 +186,7 @@ NEAR = { [501] = {} }
     check(p.icon == "ui_mm_faction_dolg" and len(r) == 12, "icon %s, %d rows" % (p.icon, len(r)))
     check(r["killer"].standing == "Neutral (-200)" and r["killer"].change == "", "killer: %s / %s" % (r["killer"].standing, r["killer"].change))
     check(r["monolith"].change == "never changes", "monolith: %s" % r["monolith"].change)
+    check(r["dolg"].detail == "Voronin", "a living leader: %r" % r["dolg"].detail)
     check(lines(p.members) == ["Fedya (Clear Sky), away", "Oleg (Duty), dead", "Vaska (Loners), with you"],
           "members %s" % lines(p.members))
 

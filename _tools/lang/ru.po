@@ -424,3 +424,7 @@ msgstr "Открывает страницу группировок в отдел
 msgctxt "st_fotz_tab_sep"
 msgid "·"
 msgstr "·"
+
+msgctxt "st_fotz_tab_leader_dead"
+msgid "{name} (dead)"
+msgstr "{name} (погиб)"

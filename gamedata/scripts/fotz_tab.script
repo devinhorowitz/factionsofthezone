@@ -4,7 +4,8 @@ Factions of the Zone: the Factions tab.
 A tab of its own in the PDA (Modded Exes' registry, pda_dynamic_tabs), registered a second into
 play, never during a load. It shows your side, the faction you lead or, without one, your own;
 each faction's standing with it, what holds that standing (a war, a truce, an alliance), how far
-politics has moved it and the ground and fighters the last census found; the war log, newest
+politics has moved it and which way on its last day, its leader, and the ground and fighters the
+last census found; the war log, newest
 first; and your members. "Restore relations" puts every pair back where it started. A key in MCM
 opens the page flat, in a window of its own, since the 3D PDA softens PDA pages.
 
@@ -92,6 +93,35 @@ local function event_line(ev)
     return text("st_fotz_tab_" .. ev.kind .. "_since", { date = short_date(ev.since) })
 end
 
+-- a faction's leader (the game's faction_profile.ltx, through faction_expansions): his name, and
+-- "(dead)" once he is, or gone from the alife; nil for a faction without one
+local function leader_line(f)
+    local fp = faction_expansions and faction_expansions.faction and faction_expansions.faction[f]
+    local id = fp and fp.leader
+    if not id then
+        return nil
+    end
+    local se = get_story_se_object(id)
+    local name = se and se:character_name() or (fp.leader_name and game.translate_string(fp.leader_name))
+    if not name or name == "" then
+        return nil
+    end
+    -- a trader's server object (Sidorovich leads the Loners) has no alive(): he is, while it's there
+    if se and (se.alive == nil or se:alive()) then
+        return name
+    end
+    return text("st_fotz_tab_leader_dead", { name = name })
+end
+
+-- the way the pair moved on politics' last day: "up", "down" or nil
+local function trend_of(P, pair)
+    local t = pair and P.S and P.S.trend and P.S.trend[pair.key]
+    if not t or t == 0 then
+        return nil
+    end
+    return t > 0 and "up" or "down"
+end
+
 local function rows(P, side)
     local out = {}
     for _, f in ipairs(fotz_census.FACTIONS) do
@@ -101,11 +131,11 @@ local function rows(P, side)
             local ev = pair and P.S and P.S.events[pair.key]
             local b = band(rel, ev and ev.kind)
             local parts = {}
+            parts[#parts + 1] = leader_line(f)
             local held, fighters = strength(f)
             if held then
                 parts[#parts + 1] = text("st_fotz_tab_strength", { held = held, fighters = fighters })
             end
-            parts[#parts + 1] = event_line(ev)
             local change
             if not pair then
                 change = text("st_fotz_tab_fixed")
@@ -118,6 +148,7 @@ local function rows(P, side)
                 standing = text("st_fotz_tab_band_" .. b) .. " (" .. signed(rel) .. ")",
                 -- the spaces are added here: the string table trims them off the ends of a text
                 color = COLORS[b], detail = table.concat(parts, " " .. text("st_fotz_tab_sep") .. " "), change = change,
+                event = event_line(ev) or "", trend = trend_of(P, pair),
             }
         end
     end

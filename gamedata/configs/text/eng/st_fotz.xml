@@ -259,6 +259,9 @@
 	<string id="st_fotz_tab_restored">
 		<text>Relations restored</text>
 	</string>
+	<string id="st_fotz_tab_leader_dead">
+		<text>{name} (dead)</text>
+	</string>
 	<string id="st_fotz_tab_sep">
 		<text>·</text>
 	</string>

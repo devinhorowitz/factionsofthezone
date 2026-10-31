@@ -228,12 +228,15 @@ its player twin `actor_fotz_own`, team 37).
     your own, with that faction's icon; and whether politics is in charge or why not;
   - each faction's standing with your side, in words and colors (an event in force first, then
     the game's lines at -1000 and 1000), how far politics has moved it ("never changes" for fixed
-    pairs and factions), and the ground and fighters of the last census;
+    pairs and factions), which way it moved on politics' last day (the game's small arrows, green
+    up, red down; politics keeps each pair's last move in `S.trend`), its leader (the game's
+    `faction_profile.ltx` through `faction_expansions`, marked dead once he is or is gone; a
+    trader's server object has no `alive()` and counts as living), the ground and fighters of the
+    last census, and the war, truce or alliance holding it, with its date;
   - the war log, newest first, ten lines; your members, near, away or dead;
   - "Restore relations" (`fotz_politics.restore`), after a second click: every pair back where it
     started, events ended, a line in the log.
-  Still to come: trend arrows (yesterday's relation), leaders, and Clear Sky's per-side strength.
-  The vanilla Relations tab stays.
+  Still to come: Clear Sky's per-side strength as a bar. The vanilla Relations tab stays.
 - **The plan it came from:** relations with trend arrows, territory, the war log, leaders, and the
   player's standing.
   - The model is Clear Sky's faction-war page: each side's members, strength and leader.

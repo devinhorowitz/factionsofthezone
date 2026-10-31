@@ -63,6 +63,18 @@ local function square(w)
     end
 end
 
+-- an icon drawn at its own proportions: its width scaled the same way
+local function narrow(w)
+    if w then
+        w:SetWndSize(vector2():set(w:GetWidth() * aspect(), w:GetHeight()))
+    end
+end
+
+local TREND = {
+    up = { "ui_inGame2_arrow_up", 140, 205, 130 },
+    down = { "ui_inGame2_arrow_down", 230, 80, 70 },
+}
+
 local function moved(w, x, y)
     if w then
         w:SetWndPos(vector2():set(x, y))
@@ -115,11 +127,14 @@ function FactionsTab:InitControls()
         local r = {
             icon = xml:InitStatic("row_icon", self),
             name = xml:InitTextWnd("row_name", self),
+            trend = xml:InitStatic("row_trend", self),
             standing = xml:InitTextWnd("row_standing", self),
             change = xml:InitTextWnd("row_change", self),
             detail = xml:InitTextWnd("row_detail", self),
+            event = xml:InitTextWnd("row_event", self),
         }
         square(r.icon)
+        narrow(r.trend)
         for _, w in pairs(r) do
             moved(w, w:GetWndPos().x, ROW_Y + dy + w:GetWndPos().y)
         end
@@ -169,7 +184,14 @@ function FactionsTab:Fill()
                 r.standing:SetTextColor(GetARGB(255, row.color[1], row.color[2], row.color[3]))
             end
             put(r.change, row.change)
-            put(r.detail, fit(row.detail, 58))
+            put(r.detail, fit(row.detail, 50))
+            put(r.event, row.event)
+            local t = TREND[row.trend]
+            show(r.trend, t ~= nil)
+            if t and r.trend then
+                r.trend:InitTexture(t[1])
+                r.trend:SetTextureColor(GetARGB(255, t[2], t[3], t[4]))
+            end
         end
     end
     for i, w in ipairs(self.log or {}) do

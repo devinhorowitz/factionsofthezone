@@ -43,15 +43,20 @@
     <row_name x="80" y="0" width="140" height="16">
         <text font="letterica16" r="220" g="220" b="220" align="l" vert_align="c"/>
     </row_name>
+    <!-- the way it moved on politics' last day: the game's small arrow, tinted from script -->
+    <row_trend x="210" y="3" width="9" height="10" stretch="1"/>
     <row_standing x="222" y="0" width="110" height="16">
         <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
     </row_standing>
     <row_change x="334" y="0" width="114" height="16">
         <text font="letterica16" r="150" g="150" b="150" align="r" vert_align="c"/>
     </row_change>
-    <row_detail x="80" y="16" width="368" height="16">
+    <row_detail x="80" y="16" width="250" height="16">
         <text font="letterica16" r="150" g="150" b="150" align="l" vert_align="c"/>
     </row_detail>
+    <row_event x="334" y="16" width="114" height="16">
+        <text font="letterica16" r="150" g="150" b="150" align="r" vert_align="c"/>
+    </row_event>
 
     <!-- the war log, newest first -->
     <log_heading x="470" y="188" width="306" height="18">

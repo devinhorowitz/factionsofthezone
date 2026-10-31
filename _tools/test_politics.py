@@ -77,10 +77,14 @@ MUTANTS = {
     "own_icon": ("voice ~= OWN and voice or nil", "voice"),
     "restore_no_apply": ('    log("relations restored to where they started")\n    return apply()',
                          '    log("relations restored to where they started")\n    return 1'),
-    "restore_keeps_events": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}",
-                             "st.drift, st.pending, st.kills, st.hurt, st.recent = {}, {}, {}, {}, {}"),
-    "restore_keeps_pending": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}",
-                              "st.drift, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}"),
+    "restore_keeps_events": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}",
+                             "st.drift, st.pending, st.kills, st.hurt, st.recent, st.trend = {}, {}, {}, {}, {}, {}"),
+    "restore_keeps_pending": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}",
+                              "st.drift, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}"),
+    "restore_keeps_trend": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}",
+                            "st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}"),
+    "no_trend": ("    st.trend[k] = after ~= before and after - before or nil\n", ""),
+    "truce_trend": ("        st.trend[k] = cfg.truce_relation - before\n", ""),
 }
 
 TEST_CONFIG = """
@@ -317,6 +321,7 @@ def war_and_truce(src):
     check(w.drift("dolg/killer") == -400, "a second census the same day moved the pair")
     w.run('day("2012-05-03")')
     check(w.drift("dolg/killer") == -760, "day 3: drift %s" % w.drift("dolg/killer"))
+    check(w.env.S.trend["dolg/killer"] == -360, "day 3: the day's move %s" % w.env.S.trend["dolg/killer"])
     w.run('day("2012-05-04")')
     check(w.drift("dolg/killer") == -1084 and w.event("dolg/killer") == "war",
           "day 4: drift %s, event %s" % (w.drift("dolg/killer"), w.event("dolg/killer")))
@@ -329,9 +334,11 @@ def war_and_truce(src):
         w.run('day("2012-05-%s")' % d)
         check(w.event("dolg/killer") == "war" and w.drift("dolg/killer") == -1084,
               "day %s: %s, drift %s" % (d, w.event("dolg/killer"), w.drift("dolg/killer")))
+    check(w.env.S.trend["dolg/killer"] is None, "a day without a move kept a trend: %s" % w.env.S.trend["dolg/killer"])
     w.run('day("2012-05-07")')
     check(w.event("dolg/killer") == "truce" and w.drift("dolg/killer") == -600,
           "day 7: %s, drift %s" % (w.event("dolg/killer"), w.drift("dolg/killer")))
+    check(w.env.S.trend["dolg/killer"] == 484, "the truce's move %s" % w.env.S.trend["dolg/killer"])
     check(w.news()[-1] == "dolg|Duty: The line with Mercenaries has gone quiet. We hold our fire, for now.",
           "truce news %s" % w.news()[-1])
     # fighting goes on through the truce: it counts half, and the truce holds the line above -1000
@@ -556,6 +563,7 @@ def restore(src):
     check(w.drift("dolg/killer") is None and w.pending("dolg/killer") is None and w.event("dolg/killer") is None,
           "restore left drift %s, pending %s, event %s" % (w.drift("dolg/killer"), w.pending("dolg/killer"), w.event("dolg/killer")))
     check(w.history()[-1] == "restored", "history %s" % w.history())
+    check(w.env.S.trend["dolg/killer"] is None, "restore left a trend: %s" % w.env.S.trend["dolg/killer"])
     w.run('day("2012-05-05")')
     check(w.drift("dolg/killer") is None, "the next day moved a restored pair: %s" % w.drift("dolg/killer"))
 

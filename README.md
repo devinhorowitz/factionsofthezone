@@ -48,7 +48,7 @@ python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
 
 **The Factions tab.** A PDA tab of its own: your side (the faction you lead, or your own), each
-faction's standing with it and how far it has moved, the ground and fighters the census found, the
+faction's standing with it, how far and which way it has moved, its leader, the ground and fighters the census found, the
 war log, your members, and a button that puts every relation back where it started. A key in MCM
 opens the same page in a window of its own, sharper than the 3D PDA.
 

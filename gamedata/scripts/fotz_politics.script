@@ -129,7 +129,7 @@ end
 
 local function fresh()
     return { v = SAVE_VERSION, drift = {}, pending = {}, kills = {}, hurt = {}, recent = {},
-             last_fight = {}, events = {}, history = {} }
+             last_fight = {}, events = {}, history = {}, trend = {} }
 end
 
 local function state()
@@ -159,7 +159,7 @@ function sync_own()
     local uid = uid_of(F)
     local st = state()
     if st.own ~= uid then
-        for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events" }) do
+        for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend" }) do
             for k in pairs(st[name]) do
                 if string.find(k, OWN, 1, true) then
                     st[name][k] = nil
@@ -600,6 +600,8 @@ local function step(p, g, day)
         st.pending[k] = nil
     end
     local after = base + d
+    -- the day's move, for the Factions tab's arrows
+    st.trend[k] = after ~= before and after - before or nil
 
     -- events end, then begin
     if ev and ev.kind == "truce" and days_between(ev["until"], day) >= 0 then
@@ -614,6 +616,7 @@ local function step(p, g, day)
                  or days_between(ev.since, day) >= cfg.max_war_days) then
         finish(p, day, "war_over")
         st.drift[k] = cfg.truce_relation - base
+        st.trend[k] = cfg.truce_relation - before
         st.pending[k] = nil
         local voice = ev.voice or p.a
         start(p, "truce", day, { voice = voice, ["until"] = day_str(day_num(day) + cfg.truce_days) })
@@ -680,7 +683,7 @@ end
 -- "Restore relations"
 function restore()
     local st = state()
-    st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}
+    st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}
     remember({ kind = "restored", day = st.day or today() })
     log("relations restored to where they started")
     return apply()
@@ -696,7 +699,7 @@ local function load_state(m_data)
     local d = m_data.fotz
     if type(d) == "table" and d.v == SAVE_VERSION then
         S = d
-        for _, k in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "history" }) do
+        for _, k in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "history", "trend" }) do
             S[k] = S[k] or {}
         end
     elseif d ~= nil then
