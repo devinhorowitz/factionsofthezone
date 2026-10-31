@@ -104,6 +104,10 @@ engine's input: strength and territory are its counts.
     Bandits–Duty.
   - Every other pair moves at most -3000 to +2500 from its start; a pair can have its own caps.
   - Story characters and quest factions are left alone: nothing here touches a character.
+  - **Open: hubs.** A war with a hub's faction (the Loners at the Skadovsk, Duty at the Bar) brings
+    fights there: vanilla targeting lets enemies go for a base between 3 and 6 am, and AlifePlus
+    once sent hostile squads to the Skadovsk to trade and heal (its #17). Watch hub smarts in the
+    census before deciding whether a declared war should spare them.
 - **One system changes relations.** While the base game's dynamic relations, Fluid Relations
   (which replaces `game_relations.script`), Dynamic Faction Relations Customizer, or Warfare mode
   (with Warfare Alife Overhaul's relation pacing) run, Factions writes the game's relations back
@@ -150,7 +154,11 @@ engine's input: strength and territory are its counts.
   fixed level lists, couriers and turf wars feeding the politics engine, and raids that follow
   the war. What a moving world breaks there (campmates forced friendly every 10 s, cached settler
   factions, turrets that follow the player's relations) is fixed through hooks we ask Homestead's
-  author for, not by wrapping its file-local tables.
+  author for, not by wrapping its file-local tables. Issue #378's follow-up asks for three:
+  callbacks for settler events, a supported way to change a settler's community, and the
+  prosperity data on the settler record. Since 501f2fe its outposts change hands on their own
+  (with a 6-hour cooldown), and wiping a hostile garrison brings a retaliation camp 2 to 4 hours
+  later; the census sees both as ground taken.
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.
@@ -215,6 +223,10 @@ squad another mod pinned is never steered.
 - **Squads and spawns:** ZCP (owns the squad scripts), Squad Filler, AlifePlus and Xlib (in
   G.A.M.M.A., off in this profile), AlifeBalance, ZHOPA, P.O.L.I.C.Y, Pathfinder, Warfare mode
   (unstable in G.A.M.M.A.), Homestead's garrisons (re-pinned every 10 s).
+- **Mods that assume relations stand still.** When Warfare flipped relations, AlifePlus sent ISG
+  squads to restock at a now-hostile Clear Sky base (its #7, reported by Warfare Alife Overhaul's
+  author; fixed in 357d5e3 along with three more causes). Factions' wars do the same, so test them
+  with AlifePlus on before 1.0.
 - **PDA:** Show All Faction Relations patches the Relations tab; DFRC and DNM Fixes (on in
   G.A.M.M.A.) patch `dynamic_news_manager`, PDA Message Core reorders news, and AlifePlus holds
   lines. News goes through the helpers, rate-limited.
@@ -253,3 +265,7 @@ squad another mod pinned is never steered.
   sabotage a depot.
 - **Standing beyond goodwill:** trust tiers that unlock services, favors, debts, bounties.
 - Leaders with temperaments, faction economies that move prices, prisoners and exchanges.
+- Players have asked AlifePlus for some of the same: NPCs who rise in rank and switch factions
+  (#24), leaders, mechanics, medics and traders replaced when killed, with the old bodies cleared
+  (#25), a squad member who betrays the rest for loot and turns renegade (#31), and payback for
+  wiping squads (#15).
