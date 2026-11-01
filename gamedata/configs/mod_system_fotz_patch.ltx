@@ -1,0 +1,22 @@
+; Factions of the Zone: your faction's patch (fotz_patch.script), a faction patch like the game's
+; own. Its picture is this mod's textures\ui\fotz_your_faction.dds, 100x100: the icon is 2x2 cells
+; of the 50 px grid at scale 2, as the HD faction patches have theirs (without an HD icon framework
+; it shows as a 2x2 item). Replace that file with your own emblem, in a mod above Factions, and
+; your patches show it.
+;
+; Named for your faction's community, so the base game's death_manager drops one from a fallen
+; member, as it drops every faction's patch. Unlike the faction itself, an item stays in a save:
+; one that holds any of these can't load without Factions.
+
+[fotz_own_patch]:csky_patch
+visual                                   = dynamics\tfw_badges\tfw_badge_defiance.ogf
+inv_name                                 = st_fotz_patch
+inv_name_short                           = st_fotz_patch
+description                              = st_fotz_patch_descr
+icons_texture                            = ui\fotz_your_faction
+inv_grid_width                           = 2
+inv_grid_height                          = 2
+inv_grid_x                               = 0
+inv_grid_y                               = 0
+inv_grid_scale                           = 2
+cost                                     = 650

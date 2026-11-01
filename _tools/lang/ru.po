@@ -366,8 +366,8 @@ msgid "{a} and {b} are allies no more"
 msgstr "«{a}» и «{b}»: союз распался"
 
 msgctxt "st_fotz_tab_log_restored"
-msgid "Relations restored to their start"
-msgstr "Отношения возвращены к началу"
+msgid "Relations reset to their start"
+msgstr "Отношения сброшены к исходным"
 
 msgctxt "st_fotz_tab_log_none"
 msgid "Nothing yet: wars, truces and alliances show here."
@@ -402,16 +402,16 @@ msgid "and {n} more"
 msgstr "и ещё {n}"
 
 msgctxt "st_fotz_tab_restore"
-msgid "Restore relations"
-msgstr "Вернуть отношения"
+msgid "Reset relations"
+msgstr "Сбросить отношения"
 
 msgctxt "st_fotz_tab_restore_confirm"
-msgid "Click again to restore"
+msgid "Click again to reset"
 msgstr "Нажмите ещё раз"
 
 msgctxt "st_fotz_tab_restored"
-msgid "Relations restored"
-msgstr "Отношения возвращены"
+msgid "Relations reset"
+msgstr "Отношения сброшены"
 
 msgctxt "st_fotz_tab_credit"
 msgid "Factions of the Zone {v} · Windwalker"
@@ -521,3 +521,55 @@ msgstr "Цифры отношений"
 msgctxt "st_fotz_map_hostile"
 msgid "Hostile to you here: {list}"
 msgstr "Здесь враждебны вам: {list}"
+
+msgctxt "st_fotz_tab_restore_note"
+msgid "Reset puts every relation back where it was before the fighting moved it, and ends all wars, truces and alliances."
+msgstr "Сброс возвращает все отношения к тем, что были до боёв, и завершает все войны, перемирия и союзы."
+
+msgctxt "st_fotz_tab_restore_warn"
+msgid "A second click puts every relation back and ends all wars, truces and alliances. It can't be undone."
+msgstr "Второе нажатие вернёт все отношения и завершит все войны, перемирия и союзы. Отменить это нельзя."
+
+msgctxt "st_fotz_patch"
+msgid "Patch (Your faction)"
+msgstr "Нашивка (ваша группировка)"
+
+msgctxt "st_fotz_patch_descr"
+msgid "Your own faction's insignia, sewn to order in Cordon. Your members wear it, and a fallen one leaves it behind."
+msgstr "Знак вашей собственной группировки, сшитый на заказ на Кордоне. Его носят ваши бойцы, и павший оставляет его после себя."
+
+msgctxt "st_fotz_patch_ask"
+msgid "Can you get patches sewn for my faction?"
+msgstr "Сможешь достать нашивки для моей группировки?"
+
+msgctxt "st_fotz_patch_offer"
+msgid "Patches with your own emblem? There's a woman in the village who sews. {price} RU apiece. How many?"
+msgstr "Нашивки с твоей эмблемой? В деревне одна женщина шьёт. {price} руб. за штуку. Сколько?"
+
+msgctxt "st_fotz_patch_buy_one"
+msgid "One, for {total} RU."
+msgstr "Одну, за {total} руб."
+
+msgctxt "st_fotz_patch_buy"
+msgid "{n}, for {total} RU."
+msgstr "{n} штук, за {total} руб."
+
+msgctxt "st_fotz_patch_done"
+msgid "There, fresh off the needle. Anything else?"
+msgstr "Держи, только с иголки. Что-нибудь ещё?"
+
+msgctxt "st_fotz_patch_not_now"
+msgid "That's all for now."
+msgstr "Пока всё."
+
+msgctxt "ui_mcm_fotz_remove_patches"
+msgid "Remove your faction's patches"
+msgstr "Убрать нашивки вашей группировки"
+
+msgctxt "ui_mcm_fotz_remove_patches_desc"
+msgid "Takes every patch of your faction out of the game, wherever it is: on you, in stashes, on the fallen. Do this before removing Factions of the Zone: a save that holds one can't load without it."
+msgstr "Убирает из игры все нашивки вашей группировки, где бы они ни были: у вас, в тайниках, на павших. Сделайте это перед удалением Factions of the Zone: сохранение с нашивкой без мода не загрузится."
+
+msgctxt "st_fotz_patch_removed"
+msgid "Your faction's patches taken out of the game: {n}."
+msgstr "Нашивки вашей группировки убраны из игры: {n}."

@@ -26,6 +26,8 @@ function on_mcm_load()
                 { "all", "fotz_news_all" },
             } },
             { id = "census", type = "check", val = 1, def = true },
+            -- before removing the mod: every patch of your faction out of the game (fotz_patch)
+            { id = "remove_patches", type = "check", val = 1, def = false },
             { id = "tab_key", type = "key_bind", val = 2, def = -1 },
             { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
         },

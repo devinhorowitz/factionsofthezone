@@ -342,7 +342,8 @@ function page()
         end
         p.title = F.name
         p.subtitle = text("st_fotz_tab_yours", { date = short_date(F.founded), from = P.faction_name(F.mother), n = n })
-        p.icon = "ui_mm_faction_" .. F.mother
+        -- your faction's own emblem: its patch's art (fotz_patch), which a player may replace
+        p.icon = fotz_patch.EMBLEM
         p.members = member_lines(P, F)
     else
         p.title = P.faction_name(side)

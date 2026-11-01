@@ -248,7 +248,7 @@
 		<text>{a} and {b} are allies no more</text>
 	</string>
 	<string id="st_fotz_tab_log_restored">
-		<text>Relations restored to their start</text>
+		<text>Relations reset to their start</text>
 	</string>
 	<string id="st_fotz_tab_log_none">
 		<text>Nothing yet: wars, truces and alliances show here.</text>
@@ -308,13 +308,19 @@
 		<text>and {n} more</text>
 	</string>
 	<string id="st_fotz_tab_restore">
-		<text>Restore relations</text>
+		<text>Reset relations</text>
 	</string>
 	<string id="st_fotz_tab_restore_confirm">
-		<text>Click again to restore</text>
+		<text>Click again to reset</text>
 	</string>
 	<string id="st_fotz_tab_restored">
-		<text>Relations restored</text>
+		<text>Relations reset</text>
+	</string>
+	<string id="st_fotz_tab_restore_note">
+		<text>Reset puts every relation back where it was before the fighting moved it, and ends all wars, truces and alliances.</text>
+	</string>
+	<string id="st_fotz_tab_restore_warn">
+		<text>A second click puts every relation back and ends all wars, truces and alliances. It can't be undone.</text>
 	</string>
 	<string id="st_fotz_tab_numbers">
 		<text>Relation numbers</text>
@@ -385,5 +391,38 @@
 	</string>
 	<string id="st_dyn_news_comm_fotz_own_14">
 		<text>Brothers, help!</text>
+	</string>
+	<string id="st_fotz_patch">
+		<text>Patch (Your faction)</text>
+	</string>
+	<string id="st_fotz_patch_descr">
+		<text>Your own faction's insignia, sewn to order in Cordon. Your members wear it, and a fallen one leaves it behind.</text>
+	</string>
+	<string id="st_fotz_patch_ask">
+		<text>Can you get patches sewn for my faction?</text>
+	</string>
+	<string id="st_fotz_patch_offer">
+		<text>Patches with your own emblem? There's a woman in the village who sews. {price} RU apiece. How many?</text>
+	</string>
+	<string id="st_fotz_patch_buy_one">
+		<text>One, for {total} RU.</text>
+	</string>
+	<string id="st_fotz_patch_buy">
+		<text>{n}, for {total} RU.</text>
+	</string>
+	<string id="st_fotz_patch_done">
+		<text>There, fresh off the needle. Anything else?</text>
+	</string>
+	<string id="st_fotz_patch_not_now">
+		<text>That's all for now.</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches">
+		<text>Remove your faction's patches</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches_desc">
+		<text>Takes every patch of your faction out of the game, wherever it is: on you, in stashes, on the fallen. Do this before removing Factions of the Zone: a save that holds one can't load without it.</text>
+	</string>
+	<string id="st_fotz_patch_removed">
+		<text>Your faction's patches taken out of the game: {n}.</text>
 	</string>
 </string_table>

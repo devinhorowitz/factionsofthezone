@@ -247,7 +247,7 @@
 		<text>«{a}» и «{b}»: союз распался</text>
 	</string>
 	<string id="st_fotz_tab_log_restored">
-		<text>Отношения возвращены к началу</text>
+		<text>Отношения сброшены к исходным</text>
 	</string>
 	<string id="st_fotz_tab_log_none">
 		<text>Пока ничего: здесь будут войны, перемирия и союзы.</text>
@@ -307,13 +307,19 @@
 		<text>и ещё {n}</text>
 	</string>
 	<string id="st_fotz_tab_restore">
-		<text>Вернуть отношения</text>
+		<text>Сбросить отношения</text>
 	</string>
 	<string id="st_fotz_tab_restore_confirm">
 		<text>Нажмите ещё раз</text>
 	</string>
 	<string id="st_fotz_tab_restored">
-		<text>Отношения возвращены</text>
+		<text>Отношения сброшены</text>
+	</string>
+	<string id="st_fotz_tab_restore_note">
+		<text>Сброс возвращает все отношения к тем, что были до боёв, и завершает все войны, перемирия и союзы.</text>
+	</string>
+	<string id="st_fotz_tab_restore_warn">
+		<text>Второе нажатие вернёт все отношения и завершит все войны, перемирия и союзы. Отменить это нельзя.</text>
 	</string>
 	<string id="st_fotz_tab_numbers">
 		<text>Цифры отношений</text>
@@ -383,5 +389,38 @@
 	</string>
 	<string id="st_dyn_news_comm_fotz_own_14">
 		<text>Братишки! Спасите...</text>
+	</string>
+	<string id="st_fotz_patch">
+		<text>Нашивка (ваша группировка)</text>
+	</string>
+	<string id="st_fotz_patch_descr">
+		<text>Знак вашей собственной группировки, сшитый на заказ на Кордоне. Его носят ваши бойцы, и павший оставляет его после себя.</text>
+	</string>
+	<string id="st_fotz_patch_ask">
+		<text>Сможешь достать нашивки для моей группировки?</text>
+	</string>
+	<string id="st_fotz_patch_offer">
+		<text>Нашивки с твоей эмблемой? В деревне одна женщина шьёт. {price} руб. за штуку. Сколько?</text>
+	</string>
+	<string id="st_fotz_patch_buy_one">
+		<text>Одну, за {total} руб.</text>
+	</string>
+	<string id="st_fotz_patch_buy">
+		<text>{n} штук, за {total} руб.</text>
+	</string>
+	<string id="st_fotz_patch_done">
+		<text>Держи, только с иголки. Что-нибудь ещё?</text>
+	</string>
+	<string id="st_fotz_patch_not_now">
+		<text>Пока всё.</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches">
+		<text>Убрать нашивки вашей группировки</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches_desc">
+		<text>Убирает из игры все нашивки вашей группировки, где бы они ни были: у вас, в тайниках, на павших. Сделайте это перед удалением Factions of the Zone: сохранение с нашивкой без мода не загрузится.</text>
+	</string>
+	<string id="st_fotz_patch_removed">
+		<text>Нашивки вашей группировки убраны из игры: {n}.</text>
 	</string>
 </string_table>

@@ -358,9 +358,27 @@ its player twin `actor_fotz_own`, team 37).
     winning from two thirds, ahead from 0.55, else evenly matched, which names only those two),
     your side named as yours ("your Duty"), your side's levels first, then the most fighters;
     your members, five and "and N more", near, away or dead;
-  - "Restore relations" (`fotz_politics.restore`), after a second click: every pair back where it
-    started, events ended, a line in the log.
+  - "Reset relations" (`fotz_politics.restore`), after a second click: every pair back where it
+    started, events ended, a line in the log. A line beside it says what it does; on the first
+    click it says what the second will do, in amber.
+  - Laid out as Seasons' and Arsenal's pages are (`ui_fotz_tab.xml`): a chamfered frame with its
+    corners open, a header with a rule under it (your side's icon, name and line; the Relations
+    tab and Back at its right), a split between the columns, dividers between the right column's
+    sections, a short rule over the fixed lines, and a footer under a rule (politics' state, Reset
+    relations, the credit). The lines are one white pixel of this mod's, stretched and tinted, as
+    Seasons draws its own; amber headings in letterica18.
   Still to come: Clear Sky's per-side strength as a bar. The vanilla Relations tab stays.
+- **Your faction's patch** (`fotz_patch.script`, `mod_system_fotz_patch.ltx`): `fotz_own_patch`,
+  a child of the game's `csky_patch`, named for your faction's community so the base game's
+  `death_manager` drops one from a fallen member. Its art is one file,
+  `textures\ui\fotz_your_faction.dds` (`_tools/make_art.py`), 100x100: the icon is 2x2 cells of
+  the 50 px grid at scale 2, as the HD faction patches have theirs, and the same square is the
+  page's emblem for your faction (`fotz_your_faction`). A player replaces that file to make the
+  faction theirs. Sidorovich sells them in a dialog (`modxml_fotz_patch` puts it in the game's
+  dialogs and in his talk alone, as his dialog list is built): one, five, ten or twenty at the
+  item's cost each, offered only when you can pay, as often as you like. An item stays in a save,
+  unlike the faction, so MCM's "Remove your faction's patches" releases every one in the alife
+  before the mod goes.
 - **The plan it came from:** relations with trend arrows, territory, the war log, leaders, and the
   player's standing.
   - The model is Clear Sky's faction-war page: each side's members, strength and leader.

@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TESTS = ["test_census", "test_text", "test_politics", "test_faction", "test_tab", "test_territory", "test_map"]
+TESTS = ["test_census", "test_text", "test_politics", "test_faction", "test_tab", "test_territory", "test_map", "test_patch"]
 
 
 def run(test, mutant=None):

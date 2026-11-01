@@ -19,6 +19,13 @@ join it. Disband it and
 everyone goes back to their old faction. Coming next: settlers who may join as their loyalty
 grows.
 
+**Your faction's patch.** Sidorovich, in Cordon, has patches sewn for the faction you lead: ask him,
+and buy as many as you like, 650 RU apiece. Your members wear it and leave one behind when they
+fall, and it's your faction's emblem on the Factions page. The art is a placeholder, an oval patch
+with this mod's banner. Make it yours: put your own image in place of
+`textures\ui\fotz_your_faction.dds` (a DDS of exactly 100x100 pixels) in a mod
+placed above Factions in MO2, and your patches and your emblem show it.
+
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
 daily limit, and old grudges fade. When a pair crosses into enmity, they go to war; after quiet
@@ -42,9 +49,10 @@ who is winning there and which factions there are hostile to you.
 started it, and your faction's roster. No character in a save is ever in your faction: just before
 each save, everyone is put back in their old faction in the save itself, and gets your faction
 back as you play on. Anyone another mod put in your faction is saved in your old one too, and
-Homestead's camp records get your old faction in place of it. So removing the mod is always safe,
-with no step first: a save loads with every faction's relations as the game had them and everyone
-in their old faction.
+Homestead's camp records get your old faction in place of it. So removing the mod is safe: a save
+loads with every faction's relations as the game had them and everyone in their old faction. The one
+step first is for your faction's patches, which are items: a save that holds one can't load without
+the mod, so set MCM's "Remove your faction's patches" and save before you remove it.
 
 **Census.** Once a game day, and once after each load, it counts every faction's squads and
 fighters by tier, rank and level, which faction holds each smart terrain and which are contested,
@@ -60,8 +68,9 @@ python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 faction whose relation with it can change stands with you, what holds it there (a war, a truce, an
 alliance), whether it's getting better or worse, and its leader; the factions that never change,
 a line for each standing ("Permanent enemies: ..."); the war log; where the fighting is; your
-members; a button to the PDA's own Relations tab, which has the numbers; and a button that puts
-every relation back where it started.
+members; a button to the PDA's own Relations tab, which has the numbers; and Reset relations,
+which puts every relation back where it was before the fighting moved it and ends every war, truce
+and alliance (a second click does it).
 
 Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
 key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
@@ -70,8 +79,9 @@ works either way.
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
 yourself, off unless you choose it, and whether companions join), politics on or off, the
-territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the census log, the Factions
-page key, and, with Mod App Creator, the page's own PDA tab.
+territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the census log, removing
+your faction's patches (before you remove the mod), the Factions page key, and, with Mod App
+Creator, the page's own PDA tab.
 
 ## For other mods
 
@@ -104,9 +114,10 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   your faction through founding, saves (byte-level packets), loads, disguise and disbanding,
   `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
-  scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots, and
-  `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (235 so far); every
+  scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots,
+  `test_patch.py` runs your faction's patch and Sidorovich's dialog against a stand-in for the
+  actor and his talk, and `test_text.py` checks the Russian tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (257 so far); every
   one must fail.
 - `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
   `build.py --check` passes and only once CHANGELOG.md has a section for the version.

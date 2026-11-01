@@ -28,6 +28,19 @@
 
 ### 0.4.0: territory
 
+- **The Factions page, sectioned** like Seasons' and Arsenal's pages: a frame, a header with your
+  side and its buttons (the PDA's Relations tab, and Back from Mod App Creator's tile), the
+  standings on the left, the war log, the fighting and your members on the right between
+  dividers, and a footer with politics' state and Reset relations.
+- **Reset relations,** before "Restore relations", says what it does: it puts every relation back
+  where it was before the fighting moved it and ends every war, truce and alliance. The first
+  click shows what the second will do.
+- **Your faction's patch.** Sidorovich has patches sewn for the faction you lead: ask him, and buy
+  as many as you like at the item's cost (650 RU). Your members wear it and leave one behind when
+  they fall, and it's your faction's emblem on the Factions page. The art is a placeholder (an
+  oval patch with the mod's banner) that one file of your own replaces. A save that holds a patch
+  can't load without the mod, so MCM's "Remove your faction's patches" takes them all out of the
+  game before you remove it.
 - **The Factions page in words.** No numbers: the PDA's own Relations tab has them, and a
   button on the page goes there. A row for each faction whose relation with your side can change
   says how it stands with you (at war, hostile, in a truce, neutral, friendly, allied), what holds

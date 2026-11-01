@@ -26,7 +26,7 @@ import test_politics as TP
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPTS_DIR = os.path.join(HERE, "..", "gamedata", "scripts")
 #: the scripts the tab is made of, by module name; a mutant names its module when it isn't fotz_tab
-MODULES = ("fotz_tab", "z_fotz_mac", "modxml_fotz_tab", "fotz_mcm", "fotz_territory")
+MODULES = ("fotz_tab", "z_fotz_mac", "modxml_fotz_tab", "fotz_mcm", "fotz_territory", "fotz_patch")
 SCRIPT = os.path.join(SCRIPTS_DIR, "fotz_tab.script")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
@@ -189,7 +189,7 @@ mac_mcm = { add_app = function(id, data) ADDS = ADDS + 1; APPS[id] = data end,
         load = lua.eval("function(src, name) local env = setmetatable({}, { __index = _G }) "
                         "local f = assert(loadstring(src, name)) setfenv(f, env) f() return env end")
         g = self.p.g
-        for name in ("modxml_fotz_tab", "z_fotz_mac", "fotz_mcm", "fotz_territory"):
+        for name in ("modxml_fotz_tab", "z_fotz_mac", "fotz_mcm", "fotz_territory", "fotz_patch"):
             g[name] = load(srcs[name], name)
         self.env = load(srcs["fotz_tab"], "fotz_tab")
         g.fotz_tab = self.env
@@ -306,7 +306,7 @@ NEAR = { [501] = {} }
     check(p.leading is True and p.side == "fotz_own" and p.title == "Wolves", "side %s, title %s" % (p.side, p.title))
     check(p.subtitle == "Your faction · founded 01.05 · came from: Duty · members: 2", "subtitle %r" % p.subtitle)
     # every faction politics manages can change with yours; the four that never change, in a line
-    check(p.icon == "ui_mm_faction_dolg" and sorted(r) == sorted(["stalker", "bandit", "csky", "dolg", "freedom", "killer",
+    check(p.icon == "fotz_your_faction" and sorted(r) == sorted(["stalker", "bandit", "csky", "dolg", "freedom", "killer",
                                                                   "army", "ecolog"]), "icon %s, rows %s" % (p.icon, sorted(r)))
     check(lines(p.fixed) == ["Permanent enemies: Monolith, Renegades, Sin and UNISG."], "fixed %s" % lines(p.fixed))
     check(r["killer"].standing == "Neutral", "killer: %s" % r["killer"].standing)
@@ -335,7 +335,7 @@ def restore(srcs):
     t.p.env.restore()
     check(t.p.drift("dolg/killer") is None and t.p.pending("dolg/killer") is None, "restore left drift or pressure")
     check(all(t.p.rel(c) == TP.DK_ANCHORS[c] for c in TP.CELLS), "restore didn't write the starts back")
-    check(lines(t.page().log)[0] == "02.05  Relations restored to their start", "log %s" % lines(t.page().log))
+    check(lines(t.page().log)[0] == "02.05  Relations reset to their start", "log %s" % lines(t.page().log))
 
 
 def strings(srcs):
