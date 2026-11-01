@@ -26,6 +26,24 @@ ENG = os.path.join(GD, "configs", "text", "eng", "st_fotz.xml")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
 MUTANTS = {
+    # the cells' starts across loads, other scripts' changes, the base game's store (the 2026-10-31 sweep)
+    "start_reread_at_load": ("    if s and live == s.w then\n", "    if false then\n"),
+    "pair_rows_additive": ("                pair_rows = pair_rows or i <= 2", "                pair_rows = false"),
+    "restart_keeps_event": ('        if ev then\n            finish(p, st.day or today(), ev.kind .. "_over")\n        end\n', ""),
+    "restart_keeps_drift": ("        st.drift[p.key], st.pending[p.key], st.trend[p.key] = nil, nil, nil\n", ""),
+    "no_undo": ("        if o and r.live == o.w then", "        if false then"),
+    "clamped_shift": ("            anchor[r.k] = r.live - (applied[r.k] or 0)",
+                      "            anchor[r.k] = r.live - (written[r.k] - anchor[r.k])"),
+    "no_notice_at_save": ("        for _, p in ipairs(PAIRS) do\n            if not p.own then\n                notice(p)\n"
+                          "            end\n        end\n        local cells = {}", "        local cells = {}"),
+    "no_scrub": ("        local n = scrub_store()", "        local n = 0"),
+    "scrub_outside": ("        if a ~= nil and not outside[k] and not string.find(k, OWN, 1, true) then\n            local x, y",
+                      "        if a ~= nil and not string.find(k, OWN, 1, true) then\n            local x, y"),
+    "scrub_undone_ignored": ("(v == w or v == undone[k])", "v == w"),
+    "cells_not_saved": ("        state().cells = cells", "        state().cells = {}"),
+    "calendar_doy": ("local doy = math.floor((153 * ((m + 9) % 12) + 2) / 5) + d - 1",
+                     "local doy = math.floor((153 * ((m + 9) % 12) + 2) / 5) + d"),
+    "calendar_back": ("    local d = doy - math.floor((153 * mp + 2) / 5) + 1", "    local d = doy - math.floor((153 * mp + 2) / 5) + 2"),
     "budget": ("local move = clamp(pending, -cfg.daily_budget, cfg.daily_budget)", "local move = pending"),
     "no_recover": ("        d = d - d * cfg.recover\n", "        d = d\n"),
     "recover_at_war": ('if not (ev and ev.kind == "war") then', "if true then"),
@@ -36,15 +54,15 @@ MUTANTS = {
     "fixed_pairs": ("if not fixed_pair[a .. \"/\" .. b] then", "if true then"),
     "fixed_factions": ("if not fixed[f] then", "if true then"),
     "actor_rows": ('{ "actor_" .. a, b }, { b, "actor_" .. a },', ""),
-    "anchor_shift": ("anchor[k] = live - (written[k] - anchor[k])", "anchor[k] = anchor[k]"),
+    "anchor_shift": ("            anchor[r.k] = r.live - (applied[r.k] or 0)", "            anchor[r.k] = anchor[r.k]"),
     "dynamic": ('if ui_options and ui_options.get("alife/general/dynamic_relations") then', "if false then"),
     "dfrc": ("if dynamic_faction_relations_customizer then", "if false then"),
     "fluid": ("if game_relations and game_relations.faction_cares then", "if false then"),
     "warfare": ("if IsWarfare and IsWarfare() then", "if false then"),
     "warfare_flag": ("if IsWarfare and IsWarfare() then", "if _G.WARFARE then"),
     "off_keeps": ("local d = on and (state().drift[p.key] or 0) or 0", "local d = state().drift[p.key] or 0"),
-    "player_weight": ("if killer:id() == AC_ID then\n        comm, weight = get_actor_true_community(), cfg.player_kill",
-                      "if killer:id() == AC_ID then\n        comm, weight = get_actor_true_community(), nil"),
+    "player_weight": ("if killer:id() == AC_ID then\n        comm, weight = players_side(), cfg.player_kill",
+                      "if killer:id() == AC_ID then\n        comm, weight = players_side(), nil"),
     "silent_kill": ("if owner and owner:id() == AC_ID then", "if false then"),
     "rank_weight": ("(cfg.rank_weight[rank] or 1)", "1"),
     "forward": ("        return orig(...)\n", "        return orig()\n"),
@@ -63,6 +81,28 @@ MUTANTS = {
     "string_id": ('"st_fotz_news_alliance_plain"', '"st_fotz_news_alliance_plane"'),
     "news_unlogged": ('        log("news: %s", text)\n', ""),
     "base_names": ("    local s = game.translate_string(id)\n", "    local s = id\n"),
+    "own_no_pairs": ("    if not F then\n        return\n    end\n    SIDES[#SIDES + 1] = OWN",
+                     "    if true then\n        return\n    end\n    SIDES[#SIDES + 1] = OWN"),
+    "own_anchor_live": ("anchor[k] = F and F.base[k] or live", "anchor[k] = live"),
+    "own_anchor_of": ("return F and F.base[k] or relation_registry.community_relation(p.a, p.b)",
+                      "return relation_registry.community_relation(p.a, p.b)"),
+    "own_player_side": ("return led() and OWN or get_actor_true_community()", "return get_actor_true_community()"),
+    "own_members_cells": ("{ ACTOR_OWN, f }, { f, ACTOR_OWN } } }", '{ ACTOR_OWN, f }, { f, ACTOR_OWN }, { OWN, "actor_" .. f } } }'),
+    "own_keeps_old": ("    if st.own ~= uid then\n        for _, name in", "    if false then\n        for _, name in"),
+    "own_sides": ("    SIDES[#SIDES + 1] = OWN\n", ""),
+    "own_name": ('        return F and F.name or game.translate_string("st_fotz_default_name")',
+                 '        return game.translate_string("st_fotz_default_name")'),
+    "own_icon": ("voice ~= OWN and voice or nil", "voice"),
+    "restore_no_apply": ('    log("relations restored to where they started")\n    return apply()',
+                         '    log("relations restored to where they started")\n    return 1'),
+    "restore_keeps_events": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}",
+                             "st.drift, st.pending, st.kills, st.hurt, st.recent, st.trend = {}, {}, {}, {}, {}, {}"),
+    "restore_keeps_pending": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}",
+                              "st.drift, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}"),
+    "restore_keeps_trend": ("st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}",
+                            "st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}"),
+    "no_trend": ("    st.trend[k] = after ~= before and after - before or nil\n", ""),
+    "truce_trend": ("        st.trend[k] = cfg.truce_relation - before\n", ""),
 }
 
 TEST_CONFIG = """
@@ -115,7 +155,7 @@ ui_mcm = { get = function(id) return MCM[id] end }
 OPT = {}
 ui_options = { get = function(id) return OPT[id] end }
 NEWS = {}
-news_manager = { send_tip = function(actor, text, timeout, sender, showtime) NEWS[#NEWS + 1] = sender .. "|" .. text end }
+news_manager = { send_tip = function(actor, text, timeout, sender, showtime) NEWS[#NEWS + 1] = tostring(sender) .. "|" .. text end }
 -- the base game's own names, singular for some: Factions shows its own group names
 NAMES = { dolg = "Duty", freedom = "Freedom", killer = "Mercenary", csky = "Clear Sky", stalker = "Free stalkers",
           bandit = "Bandit", army = "Military", ecolog = "Ecologist" }
@@ -166,6 +206,22 @@ function day(d, smarts, fronts)
     DATE = d
     local c = { date = d .. " 08:00", smarts = smarts or {}, fronts = fronts or {} }
     for _, fn in ipairs(LISTENERS) do fn(c) end
+end
+-- the base game's store of saved relations: game_relations.save_relation writes both ways, live
+-- and into the actor's pstor, which the base game puts back at every load
+PSTOR = {}
+function load_var(obj, name, def) local v = PSTOR[name] if v == nil then return def end return v end
+function save_var(obj, name, v) PSTOR[name] = v end
+function save_relation(a, b, v)
+    REL[a .. ">" .. b], REL[b .. ">" .. a] = v, v
+    PSTOR["drx_df_" .. a .. "_" .. b .. "_relations"], PSTOR["drx_df_" .. b .. "_" .. a .. "_relations"] = v, v
+end
+function reapply_store(cells)
+    for _, cell in ipairs(cells) do
+        local x, y = string.match(cell, "^(.-)>(.*)$")
+        local v = PSTOR["drx_df_" .. x .. "_" .. y .. "_relations"]
+        if v ~= nil then REL[cell] = v end
+    end
 end
 -- a value as Lua source, as a save would carry it to the next game
 function dump(v)
@@ -231,7 +287,7 @@ def strings_lua():
 
 
 class World:
-    def __init__(self, src, config=TEST_CONFIG, anchors=None, m_data=None, pre=None):
+    def __init__(self, src, config=TEST_CONFIG, anchors=None, m_data=None, pre=None, at_load=None):
         self.lua = L.LuaRuntime(unpack_returned_tuples=True)
         self.g = self.lua.globals()
         self.lua.execute(WORLD)
@@ -246,6 +302,9 @@ class World:
         self.env.on_game_start()
         self.cb = self.g.CALLBACKS
         self.cb["load_state"](self.lua.eval(m_data or "{}"))
+        # the base game's on_game_load, between the load and the first update
+        if at_load:
+            self.lua.execute(at_load)
         self.cb["actor_on_first_update"]()
 
     def run(self, code):
@@ -299,6 +358,7 @@ def war_and_truce(src):
     check(w.drift("dolg/killer") == -400, "a second census the same day moved the pair")
     w.run('day("2012-05-03")')
     check(w.drift("dolg/killer") == -760, "day 3: drift %s" % w.drift("dolg/killer"))
+    check(w.env.S.trend["dolg/killer"] == -360, "day 3: the day's move %s" % w.env.S.trend["dolg/killer"])
     w.run('day("2012-05-04")')
     check(w.drift("dolg/killer") == -1084 and w.event("dolg/killer") == "war",
           "day 4: drift %s, event %s" % (w.drift("dolg/killer"), w.event("dolg/killer")))
@@ -311,9 +371,11 @@ def war_and_truce(src):
         w.run('day("2012-05-%s")' % d)
         check(w.event("dolg/killer") == "war" and w.drift("dolg/killer") == -1084,
               "day %s: %s, drift %s" % (d, w.event("dolg/killer"), w.drift("dolg/killer")))
+    check(w.env.S.trend["dolg/killer"] is None, "a day without a move kept a trend: %s" % w.env.S.trend["dolg/killer"])
     w.run('day("2012-05-07")')
     check(w.event("dolg/killer") == "truce" and w.drift("dolg/killer") == -600,
           "day 7: %s, drift %s" % (w.event("dolg/killer"), w.drift("dolg/killer")))
+    check(w.env.S.trend["dolg/killer"] == 484, "the truce's move %s" % w.env.S.trend["dolg/killer"])
     check(w.news()[-1] == "dolg|Duty: The line with Mercenaries has gone quiet. We hold our fire, for now.",
           "truce news %s" % w.news()[-1])
     # fighting goes on through the truce: it counts half, and the truce holds the line above -1000
@@ -415,12 +477,115 @@ def stand_down(src):
         w.cb["on_option_change"]()
         check(w.rel("dolg>killer") == -500, "back on (%s): %s" % (on, w.rel("dolg>killer")))
     check(any("standing down: Warfare mode is on" in l for l in w.log()), "the stand-down wasn't logged")
-    # something else sets a cell: its value is the new start
+    # something else sets one of the pair's own rows: the pair starts over from the values it has
+    # now, drift gone, and the days after leave it there
     w.run('REL["dolg>killer"] = 2000')
     w.cb["on_option_change"]()
     w.run('day("2012-05-10")')
-    check(w.rel("dolg>killer") == 2050 and w.rel("killer>dolg") == -450,
-          "after another mod's change: %s, %s" % (w.rel("dolg>killer"), w.rel("killer>dolg")))
+    check(w.rel("dolg>killer") == 2000 and w.rel("killer>dolg") == -500 and w.drift("dolg/killer") is None,
+          "after another mod's change: %s, %s, drift %s" % (w.rel("dolg>killer"), w.rel("killer>dolg"),
+                                                           w.drift("dolg/killer")))
+
+
+DRIFT_500 = '{ fotz = { v = 1, day = "2012-05-09", drift = { ["dolg/killer"] = -500 } } }'
+
+
+def reload(src, w, anchors=None):
+    """w's game saved and loaded: the save's m_data and the base game's store go along; the engine
+    resets the matrix to the starts, and the base game puts back what its store holds."""
+    m = w.lua.eval("{}")
+    w.cb["save_state"](m)
+    dump = w.lua.eval("dump")
+    at_load = "PSTOR = %s\nreapply_store({ %s })" % (dump(w.g.PSTOR), ", ".join('"%s"' % c for c in CELLS))
+    return World(src, anchors=anchors or DK_ANCHORS, m_data=dump(m), at_load=at_load)
+
+
+def store(w, cell):
+    x, y = cell.split(">")
+    return w.g.PSTOR["drx_df_%s_%s_relations" % (x, y)]
+
+
+def other_scripts(src):
+    """A disguise and a story ceasefire, through the base game's store, across saves and loads."""
+    # a disguise: a copy of the row, 300 both ways while worn; the drift moves meanwhile; taken off,
+    # the copy goes back: the row is Factions' again, at its start plus today's drift
+    w = World(src, anchors=DK_ANCHORS, m_data=DRIFT_500)
+    w.run('SNAP = REL["dolg>actor_killer"]; save_relation("dolg", "actor_killer", 300)')
+    w.cb["on_option_change"]()
+    check(w.rel("dolg>actor_killer") == 300 and w.rel("actor_killer>dolg") == 300,
+          "the disguise's 300 wasn't kept: %s" % w.rel("dolg>actor_killer"))
+    w.run('kill("dolg", "killer", "veteran", 10)')
+    w.run('day("2012-05-10")')
+    d1 = w.drift("dolg/killer")
+    check(d1 is not None and d1 != -500, "the drift didn't move: %s" % d1)
+    w.run('save_relation("dolg", "actor_killer", SNAP)')
+    w.cb["on_option_change"]()
+    check(w.rel("dolg>actor_killer") == -50 + d1 and w.rel("actor_killer>dolg") == -50 + d1,
+          "taken off: %s, not %s" % (w.rel("dolg>actor_killer"), -50 + d1))
+    # the save: the store's copy (Factions' old value) goes back to the row's start; the load
+    # rebuilds every cell at its start plus the drift, and without Factions the row is at its start
+    w2 = reload(src, w)
+    check(store(w, "dolg>actor_killer") == -50 and store(w, "actor_killer>dolg") == -50,
+          "the store kept Factions' value: %s" % store(w, "dolg>actor_killer"))
+    want = {c: DK_ANCHORS[c] + d1 for c in CELLS}
+    check({c: w2.rel(c) for c in CELLS} == want, "the load: %s, not %s" % ({c: w2.rel(c) for c in CELLS}, want))
+
+    # worn through a save: the store keeps the disguise's 300, the load keeps the row at 300 and the
+    # rest at their starts plus the drift, load after load
+    w = World(src, anchors=DK_ANCHORS, m_data=DRIFT_500)
+    w.run('save_relation("dolg", "actor_killer", 300)')
+    w.cb["on_option_change"]()
+    w2 = reload(src, w)
+    w3 = reload(src, w2)
+    for x in (w2, w3):
+        rows = {c: x.rel(c) for c in CELLS}
+        want = {c: (300 if c in ("dolg>actor_killer", "actor_killer>dolg") else DK_ANCHORS[c] - 500) for c in CELLS}
+        check(rows == want, "worn across a load: %s, not %s" % (rows, want))
+    check(store(w2, "dolg>actor_killer") == 300, "the disguise's stored 300 was changed: %s" % store(w2, "dolg>actor_killer"))
+
+    # a story ceasefire during a war, all six rows at 2000, just before a save: the pair starts over
+    # there, the war ends (in the war log, no news), and the days after leave it at 2000
+    war = ('{ fotz = { v = 1, day = "2012-05-09", drift = { ["dolg/killer"] = -1500 }, events = { '
+           '["dolg/killer"] = { kind = "war", since = "2012-05-05", a = "dolg", b = "killer" } } } }')
+    w = World(src, anchors=DK_ANCHORS, m_data=war)
+    w.run('save_relation("dolg", "killer", 2000); save_relation("actor_dolg", "killer", 2000); '
+          'save_relation("dolg", "actor_killer", 2000)')
+    news = len(w.news())
+    w2 = reload(src, w)
+    check(len(w.news()) == news, "the ceasefire made news: %s" % w.news()[news:])
+    check({c: w2.rel(c) for c in CELLS} == {c: 2000 for c in CELLS} and w2.drift("dolg/killer") is None
+          and w2.event("dolg/killer") is None and w2.history()[-1:] == ["war_over"],
+          "after the ceasefire: %s, drift %s, event %s, history %s" % ({c: w2.rel(c) for c in CELLS},
+          w2.drift("dolg/killer"), w2.event("dolg/killer"), w2.history()))
+    w2.run('day("2012-05-10")')
+    w2.run('day("2012-05-11")')
+    check({c: w2.rel(c) for c in CELLS} == {c: 2000 for c in CELLS}, "the days after: %s" % {c: w2.rel(c) for c in CELLS})
+
+    # the limit: a player row whose start plus drift was clamped; another script's value is kept
+    # exactly, not moved by what the clamp cut
+    anchors = dict(DK_ANCHORS, **{"dolg>actor_killer": -4500, "actor_killer>dolg": -4500})
+    w = World(src, anchors=anchors, m_data=DRIFT_500)
+    check(w.rel("dolg>actor_killer") == -4750, "the clamp: %s" % w.rel("dolg>actor_killer"))
+    w.run('save_relation("dolg", "actor_killer", 2000)')
+    w.cb["on_option_change"]()
+    check(w.rel("dolg>actor_killer") == 2000 and w.rel("actor_killer>dolg") == 2000,
+          "after the clamp, another script's 2000 became %s" % w.rel("dolg>actor_killer"))
+
+
+def calendar(src):
+    """day_num and day_str against Python's calendar, leap days and century years included."""
+    import datetime
+    w = World(src, anchors=DK_ANCHORS)
+    # by the calendar alone: the OS clock carries its time zone (a day off at UTC+-12)
+    w.run("os.time = function() error('the OS clock') end; os.date = function() error('the OS clock') end")
+    epoch = datetime.date(1970, 1, 1).toordinal()
+    for s in ("1970-01-01", "2000-02-29", "2012-02-28", "2012-02-29", "2012-03-01", "2012-12-31", "2018-11-02",
+              "2100-02-28", "2100-03-01", "1999-12-31"):
+        n = datetime.date(*map(int, s.split("-"))).toordinal() - epoch
+        check(w.env.day_num(s) == n and w.env.day_str(n) == s, "%s: %s, %s" % (s, w.env.day_num(s), w.env.day_str(n)))
+    for n in range(14000, 18000, 7):
+        s = datetime.date.fromordinal(n + epoch).isoformat()
+        check(w.env.day_str(n) == s and w.env.day_num(s) == n, "day %d: %s" % (n, w.env.day_str(n)))
 
 
 def save_and_load(src, w):
@@ -453,6 +618,94 @@ def kills(src):
     w.run('CALLBACKS.npc_on_death_callback({ stalker = false }, npc("dolg", "novice"))')
     check(w.env.S.kills["dolg/killer"] == 3 and w.env.S.kills["dolg/freedom"] is None,
           "ignored kills counted: %s" % dict(w.env.S.kills.items()))
+
+
+#: the faction you lead, founded from Duty: some of its founding relations
+OWN_BASE = {"fotz_own>killer": -200, "killer>fotz_own": -250, "actor_fotz_own>killer": -150,
+            "killer>actor_fotz_own": -150, "fotz_own>actor_killer": -300, "actor_killer>fotz_own": -300}
+#: the cells politics moves for it and the Mercenaries (not its members' relation to a player)
+OWN_CELLS = ["fotz_own>killer", "killer>fotz_own", "actor_fotz_own>killer", "killer>actor_fotz_own"]
+
+
+def led_lua(uid="u1"):
+    return ('fotz_faction = { F = { name = "Wolves", mother = "dolg", founded = "2012-05-01", uid = %s, base = { %s } } }'
+            % (lua_str(uid), ", ".join("[%s] = %d" % (lua_str(k), v) for k, v in OWN_BASE.items())))
+
+
+def your_faction(src):
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua())
+    got = {c: w.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] for c in OWN_CELLS}, "your faction's cells at load: %s" % got)
+    own = [w.env.PAIRS[i].key for i in range(1, len(w.env.PAIRS) + 1) if w.env.PAIRS[i].own]
+    check(len(own) == 8 and "fotz_own/killer" in own and "dolg/fotz_own" in own, "your faction's pairs: %s" % own)
+
+    # its members' kills and yours count for it, not for Duty
+    w.run('day("2012-05-01")')
+    w.run('kill("killer", "fotz_own", "veteran", 30)')
+    w.run('kill("killer", "actor", "novice", 10)')
+    check(w.env.S.kills["fotz_own/killer"] == 65 and w.env.S.kills["dolg/killer"] is None,
+          "kills: yours %s, Duty's %s" % (w.env.S.kills["fotz_own/killer"], w.env.S.kills["dolg/killer"]))
+    w.run('day("2012-05-02")')
+    check(w.drift("fotz_own/killer") == -400, "day 2: drift %s" % w.drift("fotz_own/killer"))
+    got = {c: w.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] - 400 for c in OWN_CELLS}, "day 2: cells %s" % got)
+    writes = list(w.g.WRITES.values())
+    check(not any(c in writes for c in ("fotz_own>actor_killer", "actor_killer>fotz_own", "fotz_own>actor_dolg")),
+          "a member's relation to a player moved")
+
+    # the Mercenaries hit back: war, in your faction's voice and under its name
+    w.run('kill("fotz_own", "killer", "veteran", 60)')
+    w.run('day("2012-05-03")')
+    check(w.event("fotz_own/killer") is None, "war a day early")
+    w.run('day("2012-05-04")')
+    check(w.event("fotz_own/killer") == "war", "no war: drift %s" % w.drift("fotz_own/killer"))
+    check(w.news() and w.news()[-1].startswith("nil|Wolves: "), "the war's news: %s" % w.news())
+
+    # two factions at war with yours grow closer
+    w.env.S.events["bandit/fotz_own"] = w.lua.eval('{ kind = "war", since = "2012-05-04", a = "bandit", b = "fotz_own" }')
+    w.run('day("2012-05-05")')
+    check(w.drift("bandit/killer") == 60, "common enemy: bandit/killer drift %s" % w.drift("bandit/killer"))
+
+    # a load restores it; a different faction in that save starts clean
+    m = w.lua.eval("{}")
+    w.cb["save_state"](m)
+    saved = w.lua.eval("dump")(m)
+    w2 = World(src, anchors=DK_ANCHORS, pre=led_lua(), m_data=saved)
+    got = {c: w2.rel(c) for c in OWN_CELLS}
+    want = {c: w.rel(c) for c in OWN_CELLS}
+    check(got == want and w2.event("fotz_own/killer") == "war", "a load rebuilt %s, not %s" % (got, want))
+    w3 = World(src, anchors=DK_ANCHORS, pre=led_lua("u2"), m_data=saved)
+    check(w3.drift("fotz_own/killer") is None and w3.event("fotz_own/killer") is None and w3.env.S.own == "u2",
+          "another faction took over the last one's relations")
+    got = {c: w3.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] for c in OWN_CELLS}, "another faction's cells: %s" % got)
+
+    # disbanded: what was kept for it goes, and your kills count for Duty again
+    w2.run("fotz_faction.F = nil")
+    w2.env.apply()
+    left = [k for t in ("drift", "pending", "events", "recent", "last_fight") for k in w2.env.S[t].keys() if "fotz_own" in k]
+    check(not left and not any(w2.env.PAIRS[i].own for i in range(1, len(w2.env.PAIRS) + 1)),
+          "after disbanding: %s" % left)
+    w2.run('kill("killer", "actor", "novice", 1)')
+    check(w2.env.S.kills["dolg/killer"] == 0.5, "after disbanding, your kill counted %s for Duty" % w2.env.S.kills["dolg/killer"])
+
+
+def restore(src):
+    # the Factions tab's "Restore relations": every pair back at its start, events ended, mid-save
+    w = World(src, anchors=DK_ANCHORS)
+    w.run('day("2012-05-01")')
+    w.run('kill("dolg", "killer", "veteran", 200)')
+    for d in ("02", "03", "04"):
+        w.run('day("2012-05-%s")' % d)
+    check(w.event("dolg/killer") == "war", "no war to end: %s" % w.event("dolg/killer"))
+    n = w.env.restore()
+    check(n > 0 and all(w.rel(c) == DK_ANCHORS[c] for c in CELLS), "restored cells: %s" % {c: w.rel(c) for c in CELLS})
+    check(w.drift("dolg/killer") is None and w.pending("dolg/killer") is None and w.event("dolg/killer") is None,
+          "restore left drift %s, pending %s, event %s" % (w.drift("dolg/killer"), w.pending("dolg/killer"), w.event("dolg/killer")))
+    check(w.history()[-1] == "restored", "history %s" % w.history())
+    check(w.env.S.trend["dolg/killer"] is None, "restore left a trend: %s" % w.env.S.trend["dolg/killer"])
+    w.run('day("2012-05-05")')
+    check(w.drift("dolg/killer") is None, "the next day moved a restored pair: %s" % w.drift("dolg/killer"))
 
 
 def caps(src):
@@ -489,7 +742,7 @@ def strings(src):
     for opt in re.findall(r'id = "(\w+)", type = "(?:check|list)"', mcm):
         want |= {"ui_mcm_fotz_" + opt, "ui_mcm_fotz_" + opt + "_desc"}
     want |= {"ui_mcm_lst_" + k for k in re.findall(r'\{ "\w+", "(fotz_news_\w+)" \}', mcm)}
-    check(len(want) == 17, "%d string ids were looked for, not 17" % len(want))
+    check(len(want) == 31, "%d string ids were looked for, not 31" % len(want))
     want |= {"st_fotz_faction_" + f for f in ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army",
                                               "ecolog", "monolith", "renegade", "greh", "isg")}
     missing = sorted(want - have)
@@ -504,9 +757,13 @@ def run(src):
     stand_down(src)
     save_and_load(src, w)
     kills(src)
+    your_faction(src)
+    restore(src)
     caps(src)
     real_config(src)
-    return "8 scenarios, 16 pairs from the shipped config"
+    other_scripts(src)
+    calendar(src)
+    return "12 scenarios, 16 pairs from the shipped config"
 
 
 def main():
@@ -525,7 +782,7 @@ def main():
         print("FAIL: %s" % e)
         return 1
     except Exception as e:
-        print("FAIL (error): %s: %s" % (type(e).__name__, e))
+        print("FAIL (error): %s: %s" % (type(e).__name__, " | ".join(str(e).splitlines())))
         return 1
 
 

@@ -13,7 +13,7 @@ of two hostile factions are there at once, and each such pair has a front. Mutan
 "monster" and never hold or contest a smart.
 --]]
 
-VERSION = "0.2.0"
+VERSION = "0.4.0"
 FACTIONS = { "stalker", "bandit", "csky", "dolg", "freedom", "killer", "army", "ecolog", "monolith",
              "renegade", "greh", "isg" }
 FILE = "fotz_census.jsonl"
@@ -280,10 +280,17 @@ end
 function run(cause)
     local ok, err = pcall(function()
         local c = take(cause)
+        -- the log on its own: a file it can't write (locked, read-only, a full disk) costs only
+        -- the line, never the day's census for the listeners
         if enabled() then
-            local f = assert(io.open(path(), "a"))
-            f:write(to_json(c), "\n")
-            f:close()
+            local ok2, err2 = pcall(function()
+                local f = assert(io.open(path(), "a"))
+                f:write(to_json(c), "\n")
+                f:close()
+            end)
+            if not ok2 then
+                printf("! [fotz-census] the log: %s", tostring(err2))
+            end
         end
         printf("[fotz-census] %s", summary(c))
         for _, fn in ipairs(LISTENERS) do

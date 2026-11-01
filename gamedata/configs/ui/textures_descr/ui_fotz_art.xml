@@ -1,0 +1,12 @@
+<w>
+<!-- This mod's small art (_tools/make_art.py): the white block the Factions page draws its frame
+     and rules with, stretched and tinted from script -->
+    <file name="ui\fotz_px">
+        <texture id="fotz_px" x="0" y="0" width="8" height="8" />
+    </file>
+<!-- your faction's patch: a player's own replaces this file (100x100); the item's icon is the same
+     square (mod_system_fotz_patch.ltx), and this is it as your faction's emblem on the page -->
+    <file name="ui\fotz_your_faction">
+        <texture id="fotz_your_faction" x="0" y="0" width="100" height="100" />
+    </file>
+</w>
