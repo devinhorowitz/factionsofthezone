@@ -590,6 +590,14 @@ msgctxt "ui_mcm_fotz_loyalty_accept_desc"
 msgid "Every resident who asks to join is accepted at once, so no request waits on the Factions page."
 msgstr "Каждый житель, попросившийся вступить, принимается сразу, и просьбы не ждут на странице «Группировки»."
 
+msgctxt "ui_mcm_fotz_outposts"
+msgid "Beaten outposts can give up"
+msgstr "Побеждённые аванпосты могут сдаться"
+
+msgctxt "ui_mcm_fotz_outposts_desc"
+msgid "With Homestead: a rival outpost you beat may surrender, a ceasefire of a few days, or come over to your faction; both more often the lower its fighters' rank."
+msgstr "С Homestead: побеждённый вами аванпост соперников может сдаться (перемирие на несколько дней) или перейти на сторону вашей группировки; и то и другое тем чаще, чем ниже ранг его бойцов."
+
 msgctxt "st_fotz_news_asks"
 msgid "{who}, a resident of {camp}, asks to join {name}. Answer on the Factions page."
 msgstr "{who} ({camp}) просится в группировку «{name}». Ответьте на странице «Группировки»."
@@ -657,3 +665,19 @@ msgstr "{name}, преданность {loyalty} (в {camp})"
 msgctxt "st_fotz_tab_member_sworn_heading"
 msgid "{name}, sworn for life (to {camp})"
 msgstr "{name}, присяга навсегда (в {camp})"
+
+msgctxt "st_fotz_news_outpost_surrendered"
+msgid "{faction} at {outpost} have surrendered. They'll hold their fire, for now."
+msgstr "Гарнизон {outpost} ({faction}) сдался. Пока они не стреляют."
+
+msgctxt "st_fotz_news_outpost_defected"
+msgid "{faction} at {outpost} have come over to {name}."
+msgstr "Гарнизон {outpost} ({faction}) перешёл на сторону «{name}»."
+
+msgctxt "st_fotz_news_outpost_truce_over"
+msgid "The ceasefire at {outpost} is over: {faction} there are hostile again."
+msgstr "Перемирие с гарнизоном {outpost} ({faction}) закончилось: они снова враждебны."
+
+msgctxt "st_fotz_news_outpost_truce_broken"
+msgid "You broke the ceasefire at {outpost}: {faction} there are hostile again."
+msgstr "Вы нарушили перемирие с гарнизоном {outpost} ({faction}): они снова враждебны."

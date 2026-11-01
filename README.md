@@ -46,6 +46,11 @@ and they go back to their own faction. A Master who holds full loyalty for two w
 is sworn for life, and lifts everyone in their camp. When a camp falls, its sworn members and the
 loyal among the rest head for another of your camps.
 
+**Make them give up** (with Homestead). Beat a rival outpost of a faction at war with you and its
+last fighters may give up. The greener they are, the likelier they are to come over to your
+faction and head for one of your camps, or to surrender: a ceasefire of a few days before they
+turn on you again. Veterans fight to the end.
+
 ### Coming next
 
 - **Invasions:** factions pushing into each other's ground, not only leaning toward it.
@@ -104,6 +109,17 @@ in when they get there; a camp that turns them away sends them on to the next. W
 go, the sworn wait in the Zone and look again each day, and the others go back to their own
 faction. Every number is in the `[loyalty]` section of `fotz_politics.ltx`.
 
+**Outposts that give up** (0.5.0, with Homestead). Homestead's rival outposts each hold up to five
+fighters of one faction. Beat one that's at war with you, while you're there, and once it's down
+to 40% of the most it had (two of five, or the last one standing), its survivors roll once, by
+their average rank. They come over to your faction (30 in 100 for novices, 4 less a rank, 2 for
+legends), surrender (50 in 100 for novices, 7 less a rank, 1 for legends), or fight on.
+Defectors join you as settler members at loyalty 50 and head for a camp of yours with room, and
+the outpost is lost to their faction as if you'd wiped it out; with no faction of yours, or no
+room, they surrender instead. A surrender is a ceasefire with you and your companions for one
+to three game days, then they're hostile again; hitting one of them ends it at once. Every
+number is in the `[outposts]` section of `fotz_politics.ltx`.
+
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
 daily limit, and old grudges fade. When a pair crosses into enmity, they go to war; after quiet
@@ -140,10 +156,11 @@ works either way.
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
 yourself, off unless you choose it, whether companions join, whether your residents can join, and
-whether their requests are accepted as they're made, off unless you choose it), politics on or off, the
-territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the
-census log, removing your faction's patches (before you remove the mod), the Factions page key,
-and, with Mod App Creator, the page's own PDA tab.
+whether their requests are accepted as they're made, off unless you choose it), whether beaten
+outposts can give up, politics on or off, the territory steer, the fighting on the PDA map, PDA
+news (off, wars and truces, or everything), the census log, removing your faction's patches
+(before you remove the mod), the Factions page key, and, with Mod App Creator, the page's own PDA
+tab.
 
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster, with your residents' loyalty. No character in a save is ever in your faction: just before
@@ -200,7 +217,7 @@ faction's patches out of the game (above).
   `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
   actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
   camps, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (327 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (369 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

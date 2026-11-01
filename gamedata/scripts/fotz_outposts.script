@@ -1,0 +1,424 @@
+--[[
+Factions of the Zone: rival outposts you beat may surrender or come over to you (0.5.0, with
+Homestead).
+
+Homestead's rival outposts (stalker_camp_builder.rival_camps, keyed rival_camp_<chest id>) each hold
+a faction's garrison of up to five in a squad or two (squad_id, extra_squad_ids); status is nil
+while it's held and "unoccupied" once no one is left. Read, never written.
+
+Every LOOK_MS, each outpost of a faction at war with you, on your level and within cfg.near of you,
+counts its garrison alive. The most it has had while you're there is the fight's top; go farther
+and the fight is forgotten. At cfg.broken of the top or fewer, with someone still standing, the
+survivors roll once, by their average rank (novice 0 to legend 7): they come over to you
+(defection: cfg.defect_novice, less cfg.defect_step a rank), give up (surrender:
+cfg.surrender_novice, less cfg.surrender_step a rank), or fight on, with no second roll in that
+fight.
+
+Defection needs your faction, settler loyalty on and a camp of yours with room; otherwise it's a
+surrender. Each survivor joins your faction as a settler member, leaves the garrison for a squad
+of their own (Homestead's release_npc_from_squad_and_smart and reassign_freed_settler_to_smart)
+and starts the trip members take between camps (fotz_loyalty.take_in). With no one left in the
+garrison, Homestead counts the outpost lost, as when you wipe it.
+
+Surrender is a ceasefire, not a peace: each survivor's personal goodwill toward you is set so that
+their whole attitude (general_goodwill: personal, reputation, rank and both community terms) comes
+to 0, neutral, and the same between them and the companions following you, both ways. It lasts
+cfg.truce_days_min to cfg.truce_days_max game days; then each goodwill goes back and they're
+hostile again. Hitting one ends it at once. Like Factions' other relation changes it lives only
+while you play: the truces (by outpost, each NPC's old goodwill and their pairs with your
+companions) are m_data.fotz_outposts, every save gets the old goodwill back, and the next update
+applies the ceasefire again.
+--]]
+
+CONFIG = "plugins\\fotz_politics.ltx"
+LOOK_MS = 5000      -- the outposts near you are counted this often
+SAVE_VERSION = 1
+ENEMIES = -1000     -- the game's line: a faction at or below it toward you is at war with you
+-- the game's ranks, novice to legend, as the roll weighs them
+RANKS = { novice = 0, trainee = 1, experienced = 2, professional = 3, veteran = 4, expert = 5, master = 6,
+          legend = 7 }
+
+DEFAULTS = {
+    near = 150, broken = 0.4,
+    defect_novice = 30, defect_step = 4, surrender_novice = 50, surrender_step = 7,
+    defector_loyalty = 50, truce_days_min = 1, truce_days_max = 3,
+}
+
+cfg = nil
+T = { v = SAVE_VERSION, truces = {} }   -- saved: the truces, by outpost key
+FIGHTS = {}                              -- outpost key -> { top, rolled }: the fights you're at, not saved
+local next_look = 0
+local again = false                     -- a save gave the old goodwill back: apply the truces now
+
+local function log(fmt, ...)
+    printf("[fotz-outposts] " .. fmt, ...)
+end
+
+function load_config(ini)
+    ini = ini or ini_file(CONFIG)
+    cfg = {}
+    for key, def in pairs(DEFAULTS) do
+        cfg[key] = ini and ini:section_exist("outposts") and ini:r_float_ex("outposts", key) or def
+    end
+    return cfg
+end
+
+function homestead()
+    local m = stalker_camp_builder
+    return type(m) == "table" and type(m.rival_camps) == "table" and m or nil
+end
+
+function enabled()
+    return homestead() ~= nil and not (ui_mcm and ui_mcm.get("fotz/outposts") == false)
+end
+
+local function say(id, fields)
+    local lv = fotz_politics and fotz_politics.news_level and fotz_politics.news_level() or "events"
+    if lv == "off" then
+        return
+    end
+    local text = fotz_tab.text(id, fields)
+    if db.actor and news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, text, nil, nil, 12000)
+    end
+    log("news: %s", text)
+end
+
+local function faction_name(comm)
+    return fotz_politics.faction_name(comm)
+end
+
+-- the outposts ------------------------------------------------------------------------------------
+
+-- an outpost you could beat: held, by a faction at war with you (not mutants, not the Zombied)
+local function opposing(camp)
+    local f = camp.faction
+    if camp.status or not f or f == "monster" or f == "zombied" then
+        return false
+    end
+    return relation_registry.community_relation(f, db.actor:character_community()) <= ENEMIES
+end
+
+-- the garrison alive: each member's server object, from the outpost's squads
+local function garrison(camp)
+    local sim, sb, out = alife(), homestead(), {}
+    local ids = { camp.squad_id }
+    for _, x in ipairs(camp.extra_squad_ids or {}) do
+        ids[#ids + 1] = x
+    end
+    for _, sq_id in ipairs(ids) do
+        local sq = sim:object(sq_id)
+        if sq and sq.squad_members and (not sb.is_valid_camp_squad or sb.is_valid_camp_squad(camp, sq)) then
+            for k in sq:squad_members() do
+                local se = k.object or sim:object(k.id)
+                if se and se:alive() then
+                    out[#out + 1] = se
+                end
+            end
+        end
+    end
+    return out
+end
+
+local function rank_of(se)
+    local name = ranks and ranks.get_se_obj_rank_name and ranks.get_se_obj_rank_name(se)
+    return RANKS[name] or 0
+end
+
+-- the chances, out of 100, that a garrison of this average rank comes over to you, or gives up
+function chances(rank)
+    return math.max(0, cfg.defect_novice - cfg.defect_step * rank),
+        math.max(0, cfg.surrender_novice - cfg.surrender_step * rank)
+end
+
+-- the companions following you, online
+local function companions()
+    local out, sim = {}, alife()
+    for sq_id in pairs(axr_companions and axr_companions.companion_squads or {}) do
+        local sq = sim:object(sq_id)
+        if sq and sq.squad_members then
+            for k in sq:squad_members() do
+                local o = level.object_by_id(k.id)
+                if o and o:alive() then
+                    out[#out + 1] = o
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- a's attitude toward b brought to 0 by a's personal goodwill, if a is at war with b: the old
+-- personal goodwill, or nil when it was left alone
+local function hold_fire(a, b)
+    local g = a:general_goodwill(b)
+    if g <= ENEMIES then
+        local old = a:goodwill(b)
+        a:force_set_goodwill(old - g, b)
+        return old
+    end
+end
+
+-- the ceasefire, on each of its NPCs online: toward you, and with your companions both ways; each
+-- goodwill's old value kept the first time it's changed, and only the ones it changed
+local function apply(t)
+    local actor, comps = db.actor, companions()
+    for id, old in pairs(t.npcs) do
+        local npc = level.object_by_id(id)
+        if npc and npc:alive() then
+            if old == false then
+                t.npcs[id] = npc:goodwill(actor)
+            end
+            hold_fire(npc, actor)
+            for _, c in ipairs(comps) do
+                local k = id .. ">" .. c:id()
+                local p = t.pairs[k] or {}
+                local them, us = hold_fire(npc, c), hold_fire(c, npc)
+                if p[1] == nil then
+                    p[1] = them
+                end
+                if p[2] == nil then
+                    p[2] = us
+                end
+                if p[1] ~= nil or p[2] ~= nil then
+                    t.pairs[k] = p
+                end
+            end
+        end
+    end
+end
+
+-- each goodwill the ceasefire changed, back as it was: live, or through the server object offline
+local function set_back(a_id, b_id, v)
+    local a, b = level.object_by_id(a_id), level.object_by_id(b_id)
+    if a and b then
+        a:force_set_goodwill(v, b)
+        return
+    end
+    local se = alife():object(a_id)
+    if se and se.force_set_goodwill and se:alive() then
+        se:force_set_goodwill(v, b_id)
+    end
+end
+
+local function restore(t)
+    for id, old in pairs(t.npcs) do
+        if old ~= false then
+            set_back(id, 0, old)
+        end
+    end
+    for k, olds in pairs(t.pairs) do
+        local a, b = string.match(k, "^(%d+)>(%d+)$")
+        a, b = tonumber(a), tonumber(b)
+        if olds[1] ~= nil then
+            set_back(a, b, olds[1])
+        end
+        if olds[2] ~= nil then
+            set_back(b, a, olds[2])
+        end
+    end
+end
+
+-- the game's date and time this many hours on, as fotz_census.game_date gives it ("YYYY-MM-DD HH:MM")
+local function hours_on(hours)
+    local now = fotz_census.game_date()
+    local h = tonumber(now:sub(12, 13)) + hours
+    local day = fotz_politics.day_str(fotz_politics.day_num(now:sub(1, 10)) + math.floor(h / 24))
+    return string.format("%s %02d:%s", day, h % 24, now:sub(15, 16))
+end
+
+local function surrender(key, camp, alive)
+    local t = { faction = camp.faction, name = camp.name or key, npcs = {}, pairs = {},
+                ends = hours_on(math.random(cfg.truce_days_min * 24, cfg.truce_days_max * 24)) }
+    for _, se in ipairs(alive) do
+        t.npcs[se.id] = false
+    end
+    T.truces[key] = t
+    apply(t)
+    log("%s surrendered: a ceasefire until %s", t.name, t.ends)
+    say("st_fotz_news_outpost_surrendered", { faction = faction_name(camp.faction), outpost = t.name })
+    return "surrendered"
+end
+
+-- defection, or false without your faction, settler loyalty or a camp with room for them
+local function defect(key, camp, alive)
+    local F, L, sb = fotz_faction and fotz_faction.F, fotz_loyalty, homestead()
+    if not (F and L and L.enabled() and L.has_room()) then
+        return false
+    end
+    local n = 0
+    for _, se in ipairs(alive) do
+        local id = se.id
+        local npc = level.object_by_id(id)
+        local name = npc and npc:character_name()
+        if npc and npc:alive() and fotz_faction.join_settler(id) then
+            sb.release_npc_from_squad_and_smart(id)
+            sb.reassign_freed_settler_to_smart(id)
+            if L.take_in(id, name, cfg.defector_loyalty) then
+                n = n + 1
+            else
+                fotz_faction.leave(id, "no camp to go to")
+            end
+        end
+    end
+    if n == 0 then
+        return false
+    end
+    log("%s: %s came over to %s", camp.name or key, n, F.name)
+    say("st_fotz_news_outpost_defected", { faction = faction_name(camp.faction), outpost = camp.name or key,
+                                            name = F.name, n = n })
+    return "defected"
+end
+
+-- the survivors' roll: what they did
+local function roll(key, camp, alive, top)
+    local sum = 0
+    for _, se in ipairs(alive) do
+        sum = sum + rank_of(se)
+    end
+    local rank = sum / #alive
+    local d, s = chances(rank)
+    local x = math.random() * 100
+    log("%s beaten: %s of %s left, rank %s; defection %s, surrender %s; drew %s", camp.name or key, #alive,
+        top, string.format("%.1f", rank), d, s, string.format("%.0f", x))
+    if x < d then
+        return defect(key, camp, alive) or surrender(key, camp, alive)
+    elseif x < d + s then
+        return surrender(key, camp, alive)
+    end
+    return "fought on"
+end
+
+local function fight(key, camp)
+    local alive = garrison(camp)
+    local f = FIGHTS[key]
+    if not f then
+        f = { top = #alive }
+        FIGHTS[key] = f
+    end
+    f.top = math.max(f.top, #alive)
+    -- someone fallen, someone standing, and no more than cfg.broken of the top (the last one always)
+    if f.rolled or #alive == 0 or #alive == f.top or #alive > math.max(1, f.top * cfg.broken) then
+        return
+    end
+    f.rolled = roll(key, camp, alive, f.top)
+end
+
+-- the truces: on, over (its time is up: hostile again), or gone with their outpost
+local function truces(m)
+    local now = fotz_census.game_date()
+    for key, t in pairs(T.truces) do
+        local camp = m.rival_camps[key]
+        if type(camp) ~= "table" or camp.status or camp.faction ~= t.faction then
+            restore(t)
+            T.truces[key] = nil
+            log("%s: the ceasefire went with the outpost", t.name)
+        elseif now >= t.ends then
+            restore(t)
+            T.truces[key] = nil
+            say("st_fotz_news_outpost_truce_over", { faction = faction_name(t.faction), outpost = t.name })
+        else
+            apply(t)
+        end
+    end
+end
+
+-- one look: the fights near you, then the truces
+function look()
+    local m = homestead()
+    if not (m and cfg and db.actor) then
+        return
+    end
+    local me, lvl, here = db.actor:position(), level.name(), {}
+    for key, camp in pairs(m.rival_camps) do
+        if type(camp) == "table" and camp.level == lvl and camp.position and not T.truces[key] and opposing(camp)
+            and me:distance_to(vector():set(camp.position.x, camp.position.y, camp.position.z)) <= cfg.near then
+            here[key] = true
+            fight(key, camp)
+        end
+    end
+    for key in pairs(FIGHTS) do
+        if not here[key] then
+            FIGHTS[key] = nil
+        end
+    end
+    truces(m)
+end
+
+-- callbacks ---------------------------------------------------------------------------------------
+
+local function guarded(what, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok then
+        log("! %s: %s", what, tostring(err))
+    end
+end
+
+local function actor_on_update()
+    if not again and time_global() < next_look then
+        return
+    end
+    next_look = time_global() + LOOK_MS
+    if again then
+        again = false
+        for _, t in pairs(T.truces) do
+            guarded("apply", apply, t)
+        end
+    end
+    if enabled() then
+        guarded("look", look)
+    elseif next(T.truces) then
+        -- switched off: every ceasefire ends
+        for _, t in pairs(T.truces) do
+            guarded("restore", restore, t)
+        end
+        T.truces = {}
+    end
+end
+
+-- you hit one of them: the ceasefire at that outpost is over
+local function npc_on_hit_callback(npc, amount, dir, who)
+    if not (who and who:id() == 0) then
+        return
+    end
+    local id = npc:id()
+    for key, t in pairs(T.truces) do
+        if t.npcs[id] ~= nil then
+            guarded("restore", restore, t)
+            T.truces[key] = nil
+            say("st_fotz_news_outpost_truce_broken", { faction = faction_name(t.faction), outpost = t.name })
+        end
+    end
+end
+
+-- the save keeps the old goodwill; the next update applies the ceasefire again
+local function save_state(m_data)
+    for _, t in pairs(T.truces) do
+        guarded("restore", restore, t)
+    end
+    again = true
+    m_data.fotz_outposts = T
+end
+
+local function load_state(m_data)
+    local d = m_data.fotz_outposts
+    if type(d) == "table" and d.v == SAVE_VERSION then
+        T = d
+        T.truces = T.truces or {}
+    else
+        if d ~= nil then
+            log("! the save's truces are version %s, this build reads %s: set aside",
+                tostring(type(d) == "table" and d.v), SAVE_VERSION)
+        end
+        T = { v = SAVE_VERSION, truces = {} }
+    end
+    FIGHTS, again = {}, true
+end
+
+function on_game_start()
+    load_config()
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("npc_on_hit_callback", npc_on_hit_callback)
+    RegisterScriptCallback("save_state", save_state)
+    RegisterScriptCallback("load_state", load_state)
+end

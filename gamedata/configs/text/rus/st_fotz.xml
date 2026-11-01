@@ -435,6 +435,12 @@
 	<string id="ui_mcm_fotz_loyalty_accept_desc">
 		<text>Каждый житель, попросившийся вступить, принимается сразу, и просьбы не ждут на странице «Группировки».</text>
 	</string>
+	<string id="ui_mcm_fotz_outposts">
+		<text>Побеждённые аванпосты могут сдаться</text>
+	</string>
+	<string id="ui_mcm_fotz_outposts_desc">
+		<text>С Homestead: побеждённый вами аванпост соперников может сдаться (перемирие на несколько дней) или перейти на сторону вашей группировки; и то и другое тем чаще, чем ниже ранг его бойцов.</text>
+	</string>
 	<string id="st_fotz_news_asks">
 		<text>{who} ({camp}) просится в группировку «{name}». Ответьте на странице «Группировки».</text>
 	</string>
@@ -485,5 +491,17 @@
 	</string>
 	<string id="st_fotz_tab_member_sworn_heading">
 		<text>{name}, присяга навсегда (в {camp})</text>
+	</string>
+	<string id="st_fotz_news_outpost_surrendered">
+		<text>Гарнизон {outpost} ({faction}) сдался. Пока они не стреляют.</text>
+	</string>
+	<string id="st_fotz_news_outpost_defected">
+		<text>Гарнизон {outpost} ({faction}) перешёл на сторону «{name}».</text>
+	</string>
+	<string id="st_fotz_news_outpost_truce_over">
+		<text>Перемирие с гарнизоном {outpost} ({faction}) закончилось: они снова враждебны.</text>
+	</string>
+	<string id="st_fotz_news_outpost_truce_broken">
+		<text>Вы нарушили перемирие с гарнизоном {outpost} ({faction}): они снова враждебны.</text>
 	</string>
 </string_table>

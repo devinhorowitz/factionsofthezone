@@ -11,6 +11,11 @@
   their whole camp. When a camp falls, its sworn members and, at a roll of their loyalty, the
   others head for another of your camps with room, by way of a smart near it that no enemy of
   yours holds, and move in when they get there.
+- **Outposts that give up** (with Homestead). Beat a rival outpost of a faction at war with you
+  and its last fighters may come over to your faction and head for one of your camps, or
+  surrender: a ceasefire of one to three game days before they're hostile again. The greener
+  they are, the likelier both; veterans fight to the end. MCM's "Beaten outposts can give up"
+  turns it off.
 
 ### Fixed
 
