@@ -9,19 +9,21 @@ fades back toward the start. Crossing the game's thresholds makes events: a war 
 alliance at 1000. A war ends in a truce after days without fighting; an alliance lapses when the
 relation falls back. Each event is news in the factions' own voices.
 
-What changes is a pair's drift from the relation the game starts it with, which is read live after
-every load, after the base game has reapplied its own. Every load sets anchor plus drift again
-(the engine resets the matrix from the configs on every level load), on the faction rows and the
-player's actor_ rows alike, as the base game's dynamic relations do. Turned off, or with another
-system in charge of relations, it writes the anchors back and stops. Its state is m_data.fotz,
-keyed by faction and smart names.
+What changes is a pair's drift from the relation the game starts it with. Every load sets start
+plus drift again (the engine resets the matrix from the configs on every level load), on the
+faction rows and the player's actor_ rows alike, as the base game's dynamic relations do. A cell's
+start is its value at the load, unless it holds what Factions wrote there at the save (the base
+game puts back copies other scripts saved): then the start comes from the save. What else sets a
+cell later is noticed (notice): on a pair's own rows the pair starts over from there, on a player
+row the row's start moves with it. Turned off, or with another system in charge of relations, it
+writes the starts back and stops. Its state is m_data.fotz, keyed by faction and smart names.
 
 The faction you lead (fotz_faction) is a side like any other: it and every faction whose relations
 change make a pair, starting from the relations it was founded with. Its members' kills count for
 it, and so do yours while you lead it. A new faction, or none, drops what was kept for the last.
 --]]
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 SAVE_VERSION = 1
 CONFIG = "plugins\\fotz_politics.ltx"
 
@@ -39,8 +41,13 @@ SIDES = {}         -- the factions whose relations change, yours too while you l
 local built_for    -- the faction PAIRS were built for, this session (false: none)
 S = nil            -- the saved state
 
-local anchor = {}  -- "x>y" -> the cell's value before Factions wrote it, this session
-local written = {} -- "x>y" -> what Factions last wrote there
+local anchor = {}  -- "x>y" -> the cell's start: its value without Factions' drift, this session
+local written = {} -- "x>y" -> what Factions last wrote there, or found there and kept
+local applied = {} -- "x>y" -> the drift that value carried, before the limit clamped it
+local outside = {} -- "x>y" -> while another script's value holds a player row: what Factions had
+                   -- written there before it, that value's drift and the row's start then
+local undone = {}  -- "x>y" -> a value another script put back on a row it had held: Factions' own
+local finish       -- ends a pair's event (with the events, below)
 
 local function log(fmt, ...)
     printf("[fotz-politics] " .. fmt, ...)
@@ -197,14 +204,32 @@ function sync_own()
     end
 end
 
--- dates as "YYYY-MM-DD" and as day numbers
+-- dates as "YYYY-MM-DD" and as day numbers (days from 1970-01-01), by the calendar alone: through
+-- os.time and os.date the round trip took the OS time zone along, a day off at UTC+-12 (Howard
+-- Hinnant's days_from_civil and civil_from_days)
 function day_num(s)
     local y, m, d = string.match(s, "^(%d+)-(%d+)-(%d+)")
-    return math.floor(os.time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }) / 86400)
+    y, m, d = tonumber(y), tonumber(m), tonumber(d)
+    if m <= 2 then
+        y = y - 1
+    end
+    local era = math.floor(y / 400)
+    local yoe = y - era * 400
+    local doy = math.floor((153 * ((m + 9) % 12) + 2) / 5) + d - 1
+    return era * 146097 + yoe * 365 + math.floor(yoe / 4) - math.floor(yoe / 100) + doy - 719468
 end
 
 function day_str(n)
-    return os.date("%Y-%m-%d", n * 86400 + 43200)
+    local z = n + 719468
+    local era = math.floor(z / 146097)
+    local doe = z - era * 146097
+    local yoe = math.floor((doe - math.floor(doe / 1460) + math.floor(doe / 36524) - math.floor(doe / 146096)) / 365)
+    local doy = doe - (365 * yoe + math.floor(yoe / 4) - math.floor(yoe / 100))
+    local mp = math.floor((5 * doy + 2) / 153)
+    local d = doy - math.floor((153 * mp + 2) / 5) + 1
+    local m = mp < 10 and mp + 3 or mp - 9
+    local y = yoe + era * 400 + (m <= 2 and 1 or 0)
+    return string.format("%04d-%02d-%02d", y, m, d)
 end
 
 local function days_between(a, b)
@@ -258,7 +283,78 @@ function relation(p)
     return anchor_of(p) + (state().drift[p.key] or 0)
 end
 
--- set every changeable cell to its anchor plus the pair's drift (only the anchor while standing
+local function cell_key(c)
+    return c[1] .. ">" .. c[2]
+end
+
+-- A cell's start, the first time this session sees it. The engine resets the matrix at every load
+-- and the base game then puts back the relations other scripts saved (game_relations.save_relation;
+-- Banjaji's disguise saves copies of live cells, Factions' drift and all). So a cell holding what
+-- Factions wrote there at the save has its start from the save; any other value is the start
+local function first_sight(k, live)
+    local s = S and S.cells and S.cells[k]
+    if s and live == s.w then
+        anchor[k], written[k], applied[k] = s.w - (s.d or 0), s.w, s.d or 0
+        outside[k] = s.o and { w = s.o.w, d = s.o.d, a = s.o.a } or nil
+    else
+        anchor[k] = live
+    end
+end
+
+-- What else set a pair's cells since Factions last wrote them (checked at each apply and before
+-- each save). A change to the pair's own rows, a to b or b to a: the pair starts over from the
+-- values it has now, its drift, pressure and event gone (a war ended so is in the war log). A
+-- change to a player row only (a disguise): that row's start moves with it, so the other script's
+-- value stays, and when the script puts back what Factions had there before (the disguise taken
+-- off), the row is Factions' again. Returns whether anything changed
+local function notice(p)
+    local st = state()
+    local rows, pair_rows = {}, false
+    for i, c in ipairs(p.cells) do
+        local k = cell_key(c)
+        local w = written[k]
+        if w ~= nil then
+            local live = relation_registry.community_relation(c[1], c[2])
+            if live ~= w then
+                rows[#rows + 1] = { k = k, live = live }
+                pair_rows = pair_rows or i <= 2
+            end
+        end
+    end
+    if #rows == 0 then
+        return false
+    end
+    if pair_rows then
+        for _, c in ipairs(p.cells) do
+            local k = cell_key(c)
+            local live = relation_registry.community_relation(c[1], c[2])
+            anchor[k], written[k], applied[k], outside[k] = live, live, 0, nil
+        end
+        local ev = st.events[p.key]
+        if ev then
+            finish(p, st.day or today(), ev.kind .. "_over")
+        end
+        st.drift[p.key], st.pending[p.key], st.trend[p.key] = nil, nil, nil
+        log("%s was set by something else: the pair starts over from there", p.key)
+        return true
+    end
+    for _, r in ipairs(rows) do
+        local o = outside[r.k]
+        if o and r.live == o.w then
+            anchor[r.k], applied[r.k], outside[r.k] = o.a, o.d, nil
+            undone[r.k] = r.live
+            log("%s is Factions' again", r.k)
+        else
+            outside[r.k] = o or { w = written[r.k], d = applied[r.k] or 0, a = anchor[r.k] }
+            anchor[r.k] = r.live - (applied[r.k] or 0)
+            log("%s was set to %s by something else; it now starts there", r.k, r.live)
+        end
+        written[r.k] = r.live
+    end
+    return true
+end
+
+-- set every changeable cell to its start plus the pair's drift (only the start while standing
 -- down); returns how many cells it wrote
 function apply()
     sync_own()
@@ -266,25 +362,54 @@ function apply()
     local F = led()
     local n = 0
     for _, p in ipairs(PAIRS) do
+        if not p.own then
+            for _, c in ipairs(p.cells) do
+                local k = cell_key(c)
+                if anchor[k] == nil then
+                    first_sight(k, relation_registry.community_relation(c[1], c[2]))
+                end
+            end
+            notice(p)
+        end
         local d = on and (state().drift[p.key] or 0) or 0
         for _, c in ipairs(p.cells) do
-            local k = c[1] .. ">" .. c[2]
+            local k = cell_key(c)
             local live = relation_registry.community_relation(c[1], c[2])
             if p.own then
                 anchor[k] = F and F.base[k] or live
-            elseif anchor[k] == nil then
-                anchor[k] = live
-            elseif written[k] ~= nil and live ~= written[k] then
-                -- something else set this cell since: its value is the new start
-                anchor[k] = live - (written[k] - anchor[k])
-                log("%s was set to %s by something else; it now starts there", k, live)
             end
             local v = d == 0 and anchor[k] or clamp(anchor[k] + d, -cfg.limit, cfg.limit)
             if v ~= live then
                 relation_registry.set_community_relation(c[1], c[2], v)
                 n = n + 1
             end
-            written[k] = v
+            written[k], applied[k] = v, d
+        end
+    end
+    return n
+end
+
+-- The base game keeps the relations other scripts save (game_relations.save_relation, in the
+-- actor's pstor) and puts them back at every load, also after Factions is gone. Before each save, a
+-- value there that is Factions' own (what it wrote in the cell, or what a script put back on a row
+-- it had held) goes back to the cell's start, so that store never keeps Factions' drift. A value
+-- another script holds a row with stays. Returns how many went back
+local function scrub_store()
+    local actor = db.actor
+    if not (actor and load_var and save_var) then
+        return 0
+    end
+    local n = 0
+    for k, w in pairs(written) do
+        local a = anchor[k]
+        if a ~= nil and not outside[k] and not string.find(k, OWN, 1, true) then
+            local x, y = string.match(k, "^(.-)>(.*)$")
+            local name = "drx_df_" .. x .. "_" .. y .. "_relations"
+            local v = load_var(actor, name)
+            if v ~= nil and v ~= a and (v == w or v == undone[k]) then
+                save_var(actor, name, a)
+                n = n + 1
+            end
         end
     end
     return n
@@ -456,7 +581,7 @@ local function start(p, kind, day, ev)
     log("%s: %s between %s and %s (%s)", day, kind, p.a, p.b, ev.cause or ev.enemy or "-")
 end
 
-local function finish(p, day, how)
+finish = function(p, day, how)
     local ev = state().events[p.key]
     state().events[p.key] = nil
     remember({ kind = how, a = p.a, b = p.b, day = day, since = ev and ev.since })
@@ -691,7 +816,32 @@ end
 
 -- saving ----------------------------------------------------------------------------------
 
+-- Before the save: what else changed the cells counts (notice), each cell's last value and its
+-- drift go with the save, for the start at the next load (first_sight), and the base game's store
+-- of saved relations gives up Factions' values (scrub_store)
 local function save_state(m_data)
+    local ok, err = pcall(function()
+        for _, p in ipairs(PAIRS) do
+            if not p.own then
+                notice(p)
+            end
+        end
+        local cells = {}
+        for k, w in pairs(written) do
+            if anchor[k] ~= nil and not string.find(k, OWN, 1, true) then
+                local o = outside[k]
+                cells[k] = { w = w, d = applied[k] or 0, o = o and { w = o.w, d = o.d, a = o.a } or nil }
+            end
+        end
+        state().cells = cells
+        local n = scrub_store()
+        if n > 0 then
+            log("save: %s saved copies of Factions' values went back to their starts", n)
+        end
+    end)
+    if not ok then
+        log("! before the save: %s", tostring(err))
+    end
     m_data.fotz = S
 end
 

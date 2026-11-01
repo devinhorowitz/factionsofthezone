@@ -1,0 +1,15 @@
+<w>
+<!--
+    Factions of the Zone: the label under a front's marker on the PDA map (fotz_map.script).
+
+    Both are children of the marker's own widget (the 19x19 spot, fotz_front or fotz_front_yours),
+    so x and y are from its top-left corner: centered under it, a shadow one pixel down and right.
+    The label's color is set from script (amber, or red where your side fights).
+-->
+    <front_label_shadow x="-89" y="21" width="199" height="16">
+        <text font="letterica16" r="0" g="0" b="0" a="200" align="c" vert_align="c"/>
+    </front_label_shadow>
+    <front_label x="-90" y="20" width="199" height="16">
+        <text font="letterica16" r="238" g="196" b="112" align="c" vert_align="c"/>
+    </front_label>
+</w>

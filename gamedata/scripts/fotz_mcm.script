@@ -18,12 +18,16 @@ function on_mcm_load()
             { id = "faction_companions", type = "check", val = 1, def = true },
             { id = "line1", type = "line" },
             { id = "politics", type = "check", val = 1, def = true },
+            { id = "territory", type = "check", val = 1, def = true },
+            { id = "map", type = "check", val = 1, def = true },
             { id = "news", type = "list", val = 0, def = "events", content = {
                 { "off", "fotz_news_off" },
                 { "events", "fotz_news_events" },
                 { "all", "fotz_news_all" },
             } },
             { id = "census", type = "check", val = 1, def = true },
+            -- before removing the mod: every patch of your faction out of the game (fotz_patch)
+            { id = "remove_patches", type = "check", val = 1, def = false },
             { id = "tab_key", type = "key_bind", val = 2, def = -1 },
             { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
         },

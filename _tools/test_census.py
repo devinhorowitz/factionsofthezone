@@ -44,8 +44,12 @@ MUTANTS = {
     "overwrite": ('io.open(path(), "a")', 'io.open(path(), "w")'),
     "no_front_count": ("                fr.n = fr.n + 1\n", ""),
     "listeners_need_log": ("if not (enabled() or #LISTENERS > 0) then", "if not enabled() then"),
-    "write_when_off": ("        if enabled() then\n            local f = assert",
-                       "        if true then\n            local f = assert"),
+    "write_when_off": ("        if enabled() then\n            local ok2, err2 = pcall",
+                       "        if true then\n            local ok2, err2 = pcall"),
+    "log_failure_stops_census": ("            local ok2, err2 = pcall(function()\n                local f = assert(io.open(path(), \"a\"))\n"
+                                 "                f:write(to_json(c), \"\\n\")\n                f:close()\n            end)\n",
+                                 "            local f = assert(io.open(path(), \"a\"))\n            f:write(to_json(c), \"\\n\")\n"
+                                 "            f:close()\n            local ok2, err2 = true, nil\n"),
 }
 
 WORLD = r"""
@@ -319,9 +323,21 @@ def run(src):
         check(len(lines()) == 2, "a failed census wrote a line")
         check(any(l.startswith("! [fotz-census]") and "boom" in l for l in g.LOG.values()),
               "the error wasn't logged")
+        g.OBJ[10].get_squad_community = lua.eval("function(self) return self.comm end")
+
+        # with the log on but a file it can't open (a folder that isn't there): the line is lost,
+        # the listener still gets the census
+        g.OUTDIR = out.replace("\\", "/") + "/missing/folder"
+        n = len(lines())
+        g.DATE[3] = 18
+        g.NOW = 130000
+        cb["actor_on_update"]()
+        check(list(g.GOT.values())[-1:] == ["2012-05-18 08:00"] and len(lines()) == n,
+              "an unwritable log: the listener got %s" % list(g.GOT.values()))
+        g.OUTDIR = out.replace("\\", "/")
 
         log = list(g.LOG.values())
-        check(sum(l.startswith("[fotz-census] ") for l in log) == 3, "summary lines: %s" % log)
+        check(sum(l.startswith("[fotz-census] ") for l in log) == 4, "summary lines: %s" % log)
         check(all("%" not in l for l in log), "a %% reached the log: %s" % log)
         check("2012-05-14 08:00 (load): 11 squads, 22 fighters, 4 smarts held, 1 contested" in log[0],
               "summary %s" % log[0])

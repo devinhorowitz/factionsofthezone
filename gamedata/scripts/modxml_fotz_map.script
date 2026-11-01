@@ -1,0 +1,44 @@
+--[[
+Factions of the Zone: DXML, the map spot types fotz_map puts on the PDA map for the fronts.
+
+Two types, one per color, each the game's attack-base ring (ui_pda2_attack_base2) tinted: amber for
+a front elsewhere, red for one your side fights. Level map only, not the minimap. They're added to
+every map_spots file the game may read (map_spots.xml, and the 16:9 and 21:9 ones), once each. No
+spot of these types is ever saved (fotz_map uses map_add_object_spot, not _ser).
+--]]
+
+TYPES = {
+    fotz_front = { 238, 196, 112 },
+    fotz_front_yours = { 230, 80, 70 },
+}
+local SPOT = [[<%s><level_map spot="%s_spot"/></%s>]]
+    .. [[<%s_spot width="19" height="19" stretch="1" alignment="c" location_level="5">]]
+    .. [[<texture r="%d" g="%d" b="%d">ui_pda2_attack_base2</texture></%s_spot>]]
+
+local said = {}
+
+-- the spot types, once per map_spots file
+function edit(name, xml)
+    if not string.match(name, "^ui[\\/]map_spots[_%d]*%.xml$") then
+        return false
+    end
+    local added = false
+    for spot, c in pairs(TYPES) do
+        if #xml:query(spot) == 0 then
+            xml:insertFromXMLString(string.format(SPOT, spot, spot, spot, spot, c[1], c[2], c[3], spot))
+            added = true
+        end
+    end
+    return added
+end
+
+-- DXML calls each mod's edit in turn and catches nothing: an error here is caught and logged once
+function on_xml_read()
+    RegisterScriptCallback("on_xml_read", function(name, xml)
+        local ok, err = pcall(edit, name, xml)
+        if not ok and not said[tostring(err)] then
+            said[tostring(err)] = true
+            printf("[fotz-map] DXML %s: %s", tostring(name), tostring(err))
+        end
+    end)
+end

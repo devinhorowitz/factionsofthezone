@@ -4,22 +4,30 @@ Factions of the Zone: the Factions tab.
 The page opens three ways, the player's choice: a tab of its own in the PDA (Modded Exes' registry,
 pda_dynamic_tabs, registered a second into play, never during a load), Mod App Creator's tile
 (z_fotz_mac; with MAC an MCM option picks the tile or the tab), or a key that opens it flat. It
-shows your side, the faction you lead or, without one, your own;
-each faction's standing with it, what holds that standing (a war, a truce, an alliance), how far
-politics has moved it and which way on its last day, its leader, and the ground and fighters the
-last census found; the war log, newest
-first; and your members. "Restore relations" puts every pair back where it started. A key in MCM
-opens the page flat, in a window of its own, since the 3D PDA softens PDA pages.
+shows your side, the faction you lead or, without one, your own, in words, not numbers (the PDA's
+own Relations tab has those, and the page links to it): how each faction whose relation with your
+side can change stands with you, what holds that (a war, a truce, an alliance) and which way it
+went on politics' last day, and its leader; the factions that never change, in a line for each
+standing; the war log, newest first; where the fighting is, a sentence a level saying who is
+winning, your side's levels first; and your members. "Restore relations" puts every pair back
+where it started. A key in MCM opens the page flat, in a window of its own, since the 3D PDA
+softens PDA pages.
 
 page() builds everything the page shows, as text, so it can be tested away from the UI;
-ui_fotz_tab.script only lays it out. Every word is a string id, st_fotz_tab_*.
+ui_fotz_tab.script only lays it out. fights() is the map's too (fotz_map). Every word is a string
+id.
 --]]
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 TAB_CAPTION = "st_fotz_tab"
 KEY_PATH = "fotz/tab_key"
-LOG_LINES = 10
-MEMBER_LINES = 8
+LOG_LINES = 4
+FIGHT_LINES = 4
+MEMBER_LINES = 5
+LIST_NAMES = 3      -- names a fight's list gives before "and N more"
+SIDE_MIN = 3        -- fighters a side, for a fight worth naming: a few stragglers by a big force aren't one
+-- the stronger side's share of the two, and what it's called: else the sides are evenly matched
+VERDICTS = { { 0.8, "control" }, { 2 / 3, "winning" }, { 0.55, "ahead" } }
 
 -- the standing's colors, as r, g, b: the PDA's reds, ambers and greens
 COLORS = {
@@ -27,7 +35,6 @@ COLORS = {
     neutral = { 200, 200, 200 }, friends = { 140, 205, 130 }, alliance = { 120, 225, 140 },
 }
 
-local LAST   -- the last census, kept as it arrives
 local TAB    -- the tab's section id, once registered
 
 local function log(fmt, ...)
@@ -51,9 +58,25 @@ function short_date(d)
     return m and (dd .. "." .. m) or tostring(d or "")
 end
 
-local function signed(n)
-    n = math.floor((n or 0) + 0.5)
-    return n > 0 and ("+" .. n) or tostring(n)
+-- names as a sentence lists them: "A", "A and B", "A, B and C"; past `cap` names, "A, B and N more"
+function names_list(names, cap)
+    local n = #names
+    if n == 0 then
+        return ""
+    end
+    local list = {}
+    for i = 1, n do
+        list[i] = names[i]
+    end
+    if cap and n > cap then
+        list = { unpack(list, 1, cap - 1) }
+        list[#list + 1] = text("st_fotz_more", { n = n - cap + 1 })
+    end
+    if #list == 1 then
+        return list[1]
+    end
+    -- the spaces are added here: the string table trims them off the ends of a text
+    return table.concat(list, ", ", 1, #list - 1) .. " " .. text("st_fotz_and") .. " " .. list[#list]
 end
 
 -- a standing in words: an event in force first, else the game's lines at -1000 and 1000
@@ -67,21 +90,6 @@ function band(rel, kind)
         return "friends"
     end
     return "neutral"
-end
-
--- smarts held and fighters, from the last census, or nil before one
-local function strength(f)
-    if not LAST then
-        return nil
-    end
-    local held = 0
-    for _, holder in pairs(LAST.smarts or {}) do
-        if holder == f then
-            held = held + 1
-        end
-    end
-    local e = LAST.factions and LAST.factions[f]
-    return held, e and e.fighters or 0
 end
 
 -- what the event holding a pair says, with its date
@@ -124,37 +132,37 @@ local function trend_of(P, pair)
     return t > 0 and "up" or "down"
 end
 
+-- the factions whose relation with your side can change, a row each; and the ones that never do,
+-- in a line for each standing (permanent enemies first)
 local function rows(P, side)
-    local out = {}
+    local out, fixed = {}, { enemies = {}, neutral = {}, friends = {} }
     for _, f in ipairs(fotz_census.FACTIONS) do
         if f ~= side then
             local rel = relation_registry.community_relation(side, f)
             local pair = P.pair_of(side, f)
-            local ev = pair and P.S and P.S.events[pair.key]
-            local b = band(rel, ev and ev.kind)
-            local parts = {}
-            parts[#parts + 1] = leader_line(f)
-            local held, fighters = strength(f)
-            if held then
-                parts[#parts + 1] = text("st_fotz_tab_strength", { held = held, fighters = fighters })
-            end
-            local change
             if not pair then
-                change = text("st_fotz_tab_fixed")
+                local list = fixed[band(rel)]
+                list[#list + 1] = P.faction_name(f)
             else
-                local d = P.S and P.S.drift[pair.key] or 0
-                change = d ~= 0 and text("st_fotz_tab_change", { n = signed(d) }) or ""
+                local ev = P.S and P.S.events[pair.key]
+                local b = band(rel, ev and ev.kind)
+                local trend = trend_of(P, pair)
+                out[#out + 1] = {
+                    faction = f, icon = "ui_mm_faction_" .. f, name = P.faction_name(f), band = b,
+                    standing = text("st_fotz_tab_band_" .. b), color = COLORS[b], detail = leader_line(f) or "",
+                    event = event_line(ev) or "", trend = trend,
+                    change = trend and text("st_fotz_tab_trend_" .. trend) or "",
+                }
             end
-            out[#out + 1] = {
-                faction = f, icon = "ui_mm_faction_" .. f, name = P.faction_name(f), band = b,
-                standing = text("st_fotz_tab_band_" .. b) .. " (" .. signed(rel) .. ")",
-                -- the spaces are added here: the string table trims them off the ends of a text
-                color = COLORS[b], detail = table.concat(parts, " " .. text("st_fotz_tab_sep") .. " "), change = change,
-                event = event_line(ev) or "", trend = trend_of(P, pair),
-            }
         end
     end
-    return out
+    local lines = {}
+    for _, b in ipairs({ "enemies", "neutral", "friends" }) do
+        if #fixed[b] > 0 then
+            lines[#lines + 1] = text("st_fotz_tab_fixed_" .. b, { list = names_list(fixed[b]) })
+        end
+    end
+    return out, lines
 end
 
 local function war_log(P)
@@ -167,6 +175,126 @@ local function war_log(P)
     end
     if #out == 0 then
         out[1] = text("st_fotz_tab_log_none")
+    end
+    return out
+end
+
+-- The fighting, from territory's fronts (every level two hostile factions are both on, with each
+-- one's fighters there): a fight a level, about your side when it fights there, else about the
+-- level's strongest side, against every enemy it faces there. Only fronts of FRONT_MIN fighters or
+-- more and SIDE_MIN a side count. The verdict is the share the stronger side has of it and its
+-- biggest enemy: past the stronger side's share in VERDICTS, else even. Your side's levels first,
+-- then the most fighters.
+function fights(fronts, side)
+    local T = fotz_territory
+    local min = T and T.FRONT_MIN or 10
+    local levels, order = {}, {}
+    for _, f in ipairs(fronts or {}) do
+        if f.fa + f.fb >= min and math.min(f.fa, f.fb) >= SIDE_MIN then
+            local lv = levels[f.level]
+            if not lv then
+                lv = { level = f.level, n = {}, foes = {} }
+                levels[f.level] = lv
+                order[#order + 1] = lv
+            end
+            lv.n[f.a], lv.n[f.b] = f.fa, f.fb
+            lv.foes[f.a] = lv.foes[f.a] or {}
+            lv.foes[f.b] = lv.foes[f.b] or {}
+            lv.foes[f.a][f.b], lv.foes[f.b][f.a] = true, true
+        end
+    end
+    local out = {}
+    for _, lv in ipairs(order) do
+        local focus = lv.foes[side] and side or nil
+        if not focus then
+            for f, n in pairs(lv.n) do
+                if not focus or n > lv.n[focus] or (n == lv.n[focus] and f < focus) then
+                    focus = f
+                end
+            end
+        end
+        local foes = {}
+        for f in pairs(lv.foes[focus]) do
+            foes[#foes + 1] = f
+        end
+        table.sort(foes, function(x, y)
+            if lv.n[x] ~= lv.n[y] then
+                return lv.n[x] > lv.n[y]
+            end
+            return x < y
+        end)
+        local mine, theirs = lv.n[focus], lv.n[foes[1]]
+        local share = mine / (mine + theirs)
+        local w, l
+        if share >= 0.5 then
+            w, l = { focus }, foes
+        else
+            -- the focus behind: every enemy stronger than it is ahead
+            w, l, share = {}, { focus }, 1 - share
+            for _, f in ipairs(foes) do
+                if lv.n[f] > mine then
+                    w[#w + 1] = f
+                end
+            end
+        end
+        local kind = "even"
+        for _, v in ipairs(VERDICTS) do
+            if share >= v[1] then
+                kind = v[2]
+                break
+            end
+        end
+        local total = 0
+        for _, n in pairs(lv.n) do
+            total = total + n
+        end
+        out[#out + 1] = { level = lv.level, kind = kind, w = w, l = l, yours = focus == side, total = total, n = lv.n }
+    end
+    table.sort(out, function(x, y)
+        if x.yours ~= y.yours then
+            return x.yours
+        end
+        if x.total ~= y.total then
+            return x.total > y.total
+        end
+        return x.level < y.level
+    end)
+    return out
+end
+
+-- a fight in words, your side named as yours: "Jupiter: Bandits winning, your Ecologists losing"
+function fight_line(fx, side)
+    local P = fotz_politics
+    local function names(list)
+        local out = {}
+        for i, f in ipairs(list) do
+            out[i] = f == side and text("st_fotz_your", { name = P.faction_name(f) }) or P.faction_name(f)
+        end
+        return names_list(out, LIST_NAMES)
+    end
+    -- evenly matched is the two biggest: "A and B, C and D evenly matched" can't be read
+    local w, l = fx.w, fx.l
+    if fx.kind == "even" then
+        w, l = { w[1] }, { l[1] }
+    end
+    return text("st_fotz_fight_" .. fx.kind, { place = game.translate_string(fx.level), w = names(w), l = names(l) })
+end
+
+local function fight_lines(side)
+    local T = fotz_territory
+    -- the census comes some seconds into a load: until then there's nothing to say yet
+    if T and not T.COUNTED then
+        return { text("st_fotz_tab_fighting_wait") }
+    end
+    local out = {}
+    for i, fx in ipairs(fights(T and T.FRONTS, side)) do
+        if i > FIGHT_LINES then
+            break
+        end
+        out[i] = fight_line(fx, side)
+    end
+    if #out == 0 then
+        out[1] = text("st_fotz_tab_fighting_none")
     end
     return out
 end
@@ -194,10 +322,16 @@ local function member_lines(P, F)
 end
 
 -- everything the page shows
+-- your side: the faction you lead, or without one your own
+function side()
+    local F = fotz_faction and fotz_faction.F
+    return F and fotz_politics.OWN or get_actor_true_community()
+end
+
 function page()
     local P = fotz_politics
     local F = fotz_faction and fotz_faction.F
-    local side = F and P.OWN or get_actor_true_community()
+    local side = side()
     local p = { leading = F ~= nil, side = side }
     if F then
         local n = 0
@@ -208,7 +342,8 @@ function page()
         end
         p.title = F.name
         p.subtitle = text("st_fotz_tab_yours", { date = short_date(F.founded), from = P.faction_name(F.mother), n = n })
-        p.icon = "ui_mm_faction_" .. F.mother
+        -- your faction's own emblem: its patch's art (fotz_patch), which a player may replace
+        p.icon = fotz_patch.EMBLEM
         p.members = member_lines(P, F)
     else
         p.title = P.faction_name(side)
@@ -217,8 +352,9 @@ function page()
     end
     local _, why = P.standing_down()
     p.status = why and text("st_fotz_tab_down_" .. why) or text("st_fotz_tab_in_charge")
-    p.rows = rows(P, side)
+    p.rows, p.fixed = rows(P, side)
     p.log = war_log(P)
+    p.fights = fight_lines(side)
     p.credit = text("st_fotz_tab_credit", { v = VERSION })
     return p
 end
@@ -259,6 +395,17 @@ local function pda_section()
     return ok and s or nil
 end
 
+-- the PDA's own Relations tab, where the numbers are: from the page in the PDA, the button goes
+-- there
+function to_relations()
+    local m = ActorMenu.get_pda_menu()
+    if m then
+        m:SetActiveSubdialog("eptRelations")
+        return true
+    end
+    return false
+end
+
 -- The tab there or gone as wants_tab() says, and the tile the other way round; a tab the registry
 -- refuses leaves the tile. The registry rebuilds the tab bar, and the engine may then select a
 -- registered tab's page: the section the PDA was on is put back, and if it was the tab taken away,
@@ -277,8 +424,14 @@ function sync()
             z_fotz_mac.add_tile()
         end
         local m = ActorMenu.get_pda_menu()
-        if m and was and was ~= "" and m:GetActiveSection() ~= was then
-            m:SetActiveSubdialog(was)
+        if m and was and was ~= "" then
+            if was == modxml_fotz_tab.SECTION and TAB then
+                -- the PDA was on the page from the tile: nothing routes that section any more, so
+                -- the page goes with it to its own tab
+                m:SetActiveSubdialog(TAB)
+            elseif m:GetActiveSection() ~= was then
+                m:SetActiveSubdialog(was)
+            end
         end
     elseif not want then
         local was, gone = pda_section(), TAB
@@ -358,7 +511,6 @@ local function close_flat()
 end
 
 function on_game_start()
-    fotz_census.listen(function(c) LAST = c end)
     -- the tab or the tile in play only: a registration during a load crashed in testing
     RegisterScriptCallback("actor_on_first_update", function() sync_soon(1) end)
     RegisterScriptCallback("on_option_change", function() sync_soon(0) end)

@@ -9,6 +9,18 @@
 	<string id="ui_mcm_fotz_politics_desc">
 		<text>Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it.</text>
 	</string>
+	<string id="ui_mcm_fotz_territory">
+		<text>Squads lean toward winning fronts</text>
+	</string>
+	<string id="ui_mcm_fotz_territory_desc">
+		<text>A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself.</text>
+	</string>
+	<string id="ui_mcm_fotz_map">
+		<text>Fronts on the PDA map</text>
+	</string>
+	<string id="ui_mcm_fotz_map_desc">
+		<text>A marker on each level where hostile factions fight, 10 fighters or more and at least 3 a side: red when the fight is your side's, amber otherwise, with the two sides named under it. Hover it to see who is winning and which factions there are hostile to you. The markers are never saved.</text>
+	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>News on the PDA</text>
 	</string>
@@ -56,6 +68,9 @@
 	</string>
 	<string id="st_fotz_news_ground">
 		<text>We took {place} from {b}.</text>
+	</string>
+	<string id="st_fotz_news_front_upper">
+		<text>In {place} the upper hand over {b} is ours now.</text>
 	</string>
 	<string id="fotz_own">
 		<text>Your faction</text>
@@ -167,13 +182,13 @@
 		<text>Relations are left to Fluid Relations.</text>
 	</string>
 	<string id="st_fotz_tab_standing">
-		<text>Standing</text>
+		<text>How the factions stand with you</text>
 	</string>
 	<string id="st_fotz_tab_band_war">
 		<text>At war</text>
 	</string>
 	<string id="st_fotz_tab_band_enemies">
-		<text>Enemies</text>
+		<text>Hostile</text>
 	</string>
 	<string id="st_fotz_tab_band_truce">
 		<text>Truce</text>
@@ -182,13 +197,16 @@
 		<text>Neutral</text>
 	</string>
 	<string id="st_fotz_tab_band_friends">
-		<text>Friends</text>
+		<text>Friendly</text>
 	</string>
 	<string id="st_fotz_tab_band_alliance">
 		<text>Allied</text>
 	</string>
-	<string id="st_fotz_tab_strength">
-		<text>holds {held} · {fighters} fighters</text>
+	<string id="st_fotz_tab_trend_up">
+		<text>getting better</text>
+	</string>
+	<string id="st_fotz_tab_trend_down">
+		<text>getting worse</text>
 	</string>
 	<string id="st_fotz_tab_war_since">
 		<text>at war since {date}</text>
@@ -199,38 +217,77 @@
 	<string id="st_fotz_tab_alliance_since">
 		<text>allied since {date}</text>
 	</string>
-	<string id="st_fotz_tab_fixed">
-		<text>never changes</text>
+	<string id="st_fotz_tab_fixed_enemies">
+		<text>Permanent enemies: {list}.</text>
 	</string>
-	<string id="st_fotz_tab_change">
-		<text>{n} since the start</text>
+	<string id="st_fotz_tab_fixed_neutral">
+		<text>Always neutral: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_friends">
+		<text>Permanent friends: {list}.</text>
 	</string>
 	<string id="st_fotz_tab_log">
 		<text>War log</text>
 	</string>
 	<string id="st_fotz_tab_log_war">
-		<text>War: {a} and {b}</text>
+		<text>{a} and {b} went to war</text>
 	</string>
 	<string id="st_fotz_tab_log_war_over">
-		<text>War ends: {a} and {b}</text>
+		<text>{a} and {b} stopped fighting</text>
 	</string>
 	<string id="st_fotz_tab_log_truce">
-		<text>Truce: {a} and {b}</text>
+		<text>{a} and {b} made a truce</text>
 	</string>
 	<string id="st_fotz_tab_log_truce_over">
-		<text>Truce over: {a} and {b}</text>
+		<text>The truce between {a} and {b} ended</text>
 	</string>
 	<string id="st_fotz_tab_log_alliance">
-		<text>Alliance: {a} and {b}</text>
+		<text>{a} and {b} became allies</text>
 	</string>
 	<string id="st_fotz_tab_log_alliance_over">
-		<text>Alliance over: {a} and {b}</text>
+		<text>{a} and {b} are allies no more</text>
 	</string>
 	<string id="st_fotz_tab_log_restored">
-		<text>Relations restored to their start</text>
+		<text>Relations reset to their start</text>
 	</string>
 	<string id="st_fotz_tab_log_none">
 		<text>Nothing yet: wars, truces and alliances show here.</text>
+	</string>
+	<string id="st_fotz_tab_fighting">
+		<text>Where the fighting is</text>
+	</string>
+	<string id="st_fotz_tab_fighting_wait">
+		<text>Not counted yet: the census comes shortly after a load.</text>
+	</string>
+	<string id="st_fotz_tab_fighting_none">
+		<text>No fighting: no two hostile factions share a level.</text>
+	</string>
+	<string id="st_fotz_fight_control">
+		<text>{place}: {w} in control, {l} nearly gone</text>
+	</string>
+	<string id="st_fotz_fight_winning">
+		<text>{place}: {w} winning, {l} losing</text>
+	</string>
+	<string id="st_fotz_fight_ahead">
+		<text>{place}: {w} ahead, {l} holding on</text>
+	</string>
+	<string id="st_fotz_fight_even">
+		<text>{place}: {w} and {l} evenly matched</text>
+	</string>
+	<string id="st_fotz_your">
+		<text>your {name}</text>
+	</string>
+	<string id="st_fotz_and">
+		<text>and</text>
+	</string>
+	<string id="st_fotz_more">
+		<text>{n} more</text>
+	</string>
+	<string id="st_fotz_map_label">
+		<text>{a} vs {b}</text>
+	</string>
+	<string id="st_fotz_map_hostile">
+		<text>Hostile to you here: {list}</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Members</text>
@@ -251,13 +308,22 @@
 		<text>and {n} more</text>
 	</string>
 	<string id="st_fotz_tab_restore">
-		<text>Restore relations</text>
+		<text>Reset relations</text>
 	</string>
 	<string id="st_fotz_tab_restore_confirm">
-		<text>Click again to restore</text>
+		<text>Click again to reset</text>
 	</string>
 	<string id="st_fotz_tab_restored">
-		<text>Relations restored</text>
+		<text>Relations reset</text>
+	</string>
+	<string id="st_fotz_tab_restore_note">
+		<text>Reset puts every relation back where it was before the fighting moved it, and ends all wars, truces and alliances.</text>
+	</string>
+	<string id="st_fotz_tab_restore_warn">
+		<text>A second click puts every relation back and ends all wars, truces and alliances. It can't be undone.</text>
+	</string>
+	<string id="st_fotz_tab_numbers">
+		<text>Relation numbers</text>
 	</string>
 	<string id="st_fotz_tab_leader_dead">
 		<text>{name} (dead)</text>
@@ -325,5 +391,38 @@
 	</string>
 	<string id="st_dyn_news_comm_fotz_own_14">
 		<text>Brothers, help!</text>
+	</string>
+	<string id="st_fotz_patch">
+		<text>Patch (Your faction)</text>
+	</string>
+	<string id="st_fotz_patch_descr">
+		<text>Your own faction's insignia, sewn to order in Cordon. Your members wear it, and a fallen one leaves it behind.</text>
+	</string>
+	<string id="st_fotz_patch_ask">
+		<text>Can you get patches sewn for my faction?</text>
+	</string>
+	<string id="st_fotz_patch_offer">
+		<text>Patches with your own emblem? There's a woman in the village who sews. {price} RU apiece. How many?</text>
+	</string>
+	<string id="st_fotz_patch_buy_one">
+		<text>One, for {total} RU.</text>
+	</string>
+	<string id="st_fotz_patch_buy">
+		<text>{n}, for {total} RU.</text>
+	</string>
+	<string id="st_fotz_patch_done">
+		<text>There, fresh off the needle. Anything else?</text>
+	</string>
+	<string id="st_fotz_patch_not_now">
+		<text>That's all for now.</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches">
+		<text>Remove your faction's patches</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches_desc">
+		<text>Takes every patch of your faction out of the game, wherever it is: on you, in stashes, on the fallen. Do this before removing Factions of the Zone: a save that holds one can't load without it.</text>
+	</string>
+	<string id="st_fotz_patch_removed">
+		<text>Your faction's patches taken out of the game: {n}.</text>
 	</string>
 </string_table>
