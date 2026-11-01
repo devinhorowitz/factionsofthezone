@@ -23,12 +23,23 @@ Homestead's records are read and never written: stalker_camp_builder.active_camp
 time (load replaces the table). A resident is keyed by NPC id. Homestead re-creates a settler under
 a new id with the same record (restore_missing_settler, the Invincible respawn), and the section
 can change with it, so an entry whose id is gone is linked again to a record in the same camp under
-the same name. A camp gone from the table fell or was dismantled: its sworn members stay in your
-faction, the others go back to their own, and the rest are forgotten.
+the same name.
+
+A camp gone from the table fell or was dismantled, and Homestead freed its residents with a squad
+each. Its sworn members stay in your faction; the other members stay at a roll of their loyalty
+out of 100, and only with a camp to go to; the rest are forgotten. A member who stays heads for a
+camp of yours with room (Homestead's own get_recruitable_camps, its territory and campmate checks
+included): their squad is pointed at the smart nearest that camp's flag (a scripted target, which
+the territory steer leaves alone), and once there and online they move in through Homestead's own
+recruit_npc_to_camp, with no roll and no fee. A camp that turns them away is crossed off for the
+next; with none left, a sworn member waits in the Zone and looks again each day, and the others go
+back to their own faction. Their loyalty and their oath go with them: it's the same NPC.
 --]]
 
 CONFIG = "plugins\\fotz_politics.ltx"
 LOOK_MS = 10000     -- events, raids and new residents are looked at this often
+ARRIVE = 25         -- meters from a camp's flag at which a member heading there has arrived
+ARRIVE_SMART = 50   -- or from the smart their squad heads for, which can be a way from the flag
 
 DEFAULTS = {
     start = 30, same_faction = 10, was_companion = 10, start_friends = 15, start_enemies = -15,
@@ -290,21 +301,171 @@ local function stop_being_resident(id, e, why)
     end
 end
 
+-- between camps -------------------------------------------------------------------------------
+
+-- the smart terrain nearest a camp's flag, on the camp's level: where a member heading there
+-- goes. Its name and where it is
+local function smart_near(camp)
+    local p = camp.pos
+    if not (p and camp.level and SIMBOARD and SIMBOARD.smarts) then
+        return nil
+    end
+    local sim, gg = alife(), game_graph()
+    local best, d2 = nil, math.huge
+    for _, sm in pairs(SIMBOARD.smarts) do
+        local s = sm.smrt
+        if s and s.position and sim:level_name(gg:vertex(s.m_game_vertex_id):level_id()) == camp.level then
+            local dx, dy, dz = s.position.x - p.x, s.position.y - p.y, s.position.z - p.z
+            local d = dx * dx + dy * dy + dz * dz
+            if d < d2 then
+                best, d2 = s, d
+            end
+        end
+    end
+    return best and best:name(), best and { x = best.position.x, y = best.position.y, z = best.position.z }
+end
+
+-- a member's squad pointed at a smart, or let go (nil); false without a squad to point
+local function steer(id, smart)
+    local se = alife():object(id)
+    local sq = se and get_object_squad(se)
+    if not sq then
+        return false
+    end
+    if sq.scripted_target ~= smart then
+        sq.scripted_target = smart
+    end
+    return true
+end
+
+-- the camps of yours a member could move into: room, and Homestead's own checks of the territory
+-- and the campmates, for a member of your faction; not the ones that turned them away
+local function camps_for(e)
+    local m = homestead()
+    local ok, list = pcall(function() return m.get_recruitable_camps(fotz_faction.OWN) end)
+    local out = {}
+    for _, it in ipairs(ok and type(list) == "table" and list or {}) do
+        if not (e.tried and e.tried[it.hub_id]) then
+            out[#out + 1] = it
+        end
+    end
+    return out
+end
+
+-- a member sets out for a camp of yours with room; false when there's none to go to
+local function set_out(id, e)
+    e.trip = nil
+    for _, it in ipairs(camps_for(e)) do
+        local smart, at = smart_near(it.camp)
+        if smart then
+            e.trip = { hub = it.hub_id, smart = smart, at = at, since = today() }
+            steer(id, smart)
+            log("%s heads for %s (%s)", e.name, camp_name(it.camp), smart)
+            say("st_fotz_news_heading", { who = e.name, camp = camp_name(it.camp) })
+            return true
+        end
+    end
+    return false
+end
+
+-- a member with nowhere to go: the sworn wait in the Zone, still members; the others go back to
+-- their own faction. True when they left
+local function nowhere(id, e, from)
+    local m = member(id)
+    e.trip = nil
+    if e.sworn then
+        log("%s, sworn, waits for a camp with room", e.name)
+        return false
+    end
+    if fotz_faction.is_companion(id) then
+        m.via = "companion"
+        return true
+    end
+    fotz_faction.leave(id, "no camp to go to")
+    say("st_fotz_news_fell_left", { who = e.name, name = F().name, camp = from or "", to = faction_name(m.mother) })
+    return true
+end
+
+-- a member's camp fell: the sworn stay; the others stay at a roll of their loyalty out of 100,
+-- and then only with a camp of yours to go to. True when they left
+local function fell(id, e)
+    local m = member(id)
+    local from = e.label
+    e.hub, e.tried = nil, nil
+    if fotz_faction.is_companion(id) then
+        m.via = "companion"
+        return true
+    end
+    if not e.sworn and math.random() >= e.v / 100 then
+        fotz_faction.leave(id, "their camp fell")
+        say("st_fotz_news_fell_left", { who = e.name, name = F().name, camp = from or "", to = faction_name(m.mother) })
+        return true
+    end
+    return not set_out(id, e) and nowhere(id, e, from)
+end
+
+-- a travelling member there (by the camp's flag, or at the smart their squad heads for) and online
+-- moves in through Homestead's own recruit_npc_to_camp (no roll, no fee); a camp that turns them
+-- away is crossed off, and they try the next
+local function arrive(id, e, camp)
+    local npc = level.object_by_id(id)
+    local p, at = camp.pos, e.trip.at
+    if not (npc and npc:alive() and p and level.name() == camp.level) then
+        return false
+    end
+    local here = npc:position()
+    local by_flag = here:distance_to(vector():set(p.x, p.y, p.z)) <= ARRIVE
+    local at_smart = at and here:distance_to(vector():set(at.x, at.y, at.z)) <= ARRIVE_SMART
+    if not (by_flag or at_smart) then
+        return false
+    end
+    local hub = e.trip.hub
+    local ok, done = pcall(function() return homestead().recruit_npc_to_camp(db.actor, npc, hub) end)
+    if ok and done then
+        steer(id, nil)
+        e.hub, e.trip, e.tried, e.label = hub, nil, nil, camp_name(camp)
+        log("%s moved into %s", e.name, e.label)
+        say("st_fotz_news_arrived", { who = e.name, camp = e.label })
+        return false
+    end
+    log("%s turned away at %s: %s", e.name, camp_name(camp), tostring(done))
+    e.tried = e.tried or {}
+    e.tried[hub] = true
+    return not set_out(id, e) and nowhere(id, e, e.label)
+end
+
+-- the members on their way: kept heading there, moved in on arrival; a camp gone meanwhile is
+-- crossed off for the next
+local function travel(res, camps)
+    for id, e in pairs(res) do
+        local m = member(id)
+        if e.trip and not e.dead and m and not m.dead then
+            local camp = camps[e.trip.hub]
+            local left
+            if not camp then
+                e.tried = e.tried or {}
+                e.tried[e.trip.hub] = true
+                left = not set_out(id, e) and nowhere(id, e, e.label)
+            else
+                steer(id, e.trip.smart)
+                left = arrive(id, e, camp)
+            end
+            if left then
+                res[id] = nil
+            end
+        end
+    end
+end
+
 -- the entries whose record is gone: the dead and those who left a standing camp are dropped (a
--- member who left goes back to their own faction); from a fallen camp, the sworn stay members
--- (between camps) and the other members go back
+-- member who left goes back to their own faction); a fallen camp's members stay or go (fell), and
+-- its other residents are forgotten
 local function gone(res, camps)
     for id, e in pairs(res) do
         local camp = e.hub and camps[e.hub]
         if e.hub and not camp then
             local m = member(id)
-            if e.sworn and m and not m.dead then
-                e.hub = nil
-                log("%s's camp is gone: sworn, still a member", e.name)
-            else
-                if m and not m.dead then
-                    stop_being_resident(id, e, "their camp fell")
-                end
+            if not (m and not m.dead) or fell(id, e) then
                 res[id] = nil
             end
         elseif camp and not camp.survivors[id] and not e.dead then
@@ -328,17 +489,21 @@ function look()
             for id, rec in pairs(camp.survivors) do
                 local e = res[id]
                 if not e then
-                    res[id] = new_entry(id, rec, hub)
-                    log("%s, a resident of %s: loyalty %s", tostring(rec.name), camp_name(camp), res[id].v)
+                    e = new_entry(id, rec, hub)
+                    res[id] = e
+                    log("%s, a resident of %s: loyalty %s", tostring(rec.name), camp_name(camp), e.v)
                 else
                     e.hub, e.name = hub, rec.name or e.name
                     events(e, rec)
                 end
+                -- the camp's name, for the news if it falls
+                e.label = camp_name(camp)
             end
             raid_watch(hub, camp, res)
         end
     end
     gone(res, camps)
+    travel(res, camps)
 end
 
 -- the day ---------------------------------------------------------------------------------------
@@ -447,6 +612,11 @@ function day(date)
         if e.dead then
             res[id] = nil
         else
+            -- a sworn member waiting for a camp looks again, the camps that turned them away too
+            if e.sworn and not e.hub and not e.trip and member(id) then
+                e.tried = nil
+                set_out(id, e)
+            end
             decide(id, e, e.hub and camps[e.hub], date)
         end
     end
@@ -500,8 +670,10 @@ function page_lists()
     end
     for id, e in pairs(b.res) do
         local camp = e.hub and m.active_camps[e.hub]
+        local bound = e.trip and m.active_camps[e.trip.hub]
         local it = { id = id, name = e.name, v = math.floor(e.v + 0.5), sworn = e.sworn,
-                     camp = camp and camp_name(camp) or nil, req = e.req }
+                     camp = camp and camp_name(camp) or nil, req = e.req,
+                     heading = bound and camp_name(bound) or nil }
         if member(id) then
             out.members[#out.members + 1] = it
         elseif e.req then
