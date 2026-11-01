@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 — 2026-11-01
+
+The first release: everything below, from the census (0.1.0) to territory (0.4.0).
 
 ### Fixed before the first release (a bug sweep)
 
