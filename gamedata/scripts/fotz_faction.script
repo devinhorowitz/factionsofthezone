@@ -199,7 +199,58 @@ function join(npc, via)
                       joined = today() }
     npc:set_character_community(OWN, npc:squad(), npc:group())
     log("%s (%s) joined, from %s", npc:character_name(), id, comm)
-    say("st_fotz_news_joined", { who = npc:character_name(), name = F.name })
+    -- a settler's joining is fotz_loyalty's news, with their camp in it
+    if via ~= "settler" then
+        say("st_fotz_news_joined", { who = npc:character_name(), name = F.name })
+    end
+    return true
+end
+
+-- a settler joins (fotz_loyalty): live if online; offline, in the faction their server object is
+-- saved with, which their next spawn takes up
+function join_settler(id)
+    if not F or F.members[id] then
+        return false
+    end
+    local o = level.object_by_id(id)
+    if o then
+        return IsStalker(o) and join(o, "settler")
+    end
+    local se = alife():object(id)
+    if not (se and IsStalker(nil, se:clsid()) and se:alive()) then
+        return false
+    end
+    local comm = strip(se:community())
+    if comm == OWN then
+        return false
+    end
+    F.members[id] = { mother = comm, name = se:character_name(), profile = profile_of(id), via = "settler",
+                      joined = today() }
+    set_saved_community(se, OWN)
+    log("%s (%s) joined, from %s, offline", se:character_name(), id, comm)
+    return true
+end
+
+-- a member Homestead re-created under a new id: the same person, so the same membership; the
+-- faction comes on the update after they're online, or offline with their saved one
+function relink(old, new)
+    local m = F and F.members[old]
+    if not m or F.members[new] then
+        return false
+    end
+    F.members[old] = nil
+    pending[old] = nil
+    m.profile, m.dead = profile_of(new), nil
+    F.members[new] = m
+    if level.object_by_id(new) then
+        pending[new] = true
+    else
+        local se = alife():object(new)
+        if se and IsStalker(nil, se:clsid()) and se:alive() and se:community() ~= OWN then
+            set_saved_community(se, OWN)
+        end
+    end
+    log("%s: member %s is now %s", m.name, old, new)
     return true
 end
 
@@ -227,6 +278,14 @@ end
 
 local function old_faction()
     return F and F.mother or last_mother or "stalker"
+end
+
+-- the faction you're in yourself, as the game keeps it: it moves with the game's own faction
+-- change (joining Freedom, say), where the faction you founded yours from doesn't. "You join it"
+-- moves you between it and our twin, and a save or disbanding puts you back in it
+local function home()
+    local comm = get_actor_true_community and get_actor_true_community()
+    return "actor_" .. strip(comm or old_faction())
 end
 
 -- the faction a record of NPC id gets in place of ours: a member's old one, or the NPC's own if
@@ -260,7 +319,7 @@ local function scrub(t, id, seen)
             t[k] = record_faction(at)
             n = n + 1
         elseif v == ACTOR_OWN then
-            t[k] = "actor_" .. old_faction()
+            t[k] = home()
             n = n + 1
         end
         if k == OWN or k == ACTOR_OWN then
@@ -268,7 +327,7 @@ local function scrub(t, id, seen)
         end
     end
     for _, k in ipairs(moved) do
-        local to = k == OWN and old_faction() or "actor_" .. old_faction()
+        local to = k == OWN and old_faction() or home()
         if t[to] == nil then
             t[to] = t[k]
         end
@@ -336,6 +395,16 @@ local function companions_join()
     return not (ui_mcm and ui_mcm.get("fotz/faction_companions") == false)
 end
 
+function is_companion(id)
+    return companions()[id] == true
+end
+
+-- whether a member who stopped following you lives in one of your camps (fotz_loyalty): then
+-- they stay a member, as a settler
+local function settled(id)
+    return fotz_loyalty ~= nil and fotz_loyalty.enabled() and fotz_loyalty.resident(id)
+end
+
 -- whether you join your faction yourself (MCM, off unless chosen); if not, you lead it from your
 -- old faction. Joined, G.A.M.M.A. sees you in a faction it doesn't know: the disguise system takes
 -- it for a disguise, and dialogs, tasks and fast travel bound to your old faction go quiet
@@ -375,11 +444,11 @@ local function tick()
     -- left alone), or back in your old one if you don't join
     local yours = db.actor:character_community()
     if you_join() then
-        if yours == "actor_" .. F.mother then
+        if yours == home() then
             db.actor:set_character_community(ACTOR_OWN, 0, 0)
         end
     elseif yours == ACTOR_OWN then
-        db.actor:set_character_community("actor_" .. F.mother, 0, 0)
+        db.actor:set_character_community(home(), 0, 0)
     end
     for id in pairs(pending) do
         pending[id] = nil
@@ -400,8 +469,13 @@ local function tick()
     end
     for id, m in pairs(F.members) do
         if m.via == "companion" and not m.dead and not comp[id] then
-            leave(id, "no longer a companion")
-            say("st_fotz_news_left", { who = m.name, name = F.name })
+            if settled(id) then
+                m.via = "settler"
+                log("%s (%s) settled in one of your camps: still a member", m.name, id)
+            else
+                leave(id, "no longer a companion")
+                say("st_fotz_news_left", { who = m.name, name = F.name })
+            end
         end
     end
 end
@@ -447,7 +521,7 @@ function disband()
         leave(id, "disbanded")
     end
     if db.actor:character_community() == ACTOR_OWN then
-        db.actor:set_character_community("actor_" .. F.mother, 0, 0)
+        db.actor:set_character_community(home(), 0, 0)
     end
     last_mother = F.mother
     F = nil
@@ -500,7 +574,7 @@ local function save_state(m_data)
         return
     end
     if db.actor:character_community() == ACTOR_OWN then
-        db.actor:set_character_community("actor_" .. F.mother, 0, 0)
+        db.actor:set_character_community(home(), 0, 0)
     end
     log("save: %s members returned to their factions, %s others, %s failed", reverted, strays, failed)
 end

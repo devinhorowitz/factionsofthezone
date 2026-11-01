@@ -44,7 +44,7 @@ MUTANTS = {
                  "return se ~= nil"),
     "no_defer": ("    if same_member(id, m) then\n        pending[id] = true",
                  "    if same_member(id, m) then\n        npc:set_character_community(OWN, npc:squad(), npc:group())"),
-    "actor_save": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community("actor_" .. F.mother, 0, 0)\n    end\n    log("save: %s members',
+    "actor_save": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community(home(), 0, 0)\n    end\n    log("save: %s members',
                    '    log("save: %s members'),
     "keep_dead": ("            if m.dead then\n                F.members[id] = nil\n            end\n", ""),
     "always_join": ("    if you_join() then", "    if true then"),
@@ -55,7 +55,19 @@ MUTANTS = {
     "not_friends": ("            base[a .. \">\" .. b] = 2000", "            base[a .. \">\" .. b] = 0"),
     "no_reapply": ('    log("%s: %s cells, %s members", F.name, apply_relations(),', '    log("%s: %s cells, %s members", F.name, 0,'),
     "any_version": ('if type(d) == "table" and d.v == SAVE_VERSION then', 'if type(d) == "table" then'),
-    "disband_keeps_actor": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community("actor_" .. F.mother, 0, 0)\n    end\n    last_mother', "    last_mother"),
+    # settlers (0.5.0)
+    "settler_news": ('    if via ~= "settler" then', "    if true then"),
+    "dead_settler_joins": ("    if not (se and IsStalker(nil, se:clsid()) and se:alive()) then",
+                           "    if not (se and IsStalker(nil, se:clsid())) then"),
+    "offline_unsaved": ("    set_saved_community(se, OWN)\n    log(\"%s (%s) joined, from %s, offline\"",
+                        "    log(\"%s (%s) joined, from %s, offline\""),
+    "relink_drops": ("    F.members[new] = m\n", ""),
+    "relink_offline_unsaved": ("        if se and IsStalker(nil, se:clsid()) and se:alive() and se:community() ~= OWN then",
+                               "        if false then"),
+    "settled_leaves": ("            if settled(id) then", "            if false then"),
+    # the game's own faction change after founding
+    "home_is_mother": ("    local comm = get_actor_true_community and get_actor_true_community()", "    local comm = old_faction()"),
+    "disband_keeps_actor": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community(home(), 0, 0)\n    end\n    last_mother', "    last_mother"),
     "no_strays": ("local ok, strays = pcall(function() return touched and return_strays() or 0 end)", "local ok, strays = true, 0"),
     "no_scrub_update": ("    tick()\n    if touched then\n        scrub_partners()\n    end\nend", "    tick()\nend"),
     "no_scrub_save": ("    if touched then\n        scrub_partners()\n    end\n    local reverted", "    local reverted"),
@@ -120,6 +132,8 @@ Server.__index = Server
 function Server:community() return NAMES[self.comm] end
 function Server:profile_name() return self.profile end
 function Server:clsid() return CLS_STALKER end
+function Server:alive() return not self.dead end
+function Server:character_name() return "Stalker " .. self.id end
 function Server:STATE_Write(p)
     p:w_u32(self.money); p:w_stringZ(self.spec); p:w_s32(self.flags); p:w_stringZ(self.profile)
     p:w_s32(self.comm); p:w_s32(self.rank)
@@ -571,6 +585,67 @@ def strings(src):
     check(not missing, "missing from the English table: %s" % missing)
 
 
+def settlers(src):
+    """Settlers (fotz_loyalty): one online joins with their own squad and group and no news of
+    the faction's (loyalty sends its own); one offline joins by the saved faction alone; a dead
+    one never; a member Homestead re-created keeps the membership under the new id; a companion
+    member who settled in one of your camps stays a member, as a settler."""
+    w = World(src, setup=SETUP)
+    w.env.found("Wolves")
+    w.run('online(701, "dolg", 7, 8)')
+    news = len(w.news())
+    check(w.env.join_settler(701) is True and w.live(701) == "fotz_own", "an online settler didn't join")
+    check((701, "fotz_own", 7, 8, "update") in w.calls(), "not with their own squad and group: %s" % w.calls())
+    m = w.env.F.members[701]
+    check(m.via == "settler" and m.mother == "dolg", "the membership: %s, %s" % (m.via, m.mother))
+    check(len(w.news()) == news, "a settler's joining sent the faction's news: %s" % w.news()[news:])
+    check(w.env.join_settler(701) is False, "joined twice")
+    w.run('server(702, "ecolog")')
+    before = w.eval("snapshot(702)")
+    check(w.env.join_settler(702) is True and w.comm(702) == "fotz_own", "an offline settler didn't join: %s" % w.comm(702))
+    check(w.eval("snapshot(702)") == before and w.env.F.members[702].mother == "ecolog", "the offline join")
+    w.run('server(703, "dolg").dead = true')
+    check(w.env.join_settler(703) is False and w.env.F.members[703] is None, "a dead settler joined")
+    # re-created offline under id 704, in their own faction again: the same membership
+    w.run('server(704, "ecolog", "p704")')
+    check(w.env.relink(702, 704) is True and w.env.F.members[702] is None, "relink didn't move the membership")
+    m = w.env.F.members[704]
+    check(m and m.mother == "ecolog" and m.profile == "p704" and w.comm(704) == "fotz_own",
+          "the re-created member: %s, %s" % (m and (m.mother, m.profile), w.comm(704)))
+    check(w.env.relink(702, 705) is False, "relinked a membership that isn't there")
+    # companions 501 and 503 dismissed; 503 lives in your camp
+    w.run('RESIDENTS = { [503] = true }; fotz_loyalty = { enabled = function() return true end, '
+          'resident = function(id) return RESIDENTS[id] == true end }')
+    w.run("COMPANIONS[500] = nil")
+    w.run("tick()")
+    check(w.env.F.members[501] is None and w.live(501) == "stalker", "a dismissed companion stayed")
+    m = w.env.F.members[503]
+    check(m and m.via == "settler" and w.live(503) == "fotz_own", "a companion who settled left")
+
+
+def faction_change(src):
+    """The game's own faction change after founding (joining Duty, say): "You join it" follows the
+    faction you're in now, not the one you founded from, and a save, other mods' records and
+    disbanding put you back in the new one."""
+    w = World(src, setup=SETUP)
+    w.env.found("Wolves")
+    check(w.g.ACTOR.comm == "actor_fotz_own", "you didn't join: %s" % w.g.ACTOR.comm)
+    # the game moves you to Duty, and its update puts you in Duty's twin
+    w.run('TRUE_COMM = "dolg"; ACTOR.comm = "actor_dolg"')
+    w.run("tick()")
+    check(w.g.ACTOR.comm == "actor_fotz_own", "after joining Duty, not in your faction: %s" % w.g.ACTOR.comm)
+    w.run('stalker_camp_builder = { active_camps = { [900] = { player = "actor_fotz_own" } } }')
+    w.cb["save_state"](w.eval("{}"))
+    check(w.g.ACTOR.comm == "actor_dolg", "the save put you in %s, not Duty" % w.g.ACTOR.comm)
+    check(w.eval("stalker_camp_builder.active_camps[900].player") == "actor_dolg",
+          "another mod's record: %s" % w.eval("stalker_camp_builder.active_camps[900].player"))
+    w.run("tick()")
+    check(w.g.ACTOR.comm == "actor_fotz_own", "not back in your faction after the save: %s" % w.g.ACTOR.comm)
+    w.run('MCM["fotz/faction"] = false')
+    w.cb["on_option_change"]()
+    check(w.env.F is None and w.g.ACTOR.comm == "actor_dolg", "disbanding put you in %s" % w.g.ACTOR.comm)
+
+
 def run(src):
     strings(src)
     not_declared(src)
@@ -583,7 +658,10 @@ def run(src):
     others(src)
     load_and_untouched(src)
     other_version(src)
-    return "11 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub, names"
+    settlers(src)
+    faction_change(src)
+    return ("13 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub, "
+            "names, settlers, faction change")
 
 
 def main():

@@ -24,6 +24,7 @@ KEY_PATH = "fotz/tab_key"
 LOG_LINES = 4
 FIGHT_LINES = 4
 MEMBER_LINES = 5
+REQUEST_ROWS = 2    -- join requests shown with their buttons (fotz_loyalty)
 LIST_NAMES = 3      -- names a fight's list gives before "and N more"
 SIDE_MIN = 3        -- fighters a side, for a fight worth naming: a few stragglers by a big force aren't one
 -- the stronger side's share of the two, and what it's called: else the sides are evenly matched
@@ -299,7 +300,14 @@ local function fight_lines(side)
     return out
 end
 
+-- the members, a settler's with their camp and loyalty (fotz_loyalty); then, while there's room,
+-- the residents nearest to asking. The requests waiting go to the page apart, for their buttons
 local function member_lines(P, F)
+    local lists = fotz_loyalty and fotz_loyalty.page_lists() or { requests = {}, members = {}, near = {} }
+    local settlers = {}
+    for _, it in ipairs(lists.members) do
+        settlers[it.id] = it
+    end
     local list = {}
     for id, m in pairs(F.members) do
         list[#list + 1] = { id = id, m = m }
@@ -311,14 +319,35 @@ local function member_lines(P, F)
             out[#out + 1] = text("st_fotz_tab_members_more", { n = #list - MEMBER_LINES })
             break
         end
-        local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")
-        out[#out + 1] = text("st_fotz_tab_member_" .. state, { name = it.m.name,
-            from = P.faction_name(it.m.mother), date = short_date(it.m.joined) })
+        local s = settlers[it.id]
+        if s and not it.m.dead then
+            -- only the sworn are between camps: the others went back to their own when it fell
+            local form = not s.sworn and "st_fotz_tab_member_settler"
+                or (s.camp and "st_fotz_tab_member_sworn" or "st_fotz_tab_member_between")
+            out[#out + 1] = text(form, { name = it.m.name, camp = s.camp or "", loyalty = s.v })
+        else
+            local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")
+            out[#out + 1] = text("st_fotz_tab_member_" .. state, { name = it.m.name,
+                from = P.faction_name(it.m.mother), date = short_date(it.m.joined) })
+        end
+    end
+    for _, it in ipairs(lists.near) do
+        if #out >= MEMBER_LINES then
+            break
+        end
+        out[#out + 1] = text("st_fotz_tab_resident", { name = it.name, camp = it.camp or "", loyalty = it.v })
     end
     if #out == 0 then
         out[1] = text("st_fotz_tab_members_none")
     end
-    return out
+    local requests = {}
+    for i, it in ipairs(lists.requests) do
+        if i > REQUEST_ROWS then
+            break
+        end
+        requests[i] = { id = it.id, line = text("st_fotz_tab_request", { name = it.name, loyalty = it.v }) }
+    end
+    return out, requests
 end
 
 -- everything the page shows
@@ -344,7 +373,7 @@ function page()
         p.subtitle = text("st_fotz_tab_yours", { date = short_date(F.founded), from = P.faction_name(F.mother), n = n })
         -- your faction's own emblem: its patch's art (fotz_patch), which a player may replace
         p.icon = fotz_patch.EMBLEM
-        p.members = member_lines(P, F)
+        p.members, p.requests = member_lines(P, F)
     else
         p.title = P.faction_name(side)
         p.subtitle = text("st_fotz_tab_no_faction")

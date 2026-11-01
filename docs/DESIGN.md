@@ -119,7 +119,10 @@ its player twin `actor_fotz_own`, team 37).
   unless chosen) puts you in the player twin instead, so your own relations follow your
   faction's as politics moves them. G.A.M.M.A. doesn't know that faction (see "Compatibility to
   watch"), which is why it isn't the default. While you're disguised in another faction's suit,
-  you're left alone.
+  you're left alone. "Your old faction" is the game's own record of it
+  (`get_actor_true_community()`), so the game's faction change (joining Freedom, say) moves it:
+  "You join it" then switches you from the new one, and a save or disbanding puts you back in it
+  (0.5.0; before, it kept to the faction you founded from).
 - **In politics** (`fotz_politics`): your faction is a side like any other. It and every faction
   whose relations change make a pair, starting from its founding relations rather than the
   config's; the cells moved are its own rows and its player twin's, never its members' relation to
@@ -150,8 +153,8 @@ its player twin `actor_fotz_own`, team 37).
   a faction pays for this; the save's sweep reads every object once.
 - **Disbanding** (MCM) returns everyone at once: the living and online live, the rest in their
   state packet.
-- **Next:** residents of a Homestead settlement who may join as their loyalty grows, and members
-  who may leave; the Factions tab with your roster and your faction's relations.
+- **Settlers** of your Homestead camps who join as their loyalty grows, and leave when it falls:
+  section 7 (0.5.0).
 
 ## 2. The politics engine (0.2.0)
 
@@ -465,6 +468,44 @@ credit. The points below are about 0.0.5j.
 Homestead, CtZ and Factions would all move squads; only one should steer a given squad, and a
 squad another mod pinned is never steered.
 
+## 7. Settler loyalty (0.5.0, first part)
+
+`fotz_loyalty.script`, tuned by the `[loyalty]` section of `configs/plugins/fotz_politics.ltx`.
+With Homestead only, while you lead a faction, unless MCM's "Residents can join" is off.
+
+- **The book.** Each resident of your camps has an entry in the faction's own record
+  (`F.loyalty`), keyed by NPC id. It holds their loyalty, the tier, purchase and expedition last
+  seen, a request waiting, a wait after Decline, and the oath. Residents are Homestead's
+  `stalker_camp_builder.active_camps[hub].survivors`, re-read on each look, since load replaces
+  the table. Disbanding drops the book with the faction. The record keeps its version, so an
+  older save starts its book on its next census and an older build still loads a newer save.
+- **Start:** 30, +10 from the faction you came from, +10 if your companion before, and +15 or -15
+  as their faction stands with yours (friends at 1000, enemies at -1000).
+- **The day** (the census's daily tick): +5 living there, +3 working (not idle, not following you),
+  the camp's comfort (Homestead's `get_camp_morale`: +3 at 90, +2 at 70, -2 at 45 or less), -6
+  enemies or +2 friends times (1 + tier / 3), -2 at two wars or more (the politics engine's own
+  wars), +1 per sworn member in the camp, up to 3.
+- **Events,** on each look (every 10 s): +10 a promotion step; +3 a weapon bought (`bought_tier`
+  rising: Homestead clears it on re-creation, and it rises again with the next purchase); +2 an
+  expedition back; -4 a campmate killed. A raid beaten off is +6, +10 for its guards, when the
+  raid's squad is gone or empty. Homestead also drops a raid, raiders alive, when you leave the
+  level: that one doesn't count.
+- **Requests:** at 70 a resident asks (news), and the request waits; it's withdrawn under 60.
+  Accept joins them (`fotz_faction.join_settler`: live, or offline by their saved faction).
+  Decline costs 10 and three days. "Accept join requests" accepts each as it's made.
+- **Members:** a settler member under 30 goes back to their own faction and stays a resident. A
+  companion member who settles in your camp stays a member, as a settler; a settler member who
+  leaves the camp but follows you stays, as a companion. Sworn for life: a Master (tier 3) at 100
+  after 14 days as a member; their loyalty stays at 100.
+- **Re-created settlers** (`restore_missing_settler`, the Invincible respawn) come back under a new
+  id with the same record, sometimes another section. An entry whose id is gone is linked to a
+  record of the same camp with the same name, and the membership follows (`fotz_faction.relink`).
+- **A camp that falls** (its hub gone from `active_camps`): sworn members stay members, between
+  camps; other members go back to their own faction; residents are forgotten.
+- **Second part:** members who stay head to another of your camps with room (Homestead's
+  `recruit_npc_to_camp` on arrival), with a roll at their loyalty for those not sworn, and the
+  sworn wait for a camp with room.
+
 ## The save
 
 - **The census writes nothing to the save.** Its file is outside it.
@@ -588,8 +629,10 @@ From the Homestead thread on Discord (June to October 2026), asks that land on F
    relations moved by the politics engine like any other. The Factions tab comes with it: your
    faction's roster, every faction's relations, the war log, your standing.
 4. **0.4.0, territory.** The light steer, fronts in the news and on the map.
-5. **0.5.0, partners.** Seasons, Homestead's hooks, Capture the Zone.
-6. **1.0.0.**
+5. **0.5.0, settler loyalty** (section 7; first part built): loyalty, join requests, sworn members;
+   then members moving to another of your camps when theirs falls.
+6. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
+7. **1.0.0.**
 
 ## Later
 

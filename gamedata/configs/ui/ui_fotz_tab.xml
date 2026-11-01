@@ -118,6 +118,24 @@
         <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
     </member_line>
 
+    <!-- a join request (fotz_loyalty): its line, and Accept and Decline at its right; y is within its
+         row, which ui_fotz_tab.script places above the member lines -->
+    <request_line x="472" y="3" width="166" height="16">
+        <text font="letterica16" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </request_line>
+    <request_accept x="640" y="0" width="62" height="22">
+        <texture>ui_button_ordinary</texture>
+    </request_accept>
+    <request_accept_label x="640" y="3" width="62" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </request_accept_label>
+    <request_decline x="706" y="0" width="62" height="22">
+        <texture>ui_button_ordinary</texture>
+    </request_decline>
+    <request_decline_label x="706" y="3" width="62" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </request_decline_label>
+
     <!-- ============ the footer ============ -->
     <!-- whether politics is in charge, or why not -->
     <status x="52" y="622" width="516" height="18">

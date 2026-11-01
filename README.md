@@ -39,11 +39,16 @@ art is a placeholder, there to be replaced: your own image makes the faction you
 
 ![Your patch on the bracer](media/patch-bracer.jpg)
 
+**Bring your settlers in** (with Homestead). While you lead a faction, the residents of your
+camps grow loyal to it: a home, work, a comfortable camp, promotions, raids beaten off. At 70 one
+asks to join, and you accept or decline on the Factions page. Let a member's loyalty fall under 30
+and they go back to their own faction. A Master who holds full loyalty for two weeks as a member
+is sworn for life, and lifts everyone in their camp.
+
 ### Coming next
 
-- **Settlers who earn their place** (0.5.0, with Homestead): loyalty that grows as you look after
-  a camp. At 70 a settler asks to join your faction; at the top they're sworn for life, follow you
-  to another camp if theirs falls, and lift the loyalty of the camp around them.
+- **Settlers between camps** (0.5.0, second part): when a camp falls, members loyal enough head to
+  another of your camps, and the sworn wait for one with room.
 - **Invasions:** factions pushing into each other's ground, not only leaning toward it.
 - **Other custom factions**, beside your own.
 
@@ -81,6 +86,21 @@ patch, the page and Wearable Devices' bracer, with a tool that makes the files f
 
 ![Asking Sidorovich](media/sidorovich.jpg)
 
+**Settlers who earn their place** (0.5.0, first part; with Homestead). While you lead a faction,
+each resident of your Homestead camps has a loyalty to it, 0 to 100. It starts at 30, plus 10 if
+they came from the faction you did and 10 if they were your companion, and 15 more or less if
+their faction is a friend or an enemy of yours. Once a game day it rises with living and working
+in the camp and the camp's comfort, and falls when your faction and theirs are enemies (veterans
+feel it more) or you're at war with two factions or more. A promotion, a weapon bought with their
+savings, a raid beaten off (more for its guards) and an expedition back raise it; a campmate
+killed lowers it. At 70 a resident asks to join: Accept or Decline on the Factions page, where
+the residents nearest to asking show too. Decline costs them 10 and three days before they ask
+again, and MCM can accept every request as it's made. A member fights for your faction, and
+under 30 goes back to their own and stays on as a resident. A Master at 100 after 14 days as a
+member is sworn for life: they never leave over loyalty, and each adds 1 a day to everyone else in
+their camp, up to 3. When a camp falls, its sworn members stay in your faction and the others go
+back to their own. Every number is in the `[loyalty]` section of `fotz_politics.ltx`.
+
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
 daily limit, and old grudges fade. When a pair crosses into enmity, they go to war; after quiet
@@ -116,13 +136,14 @@ works either way.
 ![The Factions tile in Mod App Creator's launcher](media/launcher.jpg)
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
-yourself, off unless you choose it, and whether companions join), politics on or off, the
+yourself, off unless you choose it, whether companions join, whether your residents can join, and
+whether their requests are accepted as they're made, off unless you choose it), politics on or off, the
 territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the
 census log, removing your faction's patches (before you remove the mod), the Factions page key,
 and, with Mod App Creator, the page's own PDA tab.
 
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
-started it, and your faction's roster. No character in a save is ever in your faction: just before
+started it, and your faction's roster, with your residents' loyalty. No character in a save is ever in your faction: just before
 each save, everyone is put back in their old faction in the save itself, and gets your faction
 back as you play on. Anyone another mod put in your faction is saved in your old one too, and
 Homestead's camp records get your old faction in place of it. So removing the mod is safe: a save
@@ -173,9 +194,10 @@ faction's patches out of the game (above).
   `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
   scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots,
-  `test_patch.py` runs your faction's patch and Sidorovich's dialog against a stand-in for the
-  actor and his talk, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (260 so far); every
+  `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
+  actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
+  camps, and `test_text.py` checks the Russian tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (305 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.
