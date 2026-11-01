@@ -3,8 +3,9 @@ Factions of the Zone: your faction's patch.
 
 An item, fotz_own_patch (mod_system_fotz_patch.ltx), drawn from one file, this mod's placeholder
 textures\ui\fotz_your_faction.dds: an oval patch with the mod's banner on it, 100x100. Replace
-that file with your own emblem in a mod placed above Factions, and your faction's patches and its
-emblem on the Factions page show it (EMBLEM, the same picture as a UI texture, ui_fotz_art.xml). The base game's death_manager drops a dead NPC's
+that file with your own emblem in a mod placed below Factions in MO2's list (docs/CUSTOM-PATCH.md),
+and your faction's patches and its emblem on the Factions page show it (EMBLEM, the same picture
+as a UI texture, ui_fotz_art.xml). The base game's death_manager drops a dead NPC's
 <community>_patch, so your members drop one when they fall.
 
 Sidorovich has them sewn to order: a dialog on him (modxml_fotz_patch) while you lead a faction,

@@ -58,13 +58,21 @@ def patch(size=PATCH):
     return img.resize((size, size), Image.LANCZOS)
 
 
-def bracer():
-    """The patch for WD's bracer: BRACER square, the patch BRACER_PATCH high, placed and tilted as
-    WD's own patch textures have theirs."""
-    p = patch(BRACER_PATCH).rotate(BRACER_TILT, resample=Image.BICUBIC, expand=True)
+def on_bracer(img):
+    """A square picture as WD's bracer shows a patch: BRACER square, the picture BRACER_PATCH high,
+    placed and tilted as WD's own patch textures have theirs (make_patch.py uses it too)."""
+    p = img.convert("RGBA")
+    if p.size != (BRACER_PATCH, BRACER_PATCH):
+        p = p.resize((BRACER_PATCH, BRACER_PATCH), Image.LANCZOS)
+    p = p.rotate(BRACER_TILT, resample=Image.BICUBIC, expand=True)
     out = Image.new("RGBA", (BRACER, BRACER), (0, 0, 0, 0))
     out.alpha_composite(p, (BRACER_CENTER[0] - p.width // 2, BRACER_CENTER[1] - p.height // 2))
     return out
+
+
+def bracer():
+    """The placeholder patch for WD's bracer."""
+    return on_bracer(patch(BRACER_PATCH))
 
 
 def write_mipped_dds(img, path):
@@ -87,7 +95,41 @@ def write_mipped_dds(img, path):
             f.write(lv.tobytes("raw", "BGRA"))
 
 
+def guide():
+    """The bracer's layout as an outline, for drawing a patch by hand: the tilted square a patch
+    fills, dashed, on a transparent 512x512 (docs/custom-patch/bracer-guide.png)."""
+    import math
+    out = Image.new("RGBA", (BRACER, BRACER), (0, 0, 0, 0))
+    d = ImageDraw.Draw(out)
+    a = math.radians(-BRACER_TILT)      # PIL's rotate turns the other way from image coordinates
+    h = BRACER_PATCH / 2
+    corners = [(cx * math.cos(a) - cy * math.sin(a) + BRACER_CENTER[0], cx * math.sin(a) + cy * math.cos(a) + BRACER_CENTER[1])
+               for cx, cy in ((-h, -h), (h, -h), (h, h), (-h, h))]
+    for (x0, y0), (x1, y1) in zip(corners, corners[1:] + corners[:1]):
+        steps = int(math.hypot(x1 - x0, y1 - y0) // 12)
+        for i in range(0, steps, 2):
+            t0, t1 = i / steps, (i + 1) / steps
+            d.line([(x0 + (x1 - x0) * t0, y0 + (y1 - y0) * t0), (x0 + (x1 - x0) * t1, y0 + (y1 - y0) * t1)],
+                   fill=(255, 64, 160, 255), width=3)
+    return out
+
+
+def templates():
+    """The guide's starting points (docs/custom-patch): the placeholder icon and bracer patch as
+    PNGs, and the bracer's layout."""
+    d = os.path.join(HERE, "..", "docs", "custom-patch")
+    os.makedirs(d, exist_ok=True)
+    layout = Image.new("RGBA", (BRACER, BRACER), (40, 44, 48, 255))   # the guide's picture of it
+    layout.alpha_composite(bracer())
+    layout.alpha_composite(guide())
+    for name, img in (("icon-template.png", patch()), ("bracer-template.png", bracer()), ("bracer-guide.png", guide()),
+                      ("bracer-layout.png", layout)):
+        img.save(os.path.join(d, name))
+        print("wrote", os.path.normpath(os.path.join(d, name)))
+
+
 def main():
+    templates()
     px = os.path.join(UI, "fotz_px.dds")
     write_dds(Image.new("RGBA", (8, 8), (255, 255, 255, 255)), px)
     print("wrote", os.path.normpath(px))
