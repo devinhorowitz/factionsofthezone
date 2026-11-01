@@ -57,11 +57,9 @@ join it. Disband it and everyone goes back to their old faction.
 **Your faction's patch.** Sidorovich, in Cordon, has patches sewn for the faction you lead: ask him,
 and buy as many as you like, 650 RU apiece. Your members wear it and leave one behind when they
 fall, and it's your faction's emblem on the Factions page. The art is a placeholder, an oval patch
-with this mod's banner. Make it yours: put your own image in place of
-`textures\ui\fotz_your_faction.dds` (a DDS of exactly 100x100 pixels) in a mod placed above
-Factions in MO2, and your patches and your emblem show it. With Wearable Devices, the patch on its
-bracer is `textures\fotz\fotz_bracer_patch.dds` (512x512, drawn like WD's own patches): replace it
-too.
+with this mod's banner, there to be replaced: [docs/CUSTOM-PATCH.md](docs/CUSTOM-PATCH.md) shows
+how to put your own emblem on the patch, the page and Wearable Devices' bracer, with a tool that
+makes the files from one picture.
 
 ![Asking Sidorovich](media/sidorovich.jpg)
 
@@ -162,7 +160,9 @@ faction's patches out of the game (above).
 - `_tools/mutants.py` runs each test against broken copies of what it tests (257 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
-  page's lines, and your faction's placeholder patch.
+  page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.
+  `_tools/make_patch.py` makes a player's own patch from one picture
+  ([docs/CUSTOM-PATCH.md](docs/CUSTOM-PATCH.md)).
 - `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
   `build.py --check` passes and only once CHANGELOG.md has a section for the version.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
