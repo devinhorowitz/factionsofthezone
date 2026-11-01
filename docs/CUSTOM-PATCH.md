@@ -1,7 +1,7 @@
 # Your own faction patch
 
-The faction you found in Factions of the Zone has a patch. Sidorovich sells it, your members wear
-it and leave one behind when they fall, and it's your faction's emblem at the top of the Factions
+The faction you found in Factions of the Zone has a patch. Traders sell it, your members wear it
+and leave one behind when they fall, and it's your faction's emblem at the top of the Factions
 page. The mod ships a placeholder, an oval patch with its banner. This page shows how to put your
 own emblem in its place.
 
@@ -72,8 +72,9 @@ Save it as `fotz_bracer_patch.dds`: BC3 (DXT5) or uncompressed, with mipmaps.
 
 - **The emblem:** found your faction in MCM (Factions of the Zone, then Your faction) and open the
   Factions page. Your emblem is at the top.
-- **The patch:** buy one from Sidorovich in Cordon ("Can you get patches sewn for my faction?").
-  It shows your art in your inventory.
+- **The patch:** buy one from a trader, Sidorovich in Cordon or one of your old faction's (the
+  [README](../README.md#features) lists them): "Can you get patches sewn for my faction?" It shows
+  your art in your inventory.
 - **The bracer:** with Wearable Devices, put the patch in the bracer's accessories slot.
 
 ## Good to know

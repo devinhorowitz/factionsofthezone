@@ -69,7 +69,7 @@ is the `VERSION = "x.y.z"` line in that script. Below, `<folder>` is that folder
 
 ## Removing it
 
-First, in the game: if the player ever had their faction's patches (bought from Sidorovich or
+First, in the game: if the player ever had their faction's patches (bought from a trader or
 dropped by a member), they set MCM's "Remove your faction's patches" under Factions of the Zone,
 then save. A save that still holds a patch can't load without the mod. Nothing else is needed in
 the game, even if the player leads a faction of their own: no save ever holds it, so every save

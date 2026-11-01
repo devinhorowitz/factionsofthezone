@@ -1,10 +1,11 @@
 """Run fotz_patch.script under LuaJIT 2.0 against a stand-in for the actor, the item config and the
-game's news, and check your faction's patches as Sidorovich sells them.
+game's news, and check your faction's patches as the traders sell them.
 
 Checked: the dialog only while you lead a faction; a count offered only when you can pay for it;
 buying takes the money and gives that many patches, with the game's news for both, and nothing
-when you can't pay; the price is the item's own cost (650 without one); Sidorovich's offer and
-each count's line, "One" for one; the strings exist.
+when you can't pay; the price is the item's own cost (650 without one); the trader's offer and
+each count's line, "One" for one; every faction but the Renegades has traders who sell them, each
+of them and no one else; the strings exist.
 
     python test_patch.py            the real script
     python test_patch.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -37,8 +38,12 @@ MUTANTS = {
     "dxml_any_file": ("    if name ~= [[gameplay\\dialogs.xml]] and name ~= [[gameplay/dialogs.xml]] then",
                       "    if false then", "modxml_fotz_patch"),
     "dxml_twice": ('    if #xml:query("dialog[id=" .. DIALOG .. "]") > 0 then', "    if false then", "modxml_fotz_patch"),
-    "anyone_talks": ("    if character_id ~= TRADER or list:has(DIALOG) then", "    if list:has(DIALOG) then", "modxml_fotz_patch"),
-    "talk_twice": ("    if character_id ~= TRADER or list:has(DIALOG) then", "    if character_id ~= TRADER then", "modxml_fotz_patch"),
+    "anyone_talks": ("    if not sews[character_id] or list:has(DIALOG) then", "    if list:has(DIALOG) then", "modxml_fotz_patch"),
+    "talk_twice": ("    if not sews[character_id] or list:has(DIALOG) then", "    if not sews[character_id] then", "modxml_fotz_patch"),
+    "first_trader_only": ("    for _, id in ipairs(ids) do\n        sews[id] = true\n    end", "    sews[ids[1]] = true",
+                          "modxml_fotz_patch"),
+    "no_sidorovich": ('    stalker  = { "esc_2_12_stalker_trader",', "    stalker  = {", "modxml_fotz_patch"),
+    "isg_left_out": ('    isg      = { "jup_depo_isg_leader" },', "    isg      = {},", "modxml_fotz_patch"),
     "no_more": ("            <text>st_fotz_patch_done</text>]] .. CHOICES .. [[", "            <text>st_fotz_patch_done</text>]] .. [[",
                 "modxml_fotz_patch"),
     "count_unpriced": ("            <precondition>fotz_patch.can_buy_]] .. n .. [[</precondition>\n", "", "modxml_fotz_patch"),
@@ -235,12 +240,21 @@ def dialog(srcs):
     check(d.edit("gameplay\\dialogs.xml", y) is False and len(y.inserted) == 0, "inserted twice")
     z = w.lua.eval("fake_xml(false)")
     check(d.edit("gameplay\\dialogs_escape.xml", z) is False and len(z.inserted) == 0, "inserted in dialogs_escape.xml")
-    # Sidorovich's talk only, once
-    sid = w.lua.eval('fake_list({ "dm_init_trader" })')
-    check(d.add_talk("esc_2_12_stalker_trader", sid) is True and d.add_talk("esc_2_12_stalker_trader", sid) is False
-          and list(sid.ids.values()) == ["dm_init_trader", "fotz_patch_order"], "Sidorovich: %s" % list(sid.ids.values()))
-    other = w.lua.eval('fake_list({ "dm_init_trader" })')
-    check(d.add_talk("bar_visitors_barman_stalker_trader", other) is False and len(other.ids) == 1, "Barkeep got it")
+    # every faction but the Renegades (the Bandits sell theirs) has traders, Sidorovich among the Loners'
+    traders = {f: list(ids.values()) for f, ids in d.TRADERS.items()}
+    playable = {"stalker", "army", "bandit", "csky", "dolg", "ecolog", "freedom", "killer", "monolith", "greh", "isg"}
+    check(set(traders) == playable and all(traders.values()),
+          "factions and their traders: %s" % sorted((f, len(t)) for f, t in traders.items()))
+    every = [cid for ids in traders.values() for cid in ids]
+    check("esc_2_12_stalker_trader" in traders["stalker"] and len(every) == len(set(every)), "traders %s" % every)
+    # each one's talk gets the line, once; no one else's
+    for cid in every:
+        talk = w.lua.eval('fake_list({ "dm_init_trader" })')
+        check(d.add_talk(cid, talk) is True and d.add_talk(cid, talk) is False
+              and list(talk.ids.values()) == ["dm_init_trader", "fotz_patch_order"], "%s: %s" % (cid, list(talk.ids.values())))
+    for cid in ("bar_visitors_barman_stalker_trader", "esc_smart_terrain_5_7_loner_mechanic_stalker"):
+        other = w.lua.eval('fake_list({ "dm_init_trader" })')
+        check(d.add_talk(cid, other) is False and len(other.ids) == 1, "%s got it" % cid)
 
 
 def item():
