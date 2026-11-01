@@ -9,7 +9,8 @@
   or MCM's "Accept join requests" takes every one. A member under 30 goes back to their own
   faction. A Master who keeps full loyalty for two weeks as a member is sworn for life and lifts
   their whole camp. When a camp falls, its sworn members and, at a roll of their loyalty, the
-  others head for another of your camps with room and move in when they get there.
+  others head for another of your camps with room, by way of a smart near it that no enemy of
+  yours holds, and move in when they get there.
 
 ### Fixed
 

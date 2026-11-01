@@ -29,8 +29,9 @@ A camp gone from the table fell or was dismantled, and Homestead freed its resid
 each. Its sworn members stay in your faction; the other members stay at a roll of their loyalty
 out of 100, and only with a camp to go to; the rest are forgotten. A member who stays heads for a
 camp of yours with room (Homestead's own get_recruitable_camps, its territory and campmate checks
-included): their squad is pointed at the smart nearest that camp's flag (a scripted target, which
-the territory steer leaves alone), and once there and online they move in through Homestead's own
+included): their squad is pointed at the smart nearest that camp's flag with no enemy of yours
+there, within 300 m (else the nearest; a scripted target, which the territory steer leaves alone),
+and once there and online they move in through Homestead's own
 recruit_npc_to_camp, with no roll and no fee. A camp that turns them away is crossed off for the
 next; with none left, a sworn member waits in the Zone and looks again each day, and the others go
 back to their own faction. Their loyalty and their oath go with them: it's the same NPC.
@@ -40,6 +41,7 @@ CONFIG = "plugins\\fotz_politics.ltx"
 LOOK_MS = 10000     -- events, raids and new residents are looked at this often
 ARRIVE = 25         -- meters from a camp's flag at which a member heading there has arrived
 ARRIVE_SMART = 50   -- or from the smart their squad heads for, which can be a way from the flag
+SAFE_SMART = 300    -- how far from the flag a smart with no enemy of yours there is chosen over the nearest
 
 DEFAULTS = {
     start = 30, same_faction = 10, was_companion = 10, start_friends = 15, start_enemies = -15,
@@ -303,15 +305,44 @@ end
 
 -- between camps -------------------------------------------------------------------------------
 
--- the smart terrain nearest a camp's flag, on the camp's level: where a member heading there
--- goes. Its name and where it is
+-- a community whose relation with yours the game can give: the census's factions and the Zombied
+local function a_faction(comm)
+    for _, f in ipairs(fotz_census.FACTIONS) do
+        if f == comm then
+            return true
+        end
+    end
+    return comm == "zombied"
+end
+
+-- whether an enemy of your faction is at a smart, where a member heading there would walk into
+-- them: a mutant squad, or a faction at war with yours
+local function enemies_at(sm)
+    for sq_id in pairs(sm.squads or {}) do
+        local sq = alife_object(sq_id)
+        if sq then
+            if is_squad_monster and is_squad_monster[sq.player_id] then
+                return true
+            end
+            local comm = sq.get_squad_community and sq:get_squad_community()
+            if a_faction(comm) and rel_with(comm) <= ENEMIES then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+-- the smart terrain a member heading for a camp goes to, on the camp's level: the nearest to its
+-- flag with no enemy of yours there, up to SAFE_SMART away, else the nearest. Its name and where
+-- it is
 local function smart_near(camp)
     local p = camp.pos
     if not (p and camp.level and SIMBOARD and SIMBOARD.smarts) then
         return nil
     end
     local sim, gg = alife(), game_graph()
-    local best, d2 = nil, math.huge
+    local best, d2, safe, s2 = nil, math.huge, nil, math.huge
     for _, sm in pairs(SIMBOARD.smarts) do
         local s = sm.smrt
         if s and s.position and sim:level_name(gg:vertex(s.m_game_vertex_id):level_id()) == camp.level then
@@ -320,8 +351,12 @@ local function smart_near(camp)
             if d < d2 then
                 best, d2 = s, d
             end
+            if d < s2 and d <= SAFE_SMART * SAFE_SMART and not enemies_at(sm) then
+                safe, s2 = s, d
+            end
         end
     end
+    best = safe or best
     return best and best:name(), best and { x = best.position.x, y = best.position.y, z = best.position.z }
 end
 

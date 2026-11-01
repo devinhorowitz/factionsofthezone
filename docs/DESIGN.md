@@ -504,11 +504,14 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
   squad each): residents are forgotten; sworn members stay; other members stay at a roll of their
   loyalty out of 100. A member who stays heads for a camp of yours with room, from Homestead's own
   `get_recruitable_camps` for our faction, with its territory and campmate checks: their squad
-  gets the smart nearest that camp's flag as its scripted target, which the territory steer leaves
-  alone. Online and within 25 m of the flag or 50 m of that smart, they move in through
-  `recruit_npc_to_camp`, with no roll and no fee, and the squad is let go. A camp that turns them
-  away, or falls meanwhile, is crossed off for the next. With none left, a sworn member waits in
-  the Zone, still a member, and looks again each day; the others go back to their own faction.
+  gets as its scripted target, which the territory steer leaves alone, the smart nearest that
+  camp's flag with no enemy of ours there (a mutant squad, or a faction at war with ours) up to
+  300 m away, else the nearest. In run 20 a camp at a Renegade post had both members heading
+  there shot on arrival. Online and within 25 m of the flag or 50 m of that smart, they move
+  in through `recruit_npc_to_camp`, with no roll and no fee, and the squad is let go. A camp
+  that turns them away, or falls meanwhile, is crossed off for the next. With none left, a
+  sworn member waits in the Zone, still a member, and looks again each day; the others go back
+  to their own faction.
 
 ## The save
 

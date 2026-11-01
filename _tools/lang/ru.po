@@ -651,9 +651,9 @@ msgid "{who} has left {name} after {camp} fell, and rejoined {to}."
 msgstr "{who} покидает группировку «{name}» после падения лагеря ({camp}) и возвращается в «{to}»."
 
 msgctxt "st_fotz_tab_member_heading"
-msgid "{name}, loyalty {loyalty}, heading to {camp}"
-msgstr "{name}, преданность {loyalty}, в пути: {camp}"
+msgid "{name}, loyalty {loyalty} (to {camp})"
+msgstr "{name}, преданность {loyalty} (в {camp})"
 
 msgctxt "st_fotz_tab_member_sworn_heading"
-msgid "{name}, sworn for life, heading to {camp}"
-msgstr "{name}, присяга навсегда, в пути: {camp}"
+msgid "{name}, sworn for life (to {camp})"
+msgstr "{name}, присяга навсегда (в {camp})"

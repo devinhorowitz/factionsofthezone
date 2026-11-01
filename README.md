@@ -99,10 +99,10 @@ under 30 goes back to their own and stays on as a resident. A Master at 100 afte
 member is sworn for life: they never leave over loyalty, and each adds 1 a day to everyone else in
 their camp, up to 3. When a camp falls, its sworn members stay in your faction, and each of the
 others stays at a roll of their loyalty: at 70, seven times in ten. Those who stay head for
-another of your camps with room and move in when they get there; a camp that turns them away
-sends them on to the next. With nowhere to go, the sworn wait in the Zone and look again each
-day, and the others go back to their own faction. Every number is in the `[loyalty]` section of
-`fotz_politics.ltx`.
+another of your camps with room, by way of a smart near it that no enemy of yours holds, and move
+in when they get there; a camp that turns them away sends them on to the next. With nowhere to
+go, the sworn wait in the Zone and look again each day, and the others go back to their own
+faction. Every number is in the `[loyalty]` section of `fotz_politics.ltx`.
 
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
@@ -200,7 +200,7 @@ faction's patches out of the game (above).
   `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
   actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
   camps, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (320 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (327 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

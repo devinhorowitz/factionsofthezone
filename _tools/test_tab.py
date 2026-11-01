@@ -477,7 +477,7 @@ fotz_loyalty = { page_lists = function() return {
              { id = 902, name = "Lev", v = 50, camp = "Cordon Settlement" } } } end }
 """)
     p = t.page()
-    want = ["Ivan, sworn for life (Cordon Settlement)", "Petro, loyalty 64, heading to Garbage Settlement",
+    want = ["Ivan, sworn for life (Cordon Settlement)", "Petro, loyalty 64 (to Garbage Settlement)",
             "Sasha, sworn for life, waiting for a camp", "Vaska (Loners), away", "Kim, resident, loyalty 69 (Cordon Settlement)"]
     check(lines(p.members) == want, "members %s" % lines(p.members))
     got = [(p.requests[i].id, p.requests[i].line) for i in range(1, len(p.requests) + 1)]
@@ -487,7 +487,7 @@ fotz_loyalty = { page_lists = function() return {
           '{ id = 702, name = "Ivan", v = 100, sworn = true, heading = "Garbage Settlement" },'
           '{ id = 701, name = "Petro", v = 64, camp = "Cordon Settlement" } } } end')
     m = lines(t.page().members)
-    check(m[:2] == ["Ivan, sworn for life, heading to Garbage Settlement", "Petro, loyalty 64 (Cordon Settlement)"],
+    check(m[:2] == ["Ivan, sworn for life (to Garbage Settlement)", "Petro, loyalty 64 (Cordon Settlement)"],
           "heading and settled: %s" % m[:2])
     # without a faction, no requests and no members
     t.run("fotz_faction.F = nil")

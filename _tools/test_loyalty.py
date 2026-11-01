@@ -70,6 +70,15 @@ MUTANTS = {
     "resident_kept": ("            stop_being_resident(id, e, \"no longer a resident\")\n            res[id] = nil\n", ""),
     "sworn_falls_with_camp": ("    if not e.sworn and math.random() >= e.v / 100 then", "    if math.random() >= e.v / 100 then"),
     "sworn_nowhere_leave": ('    if e.sworn then\n        log("%s, sworn, waits for a camp with room", e.name)', '    if false then\n        log("%s, sworn, waits for a camp with room", e.name)'),
+    # the trip's smart: none an enemy of yours holds (run 20)
+    "enemies_ignored": ("            if d < s2 and d <= SAFE_SMART * SAFE_SMART and not enemies_at(sm) then",
+                        "            if d < s2 and d <= SAFE_SMART * SAFE_SMART then"),
+    "no_safe_limit": ("and d <= SAFE_SMART * SAFE_SMART and not enemies_at(sm)", "and not enemies_at(sm)"),
+    "safe_unused": ("    best = safe or best\n", ""),
+    "monsters_harmless": ("            if is_squad_monster and is_squad_monster[sq.player_id] then", "            if false then"),
+    "any_community": ("            if a_faction(comm) and rel_with(comm) <= ENEMIES then", "            if comm and rel_with(comm) <= ENEMIES then"),
+    "war_line_strict": ("a_faction(comm) and rel_with(comm) <= ENEMIES", "a_faction(comm) and rel_with(comm) < ENEMIES"),
+    "zombied_unknown": ('    return comm == "zombied"\n', "    return false\n"),
     "no_relink": ("                if camp.survivors[id].name == e.name then", "                if false then"),
     "first_census_counts": ("    if b.day == nil then\n        look()\n        b.day = date\n        return\n    end\n", ""),
     "ignores_switch": ('return F() ~= nil and homestead() ~= nil and not (ui_mcm and ui_mcm.get("fotz/loyalty") == false)',
@@ -110,7 +119,8 @@ fotz_tab = { text = function(id, fields)
     return s
 end }
 DATE = "2026-11-01"
-fotz_census = { game_date = function() return DATE .. " 12:00" end, listen = function(fn) CENSUS = fn end }
+fotz_census = { game_date = function() return DATE .. " 12:00" end, listen = function(fn) CENSUS = fn end,
+                FACTIONS = { "stalker", "bandit", "dolg", "freedom", "renegade" } }
 
 -- the politics engine's calendar (its own algorithm) and what loyalty reads of it
 local function day_num(s)
@@ -252,6 +262,17 @@ function smart(name, lid, x, z)
     LEVEL_OF_GV[gv] = lid
     SIMBOARD.smarts[name] = { smrt = { position = pos(x, 0, z), m_game_vertex_id = gv, name = function() return name end } }
 end
+-- a squad of a community at a smart; a mutant one by its behaviour
+SQUADS, SQ_N = {}, 50000
+function held(name, comm, behaviour)
+    SQ_N = SQ_N + 1
+    SQUADS[SQ_N] = { id = SQ_N, player_id = behaviour or comm, get_squad_community = function() return comm end }
+    local sm = SIMBOARD.smarts[name]
+    sm.squads = sm.squads or {}
+    sm.squads[SQ_N] = true
+end
+function alife_object(id) return SQUADS[id] end
+is_squad_monster = { monster = true, monster_predatory_day = true }
 NPCS, SQUAD_OF, ONLINE = {}, {}, {}
 local object = SIM.object
 SIM.object = function(self, id) return NPCS[id] or object(self, id) end
@@ -741,6 +762,30 @@ def nowhere_to_go(src):
           "a companion member after the fall: %s" % w.members())
 
 
+def enemy_smart(src):
+    # the smart nearest B's flag held by an enemy of yours: the trip goes to the nearest with none,
+    # as run 20 showed (a camp at a Renegade post, both members shot on the way in)
+    near = 'smart("gar_held", 2, 105, 100); '
+    cases = [
+        ('held("gar_held", "renegade"); REL["fotz_own>renegade"] = -2000', "gar_near", "past the Renegades"),
+        ('held("gar_held", "monster", "monster_predatory_day")', "gar_near", "past mutants"),
+        ('held("gar_held", "zombied"); REL["fotz_own>zombied"] = -5000', "gar_near", "past the Zombied"),
+        ('held("gar_held", "freedom"); REL["fotz_own>freedom"] = -999', "gar_held", "a squad not at war isn't an enemy"),
+        ('held("gar_held", "trader"); REL["fotz_own>trader"] = -2000', "gar_held",
+         "a community outside the census's factions isn't one"),
+        # every smart within 300 m an enemy's: the nearest after all, not gar_far, 566 m out
+        ('held("gar_held", "renegade"); held("gar_near", "bandit"); REL["fotz_own>renegade"] = -2000; '
+         'REL["fotz_own>bandit"] = -1000', "gar_held", "no smart near without enemies"),
+    ]
+    for setup, want, what in cases:
+        w = fresh(src, BETWEEN, near + setup)
+        fallen(w)
+        r = w.res()
+        for i in (10, 11):
+            got = r[i] and r[i].trip and r[i].trip.smart
+            check(got == want and w.g.SQUAD_OF[i].scripted_target == want, "%s: %d heads for %s" % (what, i, got))
+
+
 def strings(src):
     root = ET.fromstring(open(ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
     have = {s.get("id") for s in root.iter("string")}
@@ -750,9 +795,10 @@ def strings(src):
 
 def run(src):
     for t in (config, start, daily, sworn_near, events, raids, deaths, requests, leaving, swearing, residency,
-              relinking, census_flow, switched_off, near_list, between, turned_away, nowhere_to_go, strings):
+              relinking, census_flow, switched_off, near_list, between, turned_away, nowhere_to_go, enemy_smart,
+              strings):
         t(src)
-    return "19 scenarios"
+    return "20 scenarios"
 
 
 def expose(src):

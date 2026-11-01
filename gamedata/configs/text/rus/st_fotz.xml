@@ -481,9 +481,9 @@
 		<text>{who} покидает группировку Ђ{name}ї после падени€ лагер€ ({camp}) и возвращаетс€ в Ђ{to}ї.</text>
 	</string>
 	<string id="st_fotz_tab_member_heading">
-		<text>{name}, преданность {loyalty}, в пути: {camp}</text>
+		<text>{name}, преданность {loyalty} (в {camp})</text>
 	</string>
 	<string id="st_fotz_tab_member_sworn_heading">
-		<text>{name}, прис€га навсегда, в пути: {camp}</text>
+		<text>{name}, прис€га навсегда (в {camp})</text>
 	</string>
 </string_table>

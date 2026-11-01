@@ -483,9 +483,9 @@
 		<text>{who} has left {name} after {camp} fell, and rejoined {to}.</text>
 	</string>
 	<string id="st_fotz_tab_member_heading">
-		<text>{name}, loyalty {loyalty}, heading to {camp}</text>
+		<text>{name}, loyalty {loyalty} (to {camp})</text>
 	</string>
 	<string id="st_fotz_tab_member_sworn_heading">
-		<text>{name}, sworn for life, heading to {camp}</text>
+		<text>{name}, sworn for life (to {camp})</text>
 	</string>
 </string_table>
