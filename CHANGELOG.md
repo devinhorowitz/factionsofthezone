@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- **Settlers who earn their place** (with Homestead; the first part of 0.5.0). While you lead a
+  faction, the residents of your camps grow loyal to it, 0 to 100, with a home, work, a
+  comfortable camp, promotions and raids beaten off, and less with campmates lost and your wars
+  against their faction. At 70 one asks to join, and you accept or decline on the Factions page,
+  or MCM's "Accept join requests" takes every one. A member under 30 goes back to their own
+  faction. A Master who keeps full loyalty for two weeks as a member is sworn for life and lifts
+  their whole camp. When a camp falls, its sworn members stay in your faction; members moving
+  to another of your camps comes in the second part.
+
+### Fixed
+
+- **"You join it" after the game's own faction change.** Factions kept to the faction you founded
+  yours from: once the game moved you to Freedom or Clear Sky, the switch stopped putting you in
+  your faction, and a save or disbanding put you back among the faction you'd left. It now follows
+  the faction you're in.
+
 ## 0.4.1 — 2026-11-01
 
 Install it over 0.4.0; saves carry on as they are.

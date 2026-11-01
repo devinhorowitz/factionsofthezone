@@ -1,0 +1,576 @@
+--[[
+Factions of the Zone: settler loyalty, with Homestead.
+
+While you lead a faction, each resident of your Homestead camps has a loyalty to it, 0 to 100,
+kept in the faction's own record (fotz_faction.F.loyalty), so disbanding drops it all. It starts
+from where they came from: the faction you came from too, your companion before, their faction a
+friend or an enemy of yours. Once a game day, on the census's daily tick, life in the camp moves
+it: living there, working, the camp's comfort, your faction's relation with theirs (felt more the
+higher their tier), your wars, and the sworn members living with them. Events move it when
+Factions next looks: a promotion, a weapon bought with their savings, a raid on their camp beaten
+off, a campmate killed, an expedition back. The numbers are the config's [loyalty] section
+(plugins\fotz_politics.ltx).
+
+At the ask threshold a resident asks to join, once a day at most, and you answer on the Factions
+page; MCM's "Accept join requests" accepts each as it's made. A request is withdrawn when their
+loyalty falls under the withdraw threshold or they stop being a resident; Decline costs loyalty
+and a few days' wait. A member joins the way companions do (fotz_faction, via "settler"), and
+under the leave threshold goes back to their own faction and stays on as a resident. A Master at
+full loyalty, after weeks as a member, is sworn for life: loyalty no longer moves them, and each
+lifts the loyalty of the others in their camp.
+
+Homestead's records are read and never written: stalker_camp_builder.active_camps, re-read each
+time (load replaces the table). A resident is keyed by NPC id. Homestead re-creates a settler under
+a new id with the same record (restore_missing_settler, the Invincible respawn), and the section
+can change with it, so an entry whose id is gone is linked again to a record in the same camp under
+the same name. A camp gone from the table fell or was dismantled: its sworn members stay in your
+faction, the others go back to their own, and the rest are forgotten.
+--]]
+
+CONFIG = "plugins\\fotz_politics.ltx"
+LOOK_MS = 10000     -- events, raids and new residents are looked at this often
+
+DEFAULTS = {
+    start = 30, same_faction = 10, was_companion = 10, start_friends = 15, start_enemies = -15,
+    resident = 5, working = 3, morale_high = 70, morale_high_add = 2, morale_top = 90, morale_top_add = 3,
+    morale_low = 45, morale_low_add = -2, day_enemies = -6, day_friends = 2, many_wars = 2, many_wars_add = -2,
+    sworn_near = 1, sworn_near_max = 3,
+    promotion = 10, weapon = 3, raid_beaten = 6, raid_guard = 10, campmate_killed = -4, expedition_back = 2,
+    ask = 70, withdraw = 60, decline_cost = 10, decline_days = 3, leave = 30,
+    sworn_tier = 3, sworn_loyalty = 100, sworn_days = 14,
+}
+ENEMIES, FRIENDS = -1000, 1000
+
+cfg = nil
+local next_look = 0
+local raids = {}    -- hub id -> the raid being watched: its squad and its camp's level
+
+local function log(fmt, ...)
+    printf("[fotz-loyalty] " .. fmt, ...)
+end
+
+function load_config(ini)
+    ini = ini or ini_file(CONFIG)
+    cfg = {}
+    for key, def in pairs(DEFAULTS) do
+        cfg[key] = ini and ini:section_exist("loyalty") and ini:r_float_ex("loyalty", key) or def
+    end
+    return cfg
+end
+
+-- the parts --------------------------------------------------------------------------------------
+
+local function F()
+    return fotz_faction and fotz_faction.F
+end
+
+-- the faction's loyalty book: its game day and an entry per resident, by NPC id
+function book()
+    local f = F()
+    if not f then
+        return nil
+    end
+    f.loyalty = f.loyalty or {}
+    f.loyalty.res = f.loyalty.res or {}
+    return f.loyalty
+end
+
+function homestead()
+    local m = stalker_camp_builder
+    return type(m) == "table" and type(m.active_camps) == "table" and m or nil
+end
+
+function enabled()
+    return F() ~= nil and homestead() ~= nil and not (ui_mcm and ui_mcm.get("fotz/loyalty") == false)
+end
+
+local function accept_all()
+    return ui_mcm ~= nil and ui_mcm.get("fotz/loyalty_accept") == true
+end
+
+function today()
+    return fotz_census.game_date():sub(1, 10)
+end
+
+local function days_between(a, b)
+    return fotz_politics.day_num(b) - fotz_politics.day_num(a)
+end
+
+local function clamp(v)
+    return math.max(0, math.min(100, v))
+end
+
+-- a camp's name as Homestead's own PDA gives it ("Cordon Settlement", or the one you chose)
+function camp_name(camp)
+    local m = homestead()
+    local ok, s = pcall(function() return m.get_camp_label(camp) end)
+    if ok and type(s) == "string" and s ~= "" then
+        return s
+    end
+    return camp and camp.name or game.translate_string("st_fotz_loyalty_camp")
+end
+
+-- the camp's comfort, 40 to 100 (water, guards, radio, med kit, tools)
+local function comfort(camp)
+    local m = homestead()
+    local ok, v = pcall(function() return m.get_camp_morale(camp) end)
+    return ok and tonumber(v) or 50
+end
+
+local function member(id)
+    local f = F()
+    return f and f.members[id]
+end
+
+-- their own faction: Homestead's record keeps the one they were recruited from, except for a
+-- companion member recruited into a camp, whose old faction is the membership's
+local function own_faction(id, rec)
+    local comm = rec.community
+    if comm == fotz_faction.OWN or comm == fotz_faction.ACTOR_OWN or comm == nil then
+        local m = member(id)
+        return m and m.mother or nil
+    end
+    return (string.gsub(comm, "^actor_", ""))
+end
+
+local function rel_with(comm)
+    return comm and relation_registry.community_relation(fotz_faction.OWN, comm) or 0
+end
+
+-- how many factions yours is at war with, in the politics engine's own wars
+local function wars()
+    local n, P = 0, fotz_politics
+    local events = P and P.S and P.S.events or {}
+    for _, p in ipairs(P and P.PAIRS or {}) do
+        local ev = p.own and events[p.key]
+        if ev and ev.kind == "war" then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+local function working(rec)
+    return rec.job ~= nil and rec.job ~= "idle" and rec.job ~= "companion"
+end
+
+local function say(id, fields)
+    local lv = fotz_politics and fotz_politics.news_level and fotz_politics.news_level() or "events"
+    if lv == "off" then
+        return
+    end
+    local text = fotz_tab.text(id, fields)
+    if db.actor and news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, text, nil, nil, 12000)
+    end
+    log("news: %s", text)
+end
+
+local function faction_name(comm)
+    return fotz_politics.faction_name(comm)
+end
+
+-- the start ----------------------------------------------------------------------------------------
+
+function start_value(id, rec)
+    local f, comm = F(), own_faction(id, rec)
+    local v = cfg.start
+    if comm and comm == f.mother then
+        v = v + cfg.same_faction
+    end
+    if rec.was_companion then
+        v = v + cfg.was_companion
+    end
+    local r = rel_with(comm)
+    if r >= FRIENDS then
+        v = v + cfg.start_friends
+    elseif r <= ENEMIES then
+        v = v + cfg.start_enemies
+    end
+    return clamp(v)
+end
+
+local function new_entry(id, rec, hub)
+    return { hub = hub, name = rec.name, v = start_value(id, rec), tier = rec.tier or 0,
+             bought = rec.bought_tier or 0, away = rec.on_expedition and true or nil, since = today() }
+end
+
+-- looking: new residents, events, re-created settlers, raids --------------------------------------
+
+-- the promotions, the weapon bought and the expedition back since the last look
+local function events(e, rec)
+    if e.sworn then
+        e.tier, e.bought, e.away = rec.tier or 0, rec.bought_tier or 0, rec.on_expedition and true or nil
+        return
+    end
+    local tier = rec.tier or 0
+    if tier > e.tier then
+        e.v = clamp(e.v + cfg.promotion * (tier - e.tier))
+    end
+    e.tier = tier
+    -- re-created, Homestead clears it; it rises again with the next purchase
+    local bought = rec.bought_tier or 0
+    if bought > e.bought then
+        e.v = clamp(e.v + cfg.weapon)
+    end
+    e.bought = bought
+    if e.away and not rec.on_expedition then
+        e.v = clamp(e.v + cfg.expedition_back)
+    end
+    e.away = rec.on_expedition and true or nil
+end
+
+-- a raid on a camp: watched while it's on; it was beaten off when its squad is gone or empty
+-- (Homestead's own test), not when you left the level and Homestead dropped it
+local function raid_watch(hub, camp, res)
+    local r = camp.active_raid
+    if r and not raids[hub] then
+        raids[hub] = { squad = r.squad_id, level = camp.level }
+        return
+    end
+    local seen = raids[hub]
+    if not seen or r then
+        return
+    end
+    raids[hub] = nil
+    local sq = seen.squad and alife():object(seen.squad)
+    local left = sq and sq.npc_count and sq:npc_count() or 0
+    if left > 0 then
+        log("the raid on %s ended with its raiders alive: not beaten off", camp_name(camp))
+        return
+    end
+    for id, e in pairs(res) do
+        local rec = camp.survivors[id]
+        if e.hub == hub and rec and not e.sworn then
+            e.v = clamp(e.v + (rec.job == "guard" and cfg.raid_guard or cfg.raid_beaten))
+        end
+    end
+    log("the raid on %s was beaten off", camp_name(camp))
+end
+
+-- an entry whose id is gone, linked to a record of the same camp under the same name that no
+-- entry has: Homestead re-created the settler
+local function relink(res, hub, camp)
+    local free = {}
+    for id, rec in pairs(camp.survivors) do
+        if not res[id] then
+            free[#free + 1] = id
+        end
+    end
+    if #free == 0 then
+        return
+    end
+    for old, e in pairs(res) do
+        if e.hub == hub and not camp.survivors[old] then
+            for i, id in ipairs(free) do
+                if camp.survivors[id].name == e.name then
+                    res[id], res[old] = e, nil
+                    e.dead = nil
+                    table.remove(free, i)
+                    if fotz_faction.relink(old, id) then
+                        log("%s re-created under id %s: still a member", e.name, id)
+                    end
+                    break
+                end
+            end
+        end
+    end
+end
+
+-- a member who stopped being a resident goes back to their own faction, unless they follow you
+local function stop_being_resident(id, e, why)
+    local m = member(id)
+    if m and not m.dead then
+        if fotz_faction.is_companion(id) then
+            m.via = "companion"
+        else
+            fotz_faction.leave(id, why)
+            say("st_fotz_news_settler_left", { who = e.name, name = F().name, to = faction_name(m.mother) })
+        end
+    end
+end
+
+-- the entries whose record is gone: the dead and those who left a standing camp are dropped (a
+-- member who left goes back to their own faction); from a fallen camp, the sworn stay members
+-- (between camps) and the other members go back
+local function gone(res, camps)
+    for id, e in pairs(res) do
+        local camp = e.hub and camps[e.hub]
+        if e.hub and not camp then
+            local m = member(id)
+            if e.sworn and m and not m.dead then
+                e.hub = nil
+                log("%s's camp is gone: sworn, still a member", e.name)
+            else
+                if m and not m.dead then
+                    stop_being_resident(id, e, "their camp fell")
+                end
+                res[id] = nil
+            end
+        elseif camp and not camp.survivors[id] and not e.dead then
+            stop_being_resident(id, e, "no longer a resident")
+            res[id] = nil
+        end
+    end
+end
+
+-- one look at every camp: new residents get their start, events and raids count, re-created
+-- settlers keep their entry; the day's terms wait for the census
+function look()
+    local m, b = homestead(), book()
+    if not (m and b and cfg) then
+        return
+    end
+    local res, camps = b.res, m.active_camps
+    for hub, camp in pairs(camps) do
+        if type(camp) == "table" and type(camp.survivors) == "table" then
+            relink(res, hub, camp)
+            for id, rec in pairs(camp.survivors) do
+                local e = res[id]
+                if not e then
+                    res[id] = new_entry(id, rec, hub)
+                    log("%s, a resident of %s: loyalty %s", tostring(rec.name), camp_name(camp), res[id].v)
+                else
+                    e.hub, e.name = hub, rec.name or e.name
+                    events(e, rec)
+                end
+            end
+            raid_watch(hub, camp, res)
+        end
+    end
+    gone(res, camps)
+end
+
+-- the day ---------------------------------------------------------------------------------------
+
+-- the sworn members living in a camp (their own loyalty doesn't move, so none counts themselves)
+local function sworn_in(res, hub)
+    local n = 0
+    for _, e in pairs(res) do
+        if e.hub == hub and e.sworn then
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- the day's terms for one resident
+function day_terms(id, e, rec, camp, res, at_war)
+    if e.sworn then
+        e.v = cfg.sworn_loyalty
+        return
+    end
+    local v = e.v + cfg.resident
+    if working(rec) then
+        v = v + cfg.working
+    end
+    local c = comfort(camp)
+    if c >= cfg.morale_top then
+        v = v + cfg.morale_top_add
+    elseif c >= cfg.morale_high then
+        v = v + cfg.morale_high_add
+    elseif c <= cfg.morale_low then
+        v = v + cfg.morale_low_add
+    end
+    local r, pull = rel_with(own_faction(id, rec)), 1 + (rec.tier or 0) / 3
+    if r <= ENEMIES then
+        v = v + cfg.day_enemies * pull
+    elseif r >= FRIENDS then
+        v = v + cfg.day_friends * pull
+    end
+    if at_war >= cfg.many_wars then
+        v = v + cfg.many_wars_add
+    end
+    v = v + cfg.sworn_near * math.min(sworn_in(res, e.hub), cfg.sworn_near_max)
+    e.v = clamp(v)
+end
+
+-- a request, a member leaving, a member sworn: what the day's loyalty decides
+local function decide(id, e, camp, day)
+    local f, m = F(), member(id)
+    if e.dead then
+        return
+    end
+    if m then
+        if e.sworn then
+            return
+        end
+        if e.v < cfg.leave and m.via == "settler" then
+            fotz_faction.leave(id, "loyalty " .. e.v)
+            say("st_fotz_news_settler_left", { who = e.name, name = f.name, to = faction_name(m.mother) })
+            return
+        end
+        local rec = camp and camp.survivors[id]
+        if rec and (rec.tier or 0) >= cfg.sworn_tier and e.v >= cfg.sworn_loyalty
+            and days_between(m.joined or day, day) >= cfg.sworn_days then
+            e.sworn = true
+            e.v = cfg.sworn_loyalty
+            log("%s sworn for life", e.name)
+            say("st_fotz_news_sworn", { who = e.name, name = f.name })
+        end
+        return
+    end
+    if e.req and e.v < cfg.withdraw then
+        e.req = nil
+        log("%s's request withdrawn: loyalty %s", e.name, e.v)
+    end
+    -- once a day at most: the day comes once, and a request made waits
+    if e.req or e.v < cfg.ask or (e.quiet and days_between(day, e.quiet) > 0) then
+        return
+    end
+    if accept_all() then
+        e.req = day
+        accept(id)
+        return
+    end
+    e.req = day
+    say("st_fotz_news_asks", { who = e.name, camp = camp and camp_name(camp) or "", name = f.name })
+end
+
+-- once a game day: the day's terms, then requests, leaving and swearing; the dead not re-created
+-- by now are dropped
+function day(date)
+    local m, b = homestead(), book()
+    if not (m and b and cfg) then
+        return
+    end
+    look()
+    local res, camps, at_war = b.res, m.active_camps, wars()
+    for id, e in pairs(res) do
+        local camp = e.hub and camps[e.hub]
+        local rec = camp and camp.survivors[id]
+        if rec then
+            day_terms(id, e, rec, camp, res, at_war)
+        end
+    end
+    for id, e in pairs(res) do
+        if e.dead then
+            res[id] = nil
+        else
+            decide(id, e, e.hub and camps[e.hub], date)
+        end
+    end
+    b.day = date
+end
+
+-- answers ---------------------------------------------------------------------------------------
+
+function accept(id)
+    local b, f = book(), F()
+    local e = b and b.res[id]
+    if not (e and e.req) or member(id) then
+        return false
+    end
+    e.req = nil
+    if not fotz_faction.join_settler(id) then
+        log("! %s (%s) couldn't join", e.name, id)
+        return false
+    end
+    local camp = e.hub and homestead() and homestead().active_camps[e.hub]
+    say("st_fotz_news_settler_joined", { who = e.name, camp = camp and camp_name(camp) or "", name = f.name })
+    return true
+end
+
+function decline(id)
+    local b = book()
+    local e = b and b.res[id]
+    if not (e and e.req) then
+        return false
+    end
+    e.req = nil
+    e.v = clamp(e.v - cfg.decline_cost)
+    e.quiet = fotz_politics.day_str(fotz_politics.day_num(today()) + cfg.decline_days)
+    log("%s declined: loyalty %s, no new request before %s", e.name, e.v, e.quiet)
+    return true
+end
+
+-- whether an id is a resident of one of your camps, as last seen
+function resident(id)
+    local b = book()
+    local e = b and b.res[id]
+    return e ~= nil and e.hub ~= nil and not e.dead
+end
+
+-- for the page: the requests waiting, the settler members, and the residents nearest to asking
+function page_lists()
+    local b, m = book(), homestead()
+    local out = { requests = {}, members = {}, near = {} }
+    if not (b and m and enabled()) then
+        return out
+    end
+    for id, e in pairs(b.res) do
+        local camp = e.hub and m.active_camps[e.hub]
+        local it = { id = id, name = e.name, v = math.floor(e.v + 0.5), sworn = e.sworn,
+                     camp = camp and camp_name(camp) or nil, req = e.req }
+        if member(id) then
+            out.members[#out.members + 1] = it
+        elseif e.req then
+            out.requests[#out.requests + 1] = it
+        elseif not e.dead and e.hub then
+            out.near[#out.near + 1] = it
+        end
+    end
+    table.sort(out.requests, function(x, y) return tostring(x.req) .. tostring(x.name) < tostring(y.req) .. tostring(y.name) end)
+    table.sort(out.near, function(x, y) return x.v > y.v or (x.v == y.v and tostring(x.name) < tostring(y.name)) end)
+    return out
+end
+
+-- callbacks -------------------------------------------------------------------------------------
+
+local function guarded(what, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok then
+        log("! %s: %s", what, tostring(err))
+    end
+    return ok
+end
+
+local function on_census(c)
+    if not enabled() then
+        return
+    end
+    local b, date = book(), c.date:sub(1, 10)
+    if b.day == date then
+        return
+    end
+    -- the first census of a faction (or of an older save) only starts the book
+    if b.day == nil then
+        look()
+        b.day = date
+        return
+    end
+    day(date)
+end
+
+local function actor_on_update()
+    if time_global() < next_look then
+        return
+    end
+    next_look = time_global() + LOOK_MS
+    if enabled() then
+        guarded("look", look)
+    end
+end
+
+-- a resident killed: the campmates feel it; the entry waits, in case Homestead brings them back
+local function npc_on_death_callback(victim)
+    local b = enabled() and book()
+    local e = b and b.res[victim:id()]
+    if not e or e.dead then
+        return
+    end
+    e.dead = true
+    for id, o in pairs(b.res) do
+        if id ~= victim:id() and o.hub == e.hub and not o.sworn and not o.dead then
+            o.v = clamp(o.v + cfg.campmate_killed)
+        end
+    end
+    log("%s killed: campmates %s", e.name, cfg.campmate_killed)
+end
+
+function on_game_start()
+    load_config()
+    fotz_census.listen(function(c) guarded("day", on_census, c) end)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("npc_on_death_callback", npc_on_death_callback)
+end

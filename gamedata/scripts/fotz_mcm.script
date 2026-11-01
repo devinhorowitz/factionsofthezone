@@ -16,6 +16,9 @@ function on_mcm_load()
             { id = "faction_name", type = "input", val = 0, def = "" },
             { id = "faction_join", type = "check", val = 1, def = false },
             { id = "faction_companions", type = "check", val = 1, def = true },
+            -- with Homestead: your residents earn loyalty and ask to join (fotz_loyalty)
+            { id = "loyalty", type = "check", val = 1, def = true },
+            { id = "loyalty_accept", type = "check", val = 1, def = false },
             { id = "line1", type = "line" },
             { id = "politics", type = "check", val = 1, def = true },
             { id = "territory", type = "check", val = 1, def = true },

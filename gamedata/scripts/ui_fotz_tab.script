@@ -25,6 +25,7 @@ local PDA_X, PDA_Y = 112, 34
 local ROWS, ROW_Y, ROW_STEP = 8, 204, 34
 local FIXED_LINES, FIXED_STEP = 3, 36
 local LOG_Y, FIGHT_Y, FIGHT_STEP, MEMBER_Y, LINE_STEP = 202, 316, 35, 496, 18
+local REQUEST_STEP = 26     -- a join request's row, with its buttons, above the member lines
 local CONFIRM_MS = 4000
 
 -- The frame: a chamfered outline with its corners left open, a rule under the header and one
@@ -211,6 +212,31 @@ function FactionsTab:InitControls()
         local w = xml:InitTextWnd("member_line", self)
         self.members[i] = moved(w, w and w:GetWndPos().x or 0, MEMBER_Y + (i - 1) * LINE_STEP)
     end
+    -- join requests (fotz_loyalty), each a line with Accept and Decline at its right, in rows
+    -- above the member lines; each label after its plate, so it draws on top
+    self.requests = {}
+    for i = 1, fotz_tab.REQUEST_ROWS do
+        local r = {
+            line = xml:InitTextWnd("request_line", self),
+            accept = xml:Init3tButton("request_accept", self),
+            accept_label = xml:InitTextWnd("request_accept_label", self),
+            decline = xml:Init3tButton("request_decline", self),
+            decline_label = xml:InitTextWnd("request_decline_label", self),
+        }
+        put(r.accept_label, fotz_tab.text("st_fotz_tab_accept"))
+        put(r.decline_label, fotz_tab.text("st_fotz_tab_decline"))
+        for _, w in pairs(r) do
+            moved(w, w:GetWndPos().x, MEMBER_Y + (i - 1) * REQUEST_STEP + w:GetWndPos().y)
+        end
+        for _, what in ipairs({ "accept", "decline" }) do
+            if r[what] then
+                local name = what .. i
+                self:Register(r[what], name)
+                self:AddCallback(name, ui_events.BUTTON_CLICKED, function() self:OnAnswer(i, what) end, self)
+            end
+        end
+        self.requests[i] = r
+    end
 
     -- the header's buttons; each label after its plate, so it draws on top
     self.numbers = xml:Init3tButton("numbers", self)
@@ -321,8 +347,23 @@ function FactionsTab:Fill()
     end
     show(self.members_heading, p.members ~= nil)
     show(self.members_rule, p.members ~= nil)
+    -- the requests first, then the member lines under them, as many as fit above the footer
+    local reqs = p.requests or {}
+    self.request_ids = {}
+    for i, r in ipairs(self.requests or {}) do
+        local q = reqs[i]
+        self.request_ids[i] = q and q.id
+        for _, w in pairs(r) do
+            show(w, q ~= nil)
+        end
+        put(r.line, q and fit(q.line, 30) or "")
+    end
+    local top = MEMBER_Y + math.min(#reqs, #(self.requests or {})) * REQUEST_STEP
     for i, w in ipairs(self.members or {}) do
-        put(w, p.members and fit(p.members[i], 58) or "")
+        local y = top + (i - 1) * LINE_STEP
+        moved(w, w and w:GetWndPos().x or 0, y)
+        local room = y + LINE_STEP <= FOOT_Y - 4
+        put(w, (p.members and room) and fit(p.members[i], 55) or "")
     end
     put(self.credit, p.credit)
     -- Back while the page came from MAC's tile; flat, or from its own tab, the way out is the PDA's.
@@ -344,6 +385,18 @@ function FactionsTab:Reset()
     if not ok then
         say("! the page could not be filled: " .. tostring(err))
     end
+end
+
+-- a join request answered: the row's settler accepted or declined, and the page filled again
+function FactionsTab:OnAnswer(i, what)
+    local id = self.request_ids and self.request_ids[i]
+    if id and fotz_loyalty then
+        local ok, err = pcall(what == "accept" and fotz_loyalty.accept or fotz_loyalty.decline, id)
+        if not ok then
+            say("! the request: " .. tostring(err))
+        end
+    end
+    self:Reset()
 end
 
 -- the first click asks, a second within a few seconds resets

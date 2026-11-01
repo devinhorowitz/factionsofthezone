@@ -573,3 +573,67 @@ msgstr "Убирает из игры все нашивки вашей групп
 msgctxt "st_fotz_patch_removed"
 msgid "Your faction's patches taken out of the game: {n}."
 msgstr "Нашивки вашей группировки убраны из игры: {n}."
+
+msgctxt "ui_mcm_fotz_loyalty"
+msgid "Residents can join"
+msgstr "Жители могут вступать"
+
+msgctxt "ui_mcm_fotz_loyalty_desc"
+msgid "With Homestead: while you lead a faction, the residents of your camps grow loyal to it, and at 70 one asks to join. You answer on the Factions page."
+msgstr "С Homestead: пока вы ведёте свою группировку, жители ваших лагерей проникаются к ней преданностью и на 70 просятся вступить. Ответ даётся на странице «Группировки»."
+
+msgctxt "ui_mcm_fotz_loyalty_accept"
+msgid "Accept join requests"
+msgstr "Принимать просьбы о вступлении"
+
+msgctxt "ui_mcm_fotz_loyalty_accept_desc"
+msgid "Every resident who asks to join is accepted at once, so no request waits on the Factions page."
+msgstr "Каждый житель, попросившийся вступить, принимается сразу, и просьбы не ждут на странице «Группировки»."
+
+msgctxt "st_fotz_news_asks"
+msgid "{who}, a resident of {camp}, asks to join {name}. Answer on the Factions page."
+msgstr "{who} ({camp}) просится в группировку «{name}». Ответьте на странице «Группировки»."
+
+msgctxt "st_fotz_news_settler_joined"
+msgid "{who}, a resident of {camp}, has joined {name}."
+msgstr "{who} ({camp}) вступает в группировку «{name}»."
+
+msgctxt "st_fotz_news_settler_left"
+msgid "{who} has left {name} and rejoined {to}."
+msgstr "{who} покидает группировку «{name}» и возвращается в «{to}»."
+
+msgctxt "st_fotz_news_sworn"
+msgid "{who} is sworn to {name} for life."
+msgstr "{who} присягает группировке «{name}» на всю жизнь."
+
+msgctxt "st_fotz_tab_request"
+msgid "{name} asks to join"
+msgstr "{name} просится к вам"
+
+msgctxt "st_fotz_tab_accept"
+msgid "Accept"
+msgstr "Принять"
+
+msgctxt "st_fotz_tab_decline"
+msgid "Decline"
+msgstr "Отказать"
+
+msgctxt "st_fotz_tab_member_settler"
+msgid "{name} ({camp}), loyalty {loyalty}"
+msgstr "{name} ({camp}), преданность {loyalty}"
+
+msgctxt "st_fotz_tab_member_sworn"
+msgid "{name} ({camp}), sworn for life"
+msgstr "{name} ({camp}), присяга навсегда"
+
+msgctxt "st_fotz_tab_member_between"
+msgid "{name}, sworn for life, between camps"
+msgstr "{name}, присяга навсегда, между лагерями"
+
+msgctxt "st_fotz_tab_resident"
+msgid "{name} ({camp}), resident, loyalty {loyalty}"
+msgstr "{name} ({camp}), житель, преданность {loyalty}"
+
+msgctxt "st_fotz_loyalty_camp"
+msgid "your camp"
+msgstr "ваш лагерь"

@@ -37,6 +37,11 @@ MUTANTS = {
     "log_cap": ("for i = #h, math.max(1, #h - LOG_LINES + 1), -1 do", "for i = #h, 1, -1 do"),
     "dead_counted": ("        for _, m in pairs(F.members) do\n            if not m.dead then",
                      "        for _, m in pairs(F.members) do\n            if true then"),
+    # settler loyalty on the page (0.5.0)
+    "near_unlimited": ("        if #out >= MEMBER_LINES then\n            break\n        end\n", ""),
+    "requests_unlimited": ("        if i > REQUEST_ROWS then\n            break\n        end\n", ""),
+    "sworn_as_settler": ('            local form = not s.sworn and "st_fotz_tab_member_settler"',
+                         '            local form = "st_fotz_tab_member_settler" or "st_fotz_tab_member_settler"'),
     "member_state": ('local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")',
                      'local state = "near"'),
     "member_cap": ("        if i > MEMBER_LINES then", "        if false then"),
@@ -453,6 +458,36 @@ def mcm_option(srcs):
           "with MAC, the options: %s" % ids)
 
 
+def settler_lines(srcs):
+    """With settler loyalty (fotz_loyalty): a settler member's line has their camp and loyalty, a
+    sworn member's says so (between camps too), the residents nearest to asking follow the members
+    while there's room, and the requests go to the page apart, two at most, each with its id for
+    the buttons."""
+    t = Tab(srcs, pre=TP.led_lua() + """
+fotz_faction.F.members = { [501] = { name = "Vaska", mother = "stalker", joined = "2012-05-01" },
+                           [701] = { name = "Petro", mother = "dolg", joined = "2012-05-01", via = "settler" },
+                           [702] = { name = "Ivan", mother = "dolg", joined = "2012-05-01", via = "settler" },
+                           [703] = { name = "Sasha", mother = "dolg", joined = "2012-05-01", via = "settler" } }
+fotz_loyalty = { page_lists = function() return {
+    requests = { { id = 801, name = "Boris", v = 72 }, { id = 802, name = "Gleb", v = 70 }, { id = 803, name = "Dima", v = 71 } },
+    members = { { id = 701, name = "Petro", v = 64, camp = "Cordon Settlement" },
+                { id = 702, name = "Ivan", v = 100, sworn = true, camp = "Cordon Settlement" },
+                { id = 703, name = "Sasha", v = 100, sworn = true } },
+    near = { { id = 901, name = "Kim", v = 69, camp = "Cordon Settlement" },
+             { id = 902, name = "Lev", v = 50, camp = "Cordon Settlement" } } } end }
+""")
+    p = t.page()
+    want = ["Ivan (Cordon Settlement), sworn for life", "Petro (Cordon Settlement), loyalty 64",
+            "Sasha, sworn for life, between camps", "Vaska (Loners), away", "Kim (Cordon Settlement), resident, loyalty 69"]
+    check(lines(p.members) == want, "members %s" % lines(p.members))
+    got = [(p.requests[i].id, p.requests[i].line) for i in range(1, len(p.requests) + 1)]
+    check(got == [(801, "Boris asks to join"), (802, "Gleb asks to join")], "requests %s" % got)
+    # without a faction, no requests and no members
+    t.run("fotz_faction.F = nil")
+    p = t.page()
+    check(p.members is None and p.requests is None, "a page without a faction lists %s, %s" % (p.members, p.requests))
+
+
 def run(srcs):
     n = strings(srcs)
     names(srcs)
@@ -462,7 +497,8 @@ def run(srcs):
     ways_in(srcs)
     parked(srcs)
     mcm_option(srcs)
-    return "7 scenarios, %d strings" % n
+    settler_lines(srcs)
+    return "8 scenarios, %d strings" % n
 
 
 def main():

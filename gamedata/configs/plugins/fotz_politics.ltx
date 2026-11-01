@@ -72,3 +72,44 @@ pair_10         = dolg,freedom
 pair_12         = dolg,stalker
 pair_14         = ecolog,stalker
 pair_15         = freedom,stalker
+
+; settler loyalty (fotz_loyalty): while you lead a faction, each resident of your Homestead camps
+; has a loyalty to it, 0 to 100. The terms below move it; numbers are loyalty points.
+[loyalty]
+; where it starts, the first day Factions sees a resident
+start           = 30
+same_faction    = 10    ; they came from the faction you came from
+was_companion   = 10    ; they were your companion before
+start_friends   = 15    ; your faction and theirs are friends (relation 1000 or more)
+start_enemies   = -15   ; ... or enemies (-1000 or less)
+; each game day
+resident        = 5     ; living in the camp
+working         = 3     ; with a job
+morale_high     = 70    ; camp morale at or above this ...
+morale_high_add = 2
+morale_top      = 90    ; ... or this ...
+morale_top_add  = 3
+morale_low      = 45    ; ... or at or below this
+morale_low_add  = -2
+day_enemies     = -6    ; your faction and theirs are enemies, times (1 + tier / 3)
+day_friends     = 2     ; ... or friends, times the same
+many_wars       = 2     ; your faction at war with this many factions or more ...
+many_wars_add   = -2
+sworn_near      = 1     ; per sworn member living in the same camp (not themselves) ...
+sworn_near_max  = 3     ; ... up to this
+; events, when Factions next looks
+promotion       = 10    ; a step up in Homestead's tiers (Skilled, Expert, Master)
+weapon          = 3     ; a weapon bought with their savings
+raid_beaten     = 6     ; a raid on their camp beaten off
+raid_guard      = 10    ; ... for its guards
+campmate_killed = -4
+expedition_back = 2
+; asking, joining, leaving, swearing
+ask             = 70    ; a resident at this or more asks to join, once a day at most
+withdraw        = 60    ; a waiting request is withdrawn under this
+decline_cost    = 10    ; Decline costs this much ...
+decline_days    = 3     ; ... and they don't ask again for this many days
+leave           = 30    ; a member under this goes back to their own faction
+sworn_tier      = 3     ; sworn for life: a member of this Homestead tier (Master) ...
+sworn_loyalty   = 100   ; ... at this loyalty ...
+sworn_days      = 14    ; ... after this many days as a member

@@ -423,4 +423,52 @@
 	<string id="st_fotz_patch_removed">
 		<text>Нашивки вашей группировки убраны из игры: {n}.</text>
 	</string>
+	<string id="ui_mcm_fotz_loyalty">
+		<text>Жители могут вступать</text>
+	</string>
+	<string id="ui_mcm_fotz_loyalty_desc">
+		<text>С Homestead: пока вы ведёте свою группировку, жители ваших лагерей проникаются к ней преданностью и на 70 просятся вступить. Ответ даётся на странице «Группировки».</text>
+	</string>
+	<string id="ui_mcm_fotz_loyalty_accept">
+		<text>Принимать просьбы о вступлении</text>
+	</string>
+	<string id="ui_mcm_fotz_loyalty_accept_desc">
+		<text>Каждый житель, попросившийся вступить, принимается сразу, и просьбы не ждут на странице «Группировки».</text>
+	</string>
+	<string id="st_fotz_news_asks">
+		<text>{who} ({camp}) просится в группировку «{name}». Ответьте на странице «Группировки».</text>
+	</string>
+	<string id="st_fotz_news_settler_joined">
+		<text>{who} ({camp}) вступает в группировку «{name}».</text>
+	</string>
+	<string id="st_fotz_news_settler_left">
+		<text>{who} покидает группировку «{name}» и возвращается в «{to}».</text>
+	</string>
+	<string id="st_fotz_news_sworn">
+		<text>{who} присягает группировке «{name}» на всю жизнь.</text>
+	</string>
+	<string id="st_fotz_tab_request">
+		<text>{name} просится к вам</text>
+	</string>
+	<string id="st_fotz_tab_accept">
+		<text>Принять</text>
+	</string>
+	<string id="st_fotz_tab_decline">
+		<text>Отказать</text>
+	</string>
+	<string id="st_fotz_tab_member_settler">
+		<text>{name} ({camp}), преданность {loyalty}</text>
+	</string>
+	<string id="st_fotz_tab_member_sworn">
+		<text>{name} ({camp}), присяга навсегда</text>
+	</string>
+	<string id="st_fotz_tab_member_between">
+		<text>{name}, присяга навсегда, между лагерями</text>
+	</string>
+	<string id="st_fotz_tab_resident">
+		<text>{name} ({camp}), житель, преданность {loyalty}</text>
+	</string>
+	<string id="st_fotz_loyalty_camp">
+		<text>ваш лагерь</text>
+	</string>
 </string_table>
