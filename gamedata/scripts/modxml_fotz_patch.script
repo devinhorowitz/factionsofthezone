@@ -1,15 +1,50 @@
 --[[
-Factions of the Zone: DXML, your faction's patches on Sidorovich (fotz_patch). The dialog goes
-into the game's dialogs; the line that offers it is added to his talk alone (the specific
-character his story id names) as his dialog list is built, not in his character file, so he has
-it whichever mod's copy of that file wins. As Arsenal adds its own talks.
+Factions of the Zone: DXML, your faction's patches on the traders (fotz_patch). The dialog goes
+into the game's dialogs; the line that offers it is added to the talk of the traders TRADERS
+names (their specific characters) as their dialog lists are built, not in their character files,
+so they have it whichever mod's copies of those files win. As Arsenal adds its own talks.
 
-He asks how many; each count shows only when you can pay for it, and after each he asks again, so
-you buy as many as you like.
+Who sews them: Sidorovich, and every faction's own traders at the bases its players can start
+from, so whatever faction you came from, one of them will talk to you. The Renegades have no
+trader; the Bandits', who are friendly to them, take their orders.
+
+The trader asks how many; each count shows only when you can pay for it, and after each the trader
+asks again, so you buy as many as you like.
 --]]
 
 DIALOG = "fotz_patch_order"
-TRADER = "esc_2_12_stalker_trader"
+
+-- each faction's traders: their specific characters, named by their story ids
+TRADERS = {
+    stalker  = { "esc_2_12_stalker_trader",                       -- Sidorovich, Cordon
+                 "zat_b30_owl_stalker_trader" },                  -- Owl, Zaton
+    army     = { "agr_smart_terrain_1_6_army_trader_stalker",     -- Sergeant Spooner, Agroprom
+                 "esc_3_16_military_trader" },                    -- Major Zhurov, Cordon
+    bandit   = { "val_smart_terrain_7_4_bandit_trader_stalker",   -- Olivius, Dark Valley
+                 "jup_cont_trader_bandit",                        -- Klenov, Jupiter
+                 "trucks_cemetery_bandit_trader" },               -- Truck Cemetery
+    csky     = { "mar_base_owl_stalker_trader" },                 -- Spore, Great Swamps
+    dolg     = { "bar_dolg_general_petrenko_stalker" },           -- Colonel Petrenko, Rostok
+    ecolog   = { "yan_stalker_sakharov",                          -- Professor Sakharov, Yantar
+                 "jup_b6_scientist_nuclear_physicist" },          -- Professor Hermann, Jupiter
+    freedom  = { "mil_smart_terrain_7_10_freedom_trader_stalker", -- Skinflint, Army Warehouses
+                 "jup_a6_freedom_trader_ashot" },                 -- Ashot, Jupiter
+    killer   = { "cit_killers_merc_trader_stalker",               -- Dushman, Dead City
+                 "zat_stancia_trader_merc",                       -- Vector, Zaton
+                 "pri_special_trader_mlr" },                      -- Meeker, Pripyat
+    monolith = { "pri_monolith_monolith_trader_stalker",          -- Krolik, Pripyat
+                 "trader_monolith_kbo",                           -- Olivar, Pripyat
+                 "trader_monolith_jup_depo" },                    -- the Jupiter depot
+    greh     = { "red_greh_trader" },                             -- Stribog, Red Forest
+    isg      = { "jup_depo_isg_leader" },                         -- Major Hernandez, Jupiter
+}
+
+local sews = {}
+for _, ids in pairs(TRADERS) do
+    for _, id in ipairs(ids) do
+        sews[id] = true
+    end
+end
 
 local function count(id, n)
     return [[
@@ -71,9 +106,9 @@ function edit(name, xml)
     return true
 end
 
--- the line in Sidorovich's talk, once
+-- the line in each trader's talk, once
 function add_talk(character_id, list)
-    if character_id ~= TRADER or list:has(DIALOG) then
+    if not sews[character_id] or list:has(DIALOG) then
         return false
     end
     list:add(DIALOG)
@@ -88,6 +123,6 @@ end
 
 function on_game_start()
     RegisterScriptCallback("on_specific_character_dialog_list", function(character_id, list)
-        guarded("Sidorovich's talk", add_talk, character_id, list)
+        guarded("a trader's talk", add_talk, character_id, list)
     end)
 end

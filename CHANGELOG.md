@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- **Your faction's patches from every faction's traders.** Sidorovich was the only one who sewed
+  them, and a player whose faction is at war with the Loners couldn't get to him. Now each
+  faction's own traders at the bases its players start from take the order too (the README lists
+  them); the Renegades, who have no trader, buy from the Bandits'.
+- **Your own emblem on the patch.** A guide, `docs/CUSTOM-PATCH.md`, with templates and
+  `_tools/make_patch.py`, which makes the files from one picture.
+
 ## 0.4.0 — 2026-11-01
 
 The first release: everything below, from the census (0.1.0) to territory (0.4.0).

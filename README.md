@@ -32,7 +32,8 @@ name, moved by your kills and your members'.
 
 ![Your faction on the Factions page](media/your-faction.jpg)
 
-**Fly your colors.** Sidorovich has your faction's patches sewn to order. Your members wear them
+**Fly your colors.** Sidorovich and every faction's own traders have your faction's patches sewn
+to order, so whatever faction you came from, someone will sell you them. Your members wear them
 and leave one behind when they fall, and with Wearable Devices you wear one on your bracer. The
 art is a placeholder, there to be replaced: your own image makes the faction yours.
 
@@ -54,12 +55,29 @@ it starts with the friends and enemies of the faction you came from, you lead it
 faction (keeping its traders and tasks; you can choose to join it instead), and your companions
 join it. Disband it and everyone goes back to their old faction.
 
-**Your faction's patch.** Sidorovich, in Cordon, has patches sewn for the faction you lead: ask him,
-and buy as many as you like, 650 RU apiece. Your members wear it and leave one behind when they
-fall, and it's your faction's emblem on the Factions page. The art is a placeholder, an oval patch
-with this mod's banner, there to be replaced: [docs/CUSTOM-PATCH.md](docs/CUSTOM-PATCH.md) shows
-how to put your own emblem on the patch, the page and Wearable Devices' bracer, with a tool that
-makes the files from one picture.
+**Your faction's patch.** Traders have patches sewn for the faction you lead: ask, and buy as many
+as you like, 650 RU apiece. Sidorovich does, and so do each faction's own traders at the bases its
+players start from, so a trader will deal with you whatever faction you came from:
+
+| Faction | Traders |
+|---|---|
+| Loners | Sidorovich (Cordon), Owl (Zaton) |
+| Military | Sergeant Spooner (Agroprom), Major Zhurov (Cordon) |
+| Bandits | Olivius (Dark Valley), Klenov (Jupiter), the trader at the Truck Cemetery |
+| Clear Sky | Spore (Great Swamps) |
+| Duty | Colonel Petrenko (Rostok) |
+| Ecologists | Professor Sakharov (Yantar), Professor Hermann (Jupiter) |
+| Freedom | Skinflint (Army Warehouses), Ashot (Jupiter) |
+| Mercenaries | Dushman (Dead City), Vector (Zaton), Meeker (Pripyat) |
+| Monolith | Krolik and Olivar (Pripyat), the trader at the Jupiter depot |
+| Sin | Stribog (Red Forest) |
+| ISG | Major Hernandez (Jupiter) |
+
+The Renegades have no trader; the Bandits', who are friendly to them, take their orders. Your
+members wear the patch and leave one behind when they fall, and it's your faction's emblem on the
+Factions page. The art is a placeholder, an oval patch with this mod's banner, there to be
+replaced: [docs/CUSTOM-PATCH.md](docs/CUSTOM-PATCH.md) shows how to put your own emblem on the
+patch, the page and Wearable Devices' bracer, with a tool that makes the files from one picture.
 
 ![Asking Sidorovich](media/sidorovich.jpg)
 
@@ -157,7 +175,7 @@ faction's patches out of the game (above).
   scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots,
   `test_patch.py` runs your faction's patch and Sidorovich's dialog against a stand-in for the
   actor and his talk, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (257 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (260 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

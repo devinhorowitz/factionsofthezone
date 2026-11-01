@@ -8,8 +8,9 @@ and your faction's patches and its emblem on the Factions page show it (EMBLEM, 
 as a UI texture, ui_fotz_art.xml). The base game's death_manager drops a dead NPC's
 <community>_patch, so your members drop one when they fall.
 
-Sidorovich has them sewn to order: a dialog on him (modxml_fotz_patch) while you lead a faction,
-COUNTS at a time, at the item's own cost each, as often as you like.
+Traders have them sewn to order: a dialog on Sidorovich and every faction's own traders
+(modxml_fotz_patch) while you lead a faction, COUNTS at a time, at the item's own cost each, as
+often as you like.
 
 Unlike the faction itself, an item stays in a save, and a save that holds one can't load without
 the mod. So MCM's "Remove your faction's patches" takes every one out of the game, wherever it is,
@@ -57,7 +58,7 @@ local function buy(n)
     log("bought %s for %s", n, cost)
 end
 
--- Sidorovich's offer and the counts, with the price in them
+-- the trader's offer and the counts, with the price in them
 function offer_text()
     return fotz_tab.text("st_fotz_patch_offer", { price = price() })
 end

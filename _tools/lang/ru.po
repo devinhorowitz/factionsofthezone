@@ -535,16 +535,16 @@ msgid "Patch (Your faction)"
 msgstr "Нашивка (ваша группировка)"
 
 msgctxt "st_fotz_patch_descr"
-msgid "Your own faction's insignia, sewn to order in Cordon. Your members wear it, and a fallen one leaves it behind."
-msgstr "Знак вашей собственной группировки, сшитый на заказ на Кордоне. Его носят ваши бойцы, и павший оставляет его после себя."
+msgid "Your own faction's insignia, sewn to order. Your members wear it, and a fallen one leaves it behind."
+msgstr "Знак вашей собственной группировки, сшитый на заказ. Его носят ваши бойцы, и павший оставляет его после себя."
 
 msgctxt "st_fotz_patch_ask"
 msgid "Can you get patches sewn for my faction?"
 msgstr "Сможешь достать нашивки для моей группировки?"
 
 msgctxt "st_fotz_patch_offer"
-msgid "Patches with your own emblem? There's a woman in the village who sews. {price} RU apiece. How many?"
-msgstr "Нашивки с твоей эмблемой? В деревне одна женщина шьёт. {price} руб. за штуку. Сколько?"
+msgid "Patches with your own emblem? I know someone who sews. {price} RU apiece. How many?"
+msgstr "Нашивки с твоей эмблемой? Знаю, кто шьёт. {price} руб. за штуку. Сколько?"
 
 msgctxt "st_fotz_patch_buy_one"
 msgid "One, for {total} RU."
