@@ -374,7 +374,10 @@ its player twin `actor_fotz_own`, team 37).
   `textures\ui\fotz_your_faction.dds` (`_tools/make_art.py`), 100x100: the icon is 2x2 cells of
   the 50 px grid at scale 2, as the HD faction patches have theirs, and the same square is the
   page's emblem for your faction (`fotz_your_faction`). A player replaces that file to make the
-  faction theirs. Sidorovich sells them in a dialog (`modxml_fotz_patch` puts it in the game's
+  faction theirs. Wearable Devices' bracer draws a patch put on it from the item's `wd_bracer_patch`
+  (Clear Sky's, inherited from `csky_patch`, until this names its own): `fotz\fotz_bracer_patch`,
+  the same patch at 512x512 with mipmaps, placed and tilted as WD's own patch textures are.
+  Sidorovich sells them in a dialog (`modxml_fotz_patch` puts it in the game's
   dialogs and in his talk alone, as his dialog list is built): one, five, ten or twenty at the
   item's cost each, offered only when you can pay, as often as you like. An item stays in a save,
   unlike the faction, so MCM's "Remove your faction's patches" releases every one in the alife

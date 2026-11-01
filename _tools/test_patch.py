@@ -243,6 +243,24 @@ def dialog(srcs):
     check(d.add_talk("bar_visitors_barman_stalker_trader", other) is False and len(other.ids) == 1, "Barkeep got it")
 
 
+def item():
+    """The item names its own art, and the files are there: the icon, and Wearable Devices' bracer
+    patch (inherited, it would be Clear Sky's)."""
+    import re
+    import struct
+    gd = os.path.join(HERE, "..", "gamedata")
+    ltx = open(os.path.join(gd, "configs", "mod_system_fotz_patch.ltx"), encoding="cp1251").read()
+    body = ltx.split("[fotz_own_patch]:csky_patch", 1)[1]
+    keys = dict(re.findall(r"(?m)^(\w+)\s*=\s*(\S+)", body))
+    for key, size, mips in (("icons_texture", 100, False), ("wd_bracer_patch", 512, True)):
+        check(key in keys, "no %s: the patch would show Clear Sky's" % key)
+        path = os.path.join(gd, "textures", keys[key].replace("\\", os.sep) + ".dds")
+        check(os.path.isfile(path), "%s names %s, which isn't there" % (key, keys[key]))
+        head = open(path, "rb").read(128)
+        h, w, levels = struct.unpack("<I", head[12:16])[0], struct.unpack("<I", head[16:20])[0], struct.unpack("<I", head[28:32])[0]
+        check((w, h) == (size, size) and (levels > 1) == mips, "%s: %dx%d, %d levels" % (keys[key], w, h, levels))
+
+
 def strings(srcs):
     import re
     root = ET.fromstring(open(ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
@@ -255,6 +273,7 @@ def strings(srcs):
 
 def run(srcs):
     strings(srcs)
+    item()
     not_leading(srcs)
     buying(srcs)
     words(srcs)

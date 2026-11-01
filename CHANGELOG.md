@@ -40,7 +40,8 @@ The first release: everything below, from the census (0.1.0) to territory (0.4.0
 - **Your faction's patch.** Sidorovich has patches sewn for the faction you lead: ask him, and buy
   as many as you like at the item's cost (650 RU). Your members wear it and leave one behind when
   they fall, and it's your faction's emblem on the Factions page. The art is a placeholder (an
-  oval patch with the mod's banner) that one file of your own replaces. A save that holds a patch
+  oval patch with the mod's banner) that one file of your own replaces, and a second for Wearable
+  Devices' bracer, which shows it on your arm. A save that holds a patch
   can't load without the mod, so MCM's "Remove your faction's patches" takes them all out of the
   game before you remove it.
 - **The Factions page in words.** No numbers: the PDA's own Relations tab has them, and a

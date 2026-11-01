@@ -22,6 +22,7 @@ ROOT = os.path.dirname(HERE)
 GD = os.path.join(ROOT, "gamedata")
 TOP = "Factions of the Zone"
 REPO = "https://github.com/devinhorowitz/factionsofthezone/blob/main/"
+RAW = "https://raw.githubusercontent.com/devinhorowitz/factionsofthezone/main/"
 
 
 def version():
@@ -32,6 +33,8 @@ def version():
 # links to the repo's own files ("](INSTALL-WITH-CLAUDE.md)", "](docs/DESIGN.md)") as GitHub links
 def readme_for_zip():
     text = open(os.path.join(ROOT, "README.md"), encoding="utf-8").read()
+    # pictures ("![...](media/page.jpg)") as their raw files, so a viewer shows them; then links
+    text = re.sub(r"(!\[[^\]]*\])\((?!https?:|#)([^)]+)\)", lambda m: m.group(1) + "(" + RAW + m.group(2) + ")", text)
     return re.sub(r"\]\((?!https?:|#)([^)]+)\)", lambda m: "](" + REPO + m.group(1) + ")", text)
 
 

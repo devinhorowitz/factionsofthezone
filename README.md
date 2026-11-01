@@ -5,26 +5,65 @@ and talk about it on the PDA. You can stand with one, broker between them, or st
 
 A mod for the S.T.A.L.K.E.R. Anomaly modpack G.A.M.M.A. (Anomaly 1.5.3 with Modded Exes), a
 sibling to [Seasons of the Zone](https://github.com/devinhorowitz/seasonsofthezone) and
-[Arsenal](https://github.com/devinhorowitz/GAMMA-Arsenal-App).
+[Arsenal](https://github.com/devinhorowitz/GAMMA-Arsenal-App). A Warfare lite for the story game:
+the factions fight over the Zone around your story, not instead of it.
+
+![The Factions page in the PDA](media/page.jpg)
 
 ## Status
 
-Early development. The plan is in [docs/DESIGN.md](docs/DESIGN.md).
+0.4.0 is the first release, and work goes on. The plan is in [docs/DESIGN.md](docs/DESIGN.md).
+
+## How it plays
+
+**Watch the Zone shift.** Once a game day the factions' fights move their relations: kills, ground
+taken, the fronts they share, a common enemy. Wars, truces and alliances come out of it, each one
+news on your PDA in the faction's own voice. The Factions page says where the fighting is and who
+is winning, and the PDA map marks each fight.
+
+![A fight on the PDA map](media/map.jpg)
+
+**Take a side.** Your kills count like anyone's. Fight beside a faction and its enemies remember
+it; help a side win a front and its squads lean toward that front.
+
+**Found your own faction.** Name it in MCM. It starts with your old faction's friends and enemies,
+your companions join it, and from then on it goes to war, makes truces and finds allies in its own
+name, moved by your kills and your members'.
+
+![Your faction on the Factions page](media/your-faction.jpg)
+
+**Fly your colors.** Sidorovich has your faction's patches sewn to order. Your members wear them
+and leave one behind when they fall, and with Wearable Devices you wear one on your bracer. The
+art is a placeholder, there to be replaced: your own image makes the faction yours.
+
+![Your patch on the bracer](media/patch-bracer.jpg)
+
+### Coming next
+
+- **Settlers who earn their place** (0.5.0, with Homestead): loyalty that grows as you look after
+  a camp. At 70 a settler asks to join your faction; at the top they're sworn for life, follow you
+  to another camp if theirs falls, and lift the loyalty of the camp around them.
+- **Invasions:** factions pushing into each other's ground, not only leaning toward it.
+- **Other custom factions**, beside your own.
+
+## Features
 
 **Your own faction** (0.3.0, first part). Today you're a loner tied to one faction and its
 alliances. In MCM you can found a faction of your own and name it. It's a real faction to the game:
 it starts with the friends and enemies of the faction you came from, you lead it from your old
 faction (keeping its traders and tasks; you can choose to join it instead), and your companions
-join it. Disband it and
-everyone goes back to their old faction. Coming next: settlers who may join as their loyalty
-grows.
+join it. Disband it and everyone goes back to their old faction.
 
 **Your faction's patch.** Sidorovich, in Cordon, has patches sewn for the faction you lead: ask him,
 and buy as many as you like, 650 RU apiece. Your members wear it and leave one behind when they
 fall, and it's your faction's emblem on the Factions page. The art is a placeholder, an oval patch
 with this mod's banner. Make it yours: put your own image in place of
-`textures\ui\fotz_your_faction.dds` (a DDS of exactly 100x100 pixels) in a mod
-placed above Factions in MO2, and your patches and your emblem show it.
+`textures\ui\fotz_your_faction.dds` (a DDS of exactly 100x100 pixels) in a mod placed above
+Factions in MO2, and your patches and your emblem show it. With Wearable Devices, the patch on its
+bracer is `textures\fotz\fotz_bracer_patch.dds` (512x512, drawn like WD's own patches): replace it
+too.
+
+![Asking Sidorovich](media/sidorovich.jpg)
 
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
@@ -45,6 +84,27 @@ line; a side that takes the upper hand on a front says so on your PDA; and the P
 fight with its two sides' names, red where it's your side's, amber elsewhere. Hover a marker for
 who is winning there and which factions there are hostile to you.
 
+**The Factions page.** Your side (the faction you lead, or your own) and, in words, how each
+faction whose relation with it can change stands with you, what holds it there (a war, a truce, an
+alliance), whether it's getting better or worse, and its leader; the factions that never change,
+a line for each standing ("Permanent enemies: ..."); the war log; where the fighting is; your
+members; a button to the PDA's own Relations tab, which has the numbers; and Reset relations,
+which puts every relation back where it was before the fighting moved it and ends every war, truce
+and alliance (a second click does it).
+
+Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
+key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
+without it the page has its tab; with it, the tile, or the tab if you choose it in MCM. The key
+works either way.
+
+![The Factions tile in Mod App Creator's launcher](media/launcher.jpg)
+
+MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
+yourself, off unless you choose it, and whether companions join), politics on or off, the
+territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the
+census log, removing your faction's patches (before you remove the mod), the Factions page key,
+and, with Mod App Creator, the page's own PDA tab.
+
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before
 each save, everyone is put back in their old faction in the save itself, and gets your faction
@@ -63,25 +123,6 @@ in `fotz_census.jsonl` in the game's appdata folder (`<Anomaly>\appdata`).
 ```
 python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
-
-**The Factions page.** Your side (the faction you lead, or your own) and, in words, how each
-faction whose relation with it can change stands with you, what holds it there (a war, a truce, an
-alliance), whether it's getting better or worse, and its leader; the factions that never change,
-a line for each standing ("Permanent enemies: ..."); the war log; where the fighting is; your
-members; a button to the PDA's own Relations tab, which has the numbers; and Reset relations,
-which puts every relation back where it was before the fighting moved it and ends every war, truce
-and alliance (a second click does it).
-
-Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
-key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
-without it the page has its tab; with it, the tile, or the tab if you choose it in MCM. The key
-works either way.
-
-MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
-yourself, off unless you choose it, and whether companions join), politics on or off, the
-territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the census log, removing
-your faction's patches (before you remove the mod), the Factions page key, and, with Mod App
-Creator, the page's own PDA tab.
 
 ## For other mods
 
@@ -103,7 +144,8 @@ holds, and Capture the Zone's campaign squads are left alone too.
 
 With Claude Code, see [INSTALL-WITH-CLAUDE.md](INSTALL-WITH-CLAUDE.md). By hand: put the
 `gamedata` folder in a new MO2 mod and enable it anywhere in the list. It ships only files of its
-own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
+own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it, after taking your
+faction's patches out of the game (above).
 
 ## Development
 
@@ -119,6 +161,8 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   actor and his talk, and `test_text.py` checks the Russian tables' build.
 - `_tools/mutants.py` runs each test against broken copies of what it tests (257 so far); every
   one must fail.
+- `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
+  page's lines, and your faction's placeholder patch.
 - `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
   `build.py --check` passes and only once CHANGELOG.md has a section for the version.
 - Russian text lives in `_tools/lang/ru.po`, keyed by string id.
