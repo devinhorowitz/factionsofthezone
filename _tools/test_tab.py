@@ -477,8 +477,8 @@ fotz_loyalty = { page_lists = function() return {
              { id = 902, name = "Lev", v = 50, camp = "Cordon Settlement" } } } end }
 """)
     p = t.page()
-    want = ["Ivan (Cordon Settlement), sworn for life", "Petro (Cordon Settlement), loyalty 64",
-            "Sasha, sworn for life, between camps", "Vaska (Loners), away", "Kim (Cordon Settlement), resident, loyalty 69"]
+    want = ["Ivan, sworn for life (Cordon Settlement)", "Petro, loyalty 64 (Cordon Settlement)",
+            "Sasha, sworn for life, between camps", "Vaska (Loners), away", "Kim, resident, loyalty 69 (Cordon Settlement)"]
     check(lines(p.members) == want, "members %s" % lines(p.members))
     got = [(p.requests[i].id, p.requests[i].line) for i in range(1, len(p.requests) + 1)]
     check(got == [(801, "Boris asks to join"), (802, "Gleb asks to join")], "requests %s" % got)

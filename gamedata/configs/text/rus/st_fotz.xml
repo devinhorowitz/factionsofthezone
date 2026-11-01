@@ -457,16 +457,16 @@
 		<text>Отказать</text>
 	</string>
 	<string id="st_fotz_tab_member_settler">
-		<text>{name} ({camp}), преданность {loyalty}</text>
+		<text>{name}, преданность {loyalty} ({camp})</text>
 	</string>
 	<string id="st_fotz_tab_member_sworn">
-		<text>{name} ({camp}), присяга навсегда</text>
+		<text>{name}, присяга навсегда ({camp})</text>
 	</string>
 	<string id="st_fotz_tab_member_between">
 		<text>{name}, присяга навсегда, между лагерями</text>
 	</string>
 	<string id="st_fotz_tab_resident">
-		<text>{name} ({camp}), житель, преданность {loyalty}</text>
+		<text>{name}, житель, преданность {loyalty} ({camp})</text>
 	</string>
 	<string id="st_fotz_loyalty_camp">
 		<text>ваш лагерь</text>
