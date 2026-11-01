@@ -492,6 +492,28 @@ local function travel(res, camps)
     end
 end
 
+-- whether a camp of yours has room for a member heading there (fotz_outposts, before a defection)
+function has_room()
+    return enabled() and #camps_for({}) > 0
+end
+
+-- a member who joined from elsewhere (a defector from an outpost you beat) at loyalty v sets out
+-- for a camp of yours with room; false, and no entry, with none to go to
+function take_in(id, name, v)
+    local b = enabled() and book()
+    if not (b and cfg) or b.res[id] then
+        return false
+    end
+    local e = { name = name, v = clamp(v), tier = 0, bought = 0, since = today() }
+    b.res[id] = e
+    if set_out(id, e) then
+        log("%s came over at loyalty %s", name, e.v)
+        return true
+    end
+    b.res[id] = nil
+    return false
+end
+
 -- the entries whose record is gone: the dead and those who left a standing camp are dropped (a
 -- member who left goes back to their own faction); a fallen camp's members stay or go (fell), and
 -- its other residents are forgotten

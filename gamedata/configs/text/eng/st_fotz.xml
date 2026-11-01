@@ -437,6 +437,12 @@
 	<string id="ui_mcm_fotz_loyalty_accept_desc">
 		<text>Every resident who asks to join is accepted at once, so no request waits on the Factions page.</text>
 	</string>
+	<string id="ui_mcm_fotz_outposts">
+		<text>Beaten outposts can give up</text>
+	</string>
+	<string id="ui_mcm_fotz_outposts_desc">
+		<text>With Homestead: a rival outpost you beat may surrender, a ceasefire of a few days, or come over to your faction; both more often the lower its fighters' rank.</text>
+	</string>
 	<string id="st_fotz_news_asks">
 		<text>{who}, a resident of {camp}, asks to join {name}. Answer on the Factions page.</text>
 	</string>
@@ -487,5 +493,17 @@
 	</string>
 	<string id="st_fotz_tab_member_sworn_heading">
 		<text>{name}, sworn for life (to {camp})</text>
+	</string>
+	<string id="st_fotz_news_outpost_surrendered">
+		<text>{faction} at {outpost} have surrendered. They'll hold their fire, for now.</text>
+	</string>
+	<string id="st_fotz_news_outpost_defected">
+		<text>{faction} at {outpost} have come over to {name}.</text>
+	</string>
+	<string id="st_fotz_news_outpost_truce_over">
+		<text>The ceasefire at {outpost} is over: {faction} there are hostile again.</text>
+	</string>
+	<string id="st_fotz_news_outpost_truce_broken">
+		<text>You broke the ceasefire at {outpost}: {faction} there are hostile again.</text>
 	</string>
 </string_table>

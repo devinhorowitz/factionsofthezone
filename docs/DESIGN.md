@@ -513,6 +513,49 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
   sworn member waits in the Zone, still a member, and looks again each day; the others go back
   to their own faction.
 
+## 8. Rival outposts beaten (0.5.0)
+
+`fotz_outposts.script`, tuned by the `[outposts]` section of `configs/plugins/fotz_politics.ltx`.
+With Homestead only, unless MCM's "Beaten outposts can give up" is off. The user's idea
+(2026-11-01): beating an opposing settlement runs a chance of defection or surrender, defection
+less likely the higher the enemy's skill and surrender more likely the lower, and a surrender is
+likely only a ceasefire until they turn hostile again.
+
+- **Outposts** are Homestead's `stalker_camp_builder.rival_camps`, keyed `rival_camp_<chest id>`:
+  a faction's garrison of up to five (`squad_id` and `extra_squad_ids`), held there; `status` is
+  nil while it's held, "unoccupied" once no one is left. Read, never written.
+- **Beaten:** every 5 s, each outpost of a faction at war with you (-1000 or worse toward you;
+  never mutants or the Zombied) on your level and within 150 m of you counts its garrison alive.
+  The most it has had while you're there is the fight's top; go farther than that and the fight
+  is forgotten. Once someone has fallen, at 40% of the top or fewer (two of five), the last one
+  standing always, the survivors roll once, by their average rank (novice 0 to legend 7).
+- **The roll:** defection 30% for novices and 4 points less a rank (2% for legends); surrender
+  50% and 7 less a rank (1%); otherwise they fight on, with no second roll in that fight.
+- **Defection** needs your faction, settler loyalty on, and a camp of yours with room (Homestead's
+  `get_recruitable_camps` for our faction); without them it's a surrender. Each survivor leaves
+  the garrison's squad (Homestead's `release_npc_from_squad_and_smart`), joins your faction as a
+  settler member (`fotz_faction.join_settler`), gets a squad of their own
+  (`reassign_freed_settler_to_smart`) and starts the trip members take between camps
+  (`fotz_loyalty.take_in`) at loyalty 50: their old faction pulls them 6 a day, so one who works
+  in your camp holds on and an idle one drifts back. With no one left in the garrison, Homestead
+  counts the outpost lost, and a hostile faction's retaliation camp follows, as when you wipe
+  it.
+- **Surrender** is a ceasefire, not a peace. Each survivor at war with you is set to the game's own
+  neutral, as `sim_squad_scripted:set_squad_relation("neutral")` does: `force_set_goodwill(0)`,
+  which takes the two community terms (their faction's goodwill toward you and its relation with
+  yours) off the value it's given, so their personal goodwill and those terms come to 0 and only
+  rank and reputation are left; the same between them and the companions following you, both ways.
+  Run 21b set `old - attitude` instead, which counted the community terms twice and made a fighter
+  a friend (+2412). It lasts 1 to 3 game days, then each personal goodwill goes back (given to
+  `force_set_goodwill` with the community terms added) and they're hostile again. Hitting one
+  of them ends it at once for the outpost. Like Factions' other relation changes it lives only
+  while you play: the truces are in `m_data.fotz_outposts` (by outpost key, each NPC's old
+  goodwill, and the pairs with your companions), every save gets the old goodwill back, and the
+  next update applies the ceasefire again. An outpost that falls or changes hands meanwhile ends
+  its truce quietly.
+- **News:** the surrender, the defection (and each defector's trip, from loyalty), the
+  ceasefire's end, a ceasefire you broke.
+
 ## The save
 
 - **The census writes nothing to the save.** Its file is outside it.
@@ -637,7 +680,8 @@ From the Homestead thread on Discord (June to October 2026), asks that land on F
    faction's roster, every faction's relations, the war log, your standing.
 4. **0.4.0, territory.** The light steer, fronts in the news and on the map.
 5. **0.5.0, settler loyalty** (section 7, built): loyalty, join requests, sworn members, and
-   members moving to another of your camps when theirs falls.
+   members moving to another of your camps when theirs falls; rival outposts you beat may
+   surrender or come over to you (section 8).
 6. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
 7. **1.0.0.**
 

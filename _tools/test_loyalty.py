@@ -14,7 +14,8 @@ loyalty, other members at a roll of it, residents forgotten); the trip to a camp
 smart nearest its flag, the squad steered there, moving in only near the flag or that smart and on
 its level, through Homestead's recruitment, the squad let go); a camp that turns them away or
 falls meanwhile crossed off; with nowhere to go the sworn waiting and looking again each day, the
-others going back, a companion staying a member; a re-created settler keeping their entry and
+others going back, a companion staying a member; a defector taken in (an entry at their loyalty
+and a trip, not twice, none with no room); a re-created settler keeping their entry and
 membership; the first census only starting the book; nothing without a faction, Homestead or the
 MCM switch; the page's lists; the strings exist.
 
@@ -79,6 +80,12 @@ MUTANTS = {
     "any_community": ("            if a_faction(comm) and rel_with(comm) <= ENEMIES then", "            if comm and rel_with(comm) <= ENEMIES then"),
     "war_line_strict": ("a_faction(comm) and rel_with(comm) <= ENEMIES", "a_faction(comm) and rel_with(comm) < ENEMIES"),
     "zombied_unknown": ('    return comm == "zombied"\n', "    return false\n"),
+    # a defector taken in (fotz_outposts)
+    "take_in_keeps_entry": ("    b.res[id] = nil\n    return false\nend\n\n-- the entries whose record is gone",
+                            "    return false\nend\n\n-- the entries whose record is gone"),
+    "has_room_always": ("    return enabled() and #camps_for({}) > 0", "    return enabled()"),
+    "take_in_twice": ("    if not (b and cfg) or b.res[id] then", "    if not (b and cfg) then"),
+    "defector_at_start": ("    local e = { name = name, v = clamp(v),", "    local e = { name = name, v = cfg.start,"),
     "no_relink": ("                if camp.survivors[id].name == e.name then", "                if false then"),
     "first_census_counts": ("    if b.day == nil then\n        look()\n        b.day = date\n        return\n    end\n", ""),
     "ignores_switch": ('return F() ~= nil and homestead() ~= nil and not (ui_mcm and ui_mcm.get("fotz/loyalty") == false)',
@@ -786,6 +793,21 @@ def enemy_smart(src):
             check(got == want and w.g.SQUAD_OF[i].scripted_target == want, "%s: %d heads for %s" % (what, i, got))
 
 
+def take_in(src):
+    # a defector from an outpost you beat (fotz_outposts) at 50: an entry and a trip to a camp with room
+    w = fresh(src, BETWEEN, "npc(20)")
+    check(w.env.has_room() and w.env.take_in(20, "Defector", 50), "not taken in")
+    e = w.res()[20]
+    check(e and e.v == 50 and e.hub is None and e.trip and e.trip.hub == 2
+          and w.g.SQUAD_OF[20].scripted_target == "gar_near",
+          "the defector's entry: %s" % str(e and (e.v, e.hub, e.trip and e.trip.hub)))
+    check(not w.env.take_in(20, "Defector", 50) and w.res()[20].v == 50, "taken in twice")
+    # no camp with room: none, and no entry left
+    w = fresh(src, BETWEEN, "ROOM = {}; npc(20)")
+    check(not w.env.has_room() and not w.env.take_in(20, "Defector", 50) and w.res()[20] is None,
+          "taken in with no room")
+
+
 def strings(src):
     root = ET.fromstring(open(ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
     have = {s.get("id") for s in root.iter("string")}
@@ -796,9 +818,9 @@ def strings(src):
 def run(src):
     for t in (config, start, daily, sworn_near, events, raids, deaths, requests, leaving, swearing, residency,
               relinking, census_flow, switched_off, near_list, between, turned_away, nowhere_to_go, enemy_smart,
-              strings):
+              take_in, strings):
         t(src)
-    return "20 scenarios"
+    return "21 scenarios"
 
 
 def expose(src):
