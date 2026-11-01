@@ -19,7 +19,7 @@ Never set_character_community on a dead NPC (it corrupted the heap in testing), 
 own squad and group.
 --]]
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 SAVE_VERSION = 1
 OWN, ACTOR_OWN = "fotz_own", "actor_fotz_own"
 CHECK_MS = 1000
@@ -36,6 +36,8 @@ PARTNERS = {
 F = nil                -- the saved state, nil until a faction is founded
 local index_of         -- community name -> index, from [game_relations] communities
 local pending = {}     -- member ids to give the faction on the next update
+local parked = nil     -- a saved faction this install can't restore (no declaration): kept as saved
+local saved = false    -- a save just put the members' server objects in their old factions
 local next_check = 0
 local touched = false  -- a faction was led in this game, so others may hold its name
 local last_mother      -- the faction you came from, after a disband
@@ -149,6 +151,14 @@ local function founding_relations(mother)
     return base
 end
 
+-- the politics engine moves the faction's relations from its founding ones: it writes them again
+-- over these, and drops what it kept for a faction disbanded
+local function politics_apply()
+    if fotz_politics and fotz_politics.apply then
+        fotz_politics.apply()
+    end
+end
+
 -- set every cell of the faction (the matrix starts from the configs on every load)
 function apply_relations()
     local n = 0
@@ -159,6 +169,7 @@ function apply_relations()
             n = n + 1
         end
     end
+    politics_apply()
     return n
 end
 
@@ -333,9 +344,32 @@ local function you_join()
 end
 
 
+-- after a save, the members' server objects back in the faction: the save's packet edit put
+-- them in their old ones, and the game reads those (A-Life, offline combat, who killed whom) until
+-- each spawns again
+local function back_after_save()
+    saved = false
+    for id, m in pairs(F.members) do
+        if not m.dead then
+            local ok, err = pcall(function()
+                local se = alife():object(id)
+                if se and same_member(id, m) and se:community() ~= OWN then
+                    set_saved_community(se, OWN)
+                end
+            end)
+            if not ok then
+                log("! couldn't put member %s back in the faction after the save: %s", id, tostring(err))
+            end
+        end
+    end
+end
+
 local function tick()
     if not F then
         return
+    end
+    if saved then
+        back_after_save()
     end
     -- you: in your faction whenever you're in your old one (a disguise puts you in another, and is
     -- left alone), or back in your old one if you don't join
@@ -374,6 +408,15 @@ end
 
 -- founding and disbanding ----------------------------------------------------------------------
 
+-- the name MCM asks for: a blank one (the box's default) is the default name, at founding and
+-- at every Accept after it alike
+function name_wanted(name)
+    if type(name) == "string" and name ~= "" then
+        return name
+    end
+    return game.translate_string("st_fotz_default_name")
+end
+
 function found(name)
     if F then
         return false
@@ -383,10 +426,9 @@ function found(name)
         return false
     end
     local mother = get_actor_true_community()
-    if not name or name == "" then
-        name = game.translate_string("st_fotz_default_name")
-    end
-    F = { v = SAVE_VERSION, name = name, founded = today(), mother = mother, members = {} }
+    name = name_wanted(name)
+    F = { v = SAVE_VERSION, name = name, founded = today(), mother = mother, members = {},
+          uid = string.format("%s/%s", tostring(os.time()), tostring(time_global())) }
     touched = true
     F.base = founding_relations(mother)
     apply_relations()
@@ -411,6 +453,7 @@ function disband()
     F = nil
     pending = {}
     scrub_partners()
+    politics_apply()
     log("disbanded %s", name)
     say("st_fotz_news_disbanded", { name = name })
     return true
@@ -448,7 +491,8 @@ local function save_state(m_data)
         log("! couldn't return others in the faction for the save: %s", tostring(strays))
         strays = 0
     end
-    m_data.fotz_faction = F
+    m_data.fotz_faction = F or parked
+    saved = F ~= nil
     if not F then
         if strays > 0 then
             log("save: %s others returned to %s", strays, old_faction())
@@ -486,13 +530,15 @@ end
 
 local function actor_on_first_update()
     index_of = community_indexes()
+    -- without the declaration nothing may name the faction (the engine asserts on it): it's kept
+    -- aside, as the save had it, for an install that has it
+    if F and not declared() then
+        log("! %s isn't declared: your faction can't be restored, and is kept as saved", OWN)
+        parked, F = F, nil
+    end
     sync_mcm()
     scrub_partners()
     if not F then
-        return
-    end
-    if not declared() then
-        log("! %s isn't declared: your faction can't be restored", OWN)
         return
     end
     touched = true
@@ -546,12 +592,12 @@ local function on_option_change()
         return
     end
     local want = ui_mcm.get("fotz/faction") == true
-    local name = ui_mcm.get("fotz/faction_name")
+    local name = name_wanted(ui_mcm.get("fotz/faction_name"))
     if want and not F then
-        found(type(name) == "string" and name or "")
+        found(name)
     elseif not want and F then
         disband()
-    elseif F and type(name) == "string" and name ~= F.name then
+    elseif F and name ~= F.name then
         F.name = name
         log("renamed %s", name)
     end

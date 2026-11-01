@@ -1,0 +1,113 @@
+--[[
+Factions of the Zone: your faction's patch.
+
+An item, fotz_own_patch (mod_system_fotz_patch.ltx), drawn from one file, this mod's placeholder
+textures\ui\fotz_your_faction.dds: an oval patch with the mod's banner on it, 100x100. Replace
+that file with your own emblem in a mod placed above Factions, and your faction's patches and its
+emblem on the Factions page show it (EMBLEM, the same picture as a UI texture, ui_fotz_art.xml). The base game's death_manager drops a dead NPC's
+<community>_patch, so your members drop one when they fall.
+
+Sidorovich has them sewn to order: a dialog on him (modxml_fotz_patch) while you lead a faction,
+COUNTS at a time, at the item's own cost each, as often as you like.
+
+Unlike the faction itself, an item stays in a save, and a save that holds one can't load without
+the mod. So MCM's "Remove your faction's patches" takes every one out of the game, wherever it is,
+before you remove Factions.
+--]]
+
+SECTION = "fotz_own_patch"
+EMBLEM = "fotz_your_faction"
+COUNTS = { 1, 5, 10, 20 }
+
+local function log(fmt, ...)
+    printf("[fotz-patch] " .. fmt, ...)
+end
+
+-- a patch's price: the item's own cost
+function price()
+    return math.floor(tonumber(ini_sys:r_float_ex(SECTION, "cost")) or 650)
+end
+
+-- the dialog only while you lead a faction
+function leading(actor, npc)
+    return fotz_faction ~= nil and fotz_faction.F ~= nil
+end
+
+local function can_buy(n)
+    return leading() and db.actor:money() >= n * price()
+end
+
+-- n patches for n times the price, with the game's own news for both
+local function buy(n)
+    local cost = n * price()
+    if not can_buy(n) then
+        return
+    end
+    db.actor:give_money(-cost)
+    if news_manager and news_manager.relocate_money then
+        news_manager.relocate_money(db.actor, "out", cost)
+    end
+    for _ = 1, n do
+        alife_create_item(SECTION, db.actor)
+    end
+    if news_manager and news_manager.relocate_item then
+        news_manager.relocate_item(db.actor, "in", SECTION, n)
+    end
+    log("bought %s for %s", n, cost)
+end
+
+-- Sidorovich's offer and the counts, with the price in them
+function offer_text()
+    return fotz_tab.text("st_fotz_patch_offer", { price = price() })
+end
+
+local function option_text(n)
+    return fotz_tab.text(n == 1 and "st_fotz_patch_buy_one" or "st_fotz_patch_buy", { n = n, total = n * price() })
+end
+
+-- Every patch of yours in the game released, wherever it is, before removing the mod: a save that
+-- holds one can't load without it. MCM's switch asks for it and sets itself back; set from the
+-- main menu, it waits for the next load.
+function release_all()
+    local sim = alife()
+    local n = 0
+    for id = 1, 65534 do
+        local se = sim:object(id)
+        if se and se:section_name() == SECTION then
+            alife_release(se)
+            n = n + 1
+        end
+    end
+    log("released %s", n)
+    return n
+end
+
+local function removal()
+    if not (ui_mcm and ui_mcm.get("fotz/remove_patches") == true and alife()) then
+        return
+    end
+    ui_mcm.set("fotz/remove_patches", false)
+    local n = release_all()
+    if db.actor and news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, fotz_tab.text("st_fotz_patch_removed", { n = n }), nil, nil, 12000)
+    end
+end
+
+function on_game_start()
+    RegisterScriptCallback("on_option_change", removal)
+    RegisterScriptCallback("actor_on_first_update", removal)
+end
+
+-- one precondition, action and text a count: the dialog names functions
+function can_buy_1() return can_buy(1) end
+function can_buy_5() return can_buy(5) end
+function can_buy_10() return can_buy(10) end
+function can_buy_20() return can_buy(20) end
+function buy_1() buy(1) end
+function buy_5() buy(5) end
+function buy_10() buy(10) end
+function buy_20() buy(20) end
+function text_1() return option_text(1) end
+function text_5() return option_text(5) end
+function text_10() return option_text(10) end
+function text_20() return option_text(20) end

@@ -61,11 +61,19 @@ is the `VERSION = "x.y.z"` line in that script. Below, `<folder>` is that folder
 - What was installed, and where any backup went.
 - Factions' relations change as the factions fight, once a game day; the player can found a
   faction of their own in MCM under Factions of the Zone. Both can be switched off there.
-- Removing it later is always safe: no save ever holds the player's faction.
+- The Factions page opens the player's way: from a PDA tab of its own, from its tile in Mod App
+  Creator's launcher (if MAC is installed; MCM can swap the tile for the tab), or with a key they
+  can set in MCM.
+- Removing it later is safe: no save ever holds the player's faction. Their faction's patches are
+  items, though: before removing it, they set MCM's "Remove your faction's patches" and save.
 
 ## Removing it
 
-Close MO2 and the game, change `+Factions of the Zone` to `-Factions of the Zone` in
-`modlist.txt`, and move `mods\<folder>` to `mods_backup\`. No step is needed in the game first,
-even if the player leads a faction of their own: no save ever holds it, so every save loads with
-everyone back in their old faction.
+First, in the game: if the player ever had their faction's patches (bought from Sidorovich or
+dropped by a member), they set MCM's "Remove your faction's patches" under Factions of the Zone,
+then save. A save that still holds a patch can't load without the mod. Nothing else is needed in
+the game, even if the player leads a faction of their own: no save ever holds it, so every save
+loads with everyone back in their old faction.
+
+Then close MO2 and the game, change `+Factions of the Zone` to `-Factions of the Zone` in
+`modlist.txt`, and move `mods\<folder>` to `mods_backup\`.

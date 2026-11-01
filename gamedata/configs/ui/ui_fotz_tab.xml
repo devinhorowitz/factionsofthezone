@@ -1,0 +1,143 @@
+<w>
+<!--
+    Factions of the Zone: the Factions page (ui_fotz_tab.script).
+
+    The PDA's page area, 1024x768, with the content in the PDA's own background rectangle
+    (28,106 to 792,709), laid out the way Seasons' and Arsenal's pages are: a chamfered frame
+    with its corners left open, a header block with a rule under it, two columns split by a
+    rule, dividers between the right column's sections, and a footer under a rule. The lines
+    (the script's, from px) group things; they aren't there to be looked at.
+
+    The header: your side's icon, name and a line on it; at its right the PDA's Relations tab
+    (the numbers; from the PDA only) and Back to the launcher (from Mod App Creator's tile). The
+    left column: how each faction whose relation can change stands with you, two lines a row,
+    then under a short rule a line for the factions that never change, by standing. The right
+    column: the war log, where the fighting is, and your members. The footer: whether politics is
+    in charge, Reset relations and what it does, and the credit.
+
+    The row_*, *_line elements are templates: the script places one per row or line, a step down
+    from ROW_Y, LOG_Y, FIGHT_Y and MEMBER_Y (the fixed lines follow the last row), so their y here
+    is the offset within a row. fixed_line, fight_line and reset_note wrap onto a second line.
+
+    Art: the game's own faction icons (set from script), its ordinary button, for the flat window
+    the 2D PDA's frame, and this mod's one white pixel (fotz_px), tinted from script. Colors
+    follow the PDA: amber 238,196,112 for headings, light gray for text, dim gray for detail.
+    Fonts are letterica, as everywhere else.
+-->
+    <!-- the flat window only: the 2D PDA's frame and the page's name where the PDA prints a
+         section's, at pda_16.xml's offsets -->
+    <flat_bezel x="-10" y="-34" width="819" height="768" stretch="1">
+        <texture>ui_inGame2_pda_texture</texture>
+    </flat_bezel>
+    <flat_caption x="29" y="28" width="748" height="17">
+        <text font="letterica16" align="l" r="170" g="170" b="170"/>
+    </flat_caption>
+
+    <background x="28" y="106" width="764" height="603" stretch="1"/>
+
+    <!-- one white pixel block, tinted and stretched per line: X-Ray has no fill-rect -->
+    <px x="0" y="0" width="8" height="8" stretch="1">
+        <texture>fotz_px</texture>
+    </px>
+
+    <!-- ============ the header: your side ============ -->
+    <icon x="52" y="120" width="44" height="44" stretch="1"/>
+    <title x="106" y="118" width="410" height="24">
+        <text font="letterica18" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </title>
+    <subtitle x="106" y="146" width="662" height="18">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </subtitle>
+
+    <!-- the PDA's own Relations tab, with the numbers: from the page in the PDA only; it moves
+         to Back's place when there's no Back -->
+    <numbers x="522" y="118" width="150" height="26">
+        <texture>ui_button_ordinary</texture>
+    </numbers>
+    <numbers_label x="522" y="123" width="150" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </numbers_label>
+
+    <!-- Back to Mod App Creator's launcher, while the page has its tile there -->
+    <back x="676" y="118" width="92" height="26">
+        <texture>ui_button_ordinary</texture>
+    </back>
+    <back_label x="676" y="123" width="92" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </back_label>
+
+    <!-- ============ the left column: how the factions stand with your side ============ -->
+    <standing_heading x="52" y="176" width="394" height="22">
+        <text font="letterica18" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </standing_heading>
+    <row_icon x="52" y="2" width="28" height="28" stretch="1"/>
+    <row_name x="88" y="0" width="122" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="l" vert_align="c"/>
+    </row_name>
+    <!-- the way it went on politics' last day: the game's small arrow, tinted from script -->
+    <row_trend x="214" y="3" width="9" height="10" stretch="1"/>
+    <row_standing x="226" y="0" width="104" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </row_standing>
+    <row_change x="330" y="0" width="116" height="16">
+        <text font="letterica16" r="150" g="150" b="150" align="r" vert_align="c"/>
+    </row_change>
+    <row_detail x="88" y="16" width="238" height="16">
+        <text font="letterica16" r="150" g="150" b="150" align="l" vert_align="c"/>
+    </row_detail>
+    <row_event x="330" y="16" width="116" height="16">
+        <text font="letterica16" r="150" g="150" b="150" align="r" vert_align="c"/>
+    </row_event>
+    <!-- the factions that never change, a line for each standing, wrapping onto a second -->
+    <fixed_line x="52" y="0" width="394" height="32">
+        <text font="letterica16" r="170" g="170" b="170" complex_mode="1" align="l" vert_align="t"/>
+    </fixed_line>
+
+    <!-- ============ the right column ============ -->
+    <!-- the war log, newest first -->
+    <log_heading x="472" y="176" width="296" height="22">
+        <text font="letterica18" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </log_heading>
+    <log_line x="472" y="0" width="296" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </log_line>
+
+    <!-- where the fighting is: a sentence a level, your side's first, wrapping onto a second line -->
+    <fights_heading x="472" y="290" width="296" height="22">
+        <text font="letterica18" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </fights_heading>
+    <fight_line x="472" y="0" width="296" height="32">
+        <text font="letterica16" r="200" g="200" b="200" complex_mode="1" align="l" vert_align="t"/>
+    </fight_line>
+
+    <!-- your members, while you lead a faction -->
+    <members_heading x="472" y="470" width="296" height="22">
+        <text font="letterica18" r="238" g="196" b="112" align="l" vert_align="c"/>
+    </members_heading>
+    <member_line x="472" y="0" width="296" height="16">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </member_line>
+
+    <!-- ============ the footer ============ -->
+    <!-- whether politics is in charge, or why not -->
+    <status x="52" y="622" width="516" height="18">
+        <text font="letterica16" r="200" g="200" b="200" align="l" vert_align="c"/>
+    </status>
+    <!-- what Reset relations does; on the first click, what the second will do -->
+    <reset_note x="52" y="642" width="516" height="34">
+        <text font="letterica16" r="150" g="150" b="150" complex_mode="1" align="l" vert_align="t"/>
+    </reset_note>
+
+    <!-- every pair back where it started, after a second click; the label over the plate -->
+    <restore x="580" y="624" width="188" height="26">
+        <texture>ui_button_ordinary</texture>
+    </restore>
+    <restore_label x="580" y="629" width="188" height="16">
+        <text font="letterica16" r="220" g="220" b="220" align="c" vert_align="c"/>
+    </restore_label>
+
+    <!-- above the frame's lower edge (the PDA's own background ends at 709) -->
+    <credit x="472" y="680" width="296" height="16">
+        <text font="letterica16" r="120" g="120" b="120" align="r" vert_align="c"/>
+    </credit>
+</w>

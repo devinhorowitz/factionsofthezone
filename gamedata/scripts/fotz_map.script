@@ -1,0 +1,217 @@
+--[[
+Factions of the Zone: the fighting on the PDA map.
+
+One marker on each level where there's a fight (fotz_tab.fights, from territory's fronts at the
+last census: FRONT_MIN fighters or more, at least SIDE_MIN a side, so a few stragglers by a big force
+aren't one): the game's attack-base ring, red when the fight is your side's, amber otherwise. Its
+label names the two sides of the fight, the stronger first ("Bandits vs Ecologists"); hovering it
+gives the page's sentence for the level (who is winning, in words) and the factions there that are
+hostile to you. It sits at a smart where the fight meets: one either side holds with hostile squads
+at it, else one the side behind holds (where an attack would go), else one the side ahead holds. The
+markers are rebuilt at each census (fotz_territory calls update).
+
+Nothing here is saved: the markers are added with map_add_object_spot, not its _ser twin, and their
+spot types come from modxml_fotz_map, so a save holds none of them and removing the mod leaves
+nothing behind (Capture the Zone's notes name saved custom spots as a load-crash suspect). They come
+off as a game unloads and with MCM's switch. The label needs Modded Exes'
+map_get_object_spot_static; without it the marker and its hint still show. A label is made only on
+a marker just added: changing one means taking the marker off and putting it back, so no window of
+a marker another mod may have removed is ever touched.
+--]]
+
+SPOT = "fotz_front"             -- amber, modxml_fotz_map
+SPOT_YOURS = "fotz_front_yours" -- red
+HOSTILE_NAMES = 4               -- names the hint's hostile line gives before "and N more"
+COLORS = { [SPOT] = { 238, 196, 112 }, [SPOT_YOURS] = { 230, 80, 70 } }
+
+local placed = {}               -- smart id -> the marker put there
+local last = nil                -- the last census, for MCM's switch
+local xml = nil
+
+local function log(fmt, ...)
+    printf("[fotz-map] " .. fmt, ...)
+end
+
+function enabled()
+    return not (ui_mcm and ui_mcm.get("fotz/map") == false)
+end
+
+-- the smarts each faction holds on each level, and the census's contested ones
+local function ground(c)
+    local held, contested = {}, {}
+    for name, f in pairs(c.smarts or {}) do
+        local se = SIMBOARD.smarts_by_names[name]
+        if se then
+            local lv = fotz_census.level_of(se)
+            held[lv] = held[lv] or {}
+            held[lv][f] = held[lv][f] or {}
+            table.insert(held[lv][f], name)
+        end
+    end
+    for _, list in pairs(held) do
+        for _, names in pairs(list) do
+            table.sort(names)
+        end
+    end
+    for _, name in ipairs(c.contested or {}) do
+        contested[name] = true
+    end
+    return held, contested
+end
+
+-- where a fight's marker goes: a smart's name, or nil
+function anchor(f, held, contested)
+    local a, b = held[f.a] or {}, held[f.b] or {}
+    local best
+    for _, list in ipairs({ a, b }) do
+        for _, name in ipairs(list) do
+            if contested[name] and (not best or name < best) then
+                best = name
+            end
+        end
+    end
+    if best then
+        return best
+    end
+    local behind, ahead = a, b
+    if f.fa > f.fb then
+        behind, ahead = b, a
+    end
+    return behind[1] or ahead[1]
+end
+
+-- the factions with fighters on a level that are hostile to your side, the most fighters first
+function hostile_here(c, lv, side)
+    local list = {}
+    for _, f in ipairs(fotz_census.FACTIONS or {}) do
+        local e = f ~= side and c.factions and c.factions[f]
+        local at = e and e.levels and e.levels[lv]
+        if at and (at.fighters or 0) > 0 and relation_registry.community_relation(side, f) <= -1000 then
+            list[#list + 1] = { f = f, n = at.fighters }
+        end
+    end
+    table.sort(list, function(x, y)
+        if x.n ~= y.n then
+            return x.n > y.n
+        end
+        return x.f < y.f
+    end)
+    local names = {}
+    for i, it in ipairs(list) do
+        names[i] = fotz_politics.faction_name(it.f)
+    end
+    return names
+end
+
+-- the markers a census calls for, a level each, in the order of its fights (your side's first,
+-- then the biggest): each with its smart id, spot type, hint and label
+function markers(fronts, c, side)
+    local P, text = fotz_politics, fotz_tab.text
+    c = c or {}
+    local held, contested = ground(c)
+    local out = {}
+    for _, fx in ipairs(fotz_tab.fights(fronts, side)) do
+        local a, b = fx.w[1], fx.l[1]
+        local name = anchor({ a = a, b = b, fa = fx.n[a], fb = fx.n[b] }, held[fx.level] or {}, contested)
+        local se = name and SIMBOARD.smarts_by_names[name]
+        if se then
+            local lines = { fotz_tab.fight_line(fx, side) }
+            local foes = hostile_here(c, fx.level, side)
+            if #foes > 0 then
+                lines[#lines + 1] = text("st_fotz_map_hostile", { list = fotz_tab.names_list(foes, HOSTILE_NAMES) })
+            end
+            out[#out + 1] = { id = se.id, smart = name, level = fx.level, spot = fx.yours and SPOT_YOURS or SPOT,
+                              -- the UI breaks a line at the two characters \n, as the game's own
+                              -- map hints write it, not at a newline character
+                              hint = table.concat(lines, "\\n"),
+                              label = text("st_fotz_map_label", { a = P.faction_name(a), b = P.faction_name(b) }) }
+        end
+    end
+    return out
+end
+
+local function has(id, spot)
+    return level.map_has_object_spot(id, spot) ~= 0
+end
+
+local function take_off(id, spot)
+    if has(id, spot) then
+        level.map_remove_object_spot(id, spot)
+    end
+end
+
+-- the label under a marker just added, on its own widget; false where there's none
+local function label(m)
+    local get = level.map_get_object_spot_static
+    local st = get and get(m.id, m.spot)
+    if not st then
+        return false
+    end
+    if not xml then
+        xml = CScriptXmlInit()
+        xml:ParseFile("ui_fotz_map.xml")
+    end
+    local shadow = xml:InitTextWnd("front_label_shadow", st)
+    local w = xml:InitTextWnd("front_label", st)
+    if not w then
+        return false
+    end
+    if shadow then
+        shadow:SetText(m.label)
+    end
+    w:SetText(m.label)
+    local col = COLORS[m.spot]
+    w:SetTextColor(GetARGB(255, col[1], col[2], col[3]))
+    return true
+end
+
+-- the map as a census calls for it; returns how many markers are on it
+function update(c)
+    last = c or last
+    local want = {}
+    if enabled() and last and level and level.map_add_object_spot then
+        for _, m in ipairs(markers(fotz_territory.FRONTS, last, fotz_tab.side())) do
+            want[m.id] = m
+        end
+    end
+    for id, p in pairs(placed) do
+        local m = want[id]
+        if not (m and m.spot == p.spot and m.hint == p.hint and m.label == p.label and has(id, p.spot)) then
+            take_off(id, p.spot)
+            placed[id] = nil
+        end
+    end
+    local n, labels = 0, 0
+    for id, m in pairs(want) do
+        if not placed[id] then
+            level.map_add_object_spot(id, m.spot, m.hint)
+            local ok, made = pcall(label, m)
+            if not ok then
+                log("! the label at %s: %s", m.smart, tostring(made))
+            end
+            m.labelled = ok and made
+            placed[id] = m
+        end
+        n = n + 1
+        if placed[id].labelled then
+            labels = labels + 1
+        end
+    end
+    log("%s markers on the map, %s labelled", n, labels)
+    return n
+end
+
+-- every marker off the map
+function clear()
+    for id, p in pairs(placed) do
+        take_off(id, p.spot)
+    end
+    placed = {}
+end
+
+function on_game_start()
+    RegisterScriptCallback("on_option_change", function()
+        update()
+    end)
+    RegisterScriptCallback("actor_on_net_destroy", clear)
+end
