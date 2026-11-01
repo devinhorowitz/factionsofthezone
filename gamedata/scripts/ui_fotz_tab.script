@@ -1,0 +1,420 @@
+--[[
+Factions of the Zone: the Factions page, as the PDA's tab and as a window of its own.
+
+It lays out fotz_tab.page() and nothing else, the way Seasons' and Arsenal's pages are laid out:
+a chamfered frame with its corners left open; the header (your side's icon, name and a line on
+it, and at its right the PDA's Relations tab, from the PDA only, and Back while the page came from
+Mod App Creator's tile); on the left how each faction that can change stands with you, then
+under a short rule the factions that never change; on the right, between dividers, the war log,
+where the fighting is and your members; and the footer: whether politics is in charge, "Reset
+relations" with a line on what it does (the first click asks, a second resets), and the credit.
+The layout is ui_fotz_tab.xml; rows and lines are its templates, moved down by a step.
+
+The art is the game's own (the faction icons, ui_mm_faction_<faction>; the button and the 2D
+PDA's frame), so an HD pack that replaces them shows through, and nothing here can be missing;
+the lines are this mod's one white pixel, tinted.
+
+CScriptXmlInit:ParseFile does not raise when the file can't be used; every Init* after it gives
+nil, and a method call on nil is an engine fatal. So no widget is used unchecked.
+--]]
+
+local SINGLETON = nil
+local FLAT = nil
+-- the PDA's pages sit this far into the screen (pda_16.xml), and so does the flat window
+local PDA_X, PDA_Y = 112, 34
+local ROWS, ROW_Y, ROW_STEP = 8, 204, 34
+local FIXED_LINES, FIXED_STEP = 3, 36
+local LOG_Y, FIGHT_Y, FIGHT_STEP, MEMBER_Y, LINE_STEP = 202, 316, 35, 496, 18
+local CONFIRM_MS = 4000
+
+-- The frame: a chamfered outline with its corners left open, a rule under the header and one
+-- over the footer, the columns' split, and dividers between the right column's sections. Close
+-- to the background on purpose: they group things, they aren't there to be looked at.
+local RULE, RULE_A = { 74, 80, 74 }, 210
+local FR_L, FR_T, FR_R, FR_B = 38, 112, 782, 700
+local CHAMFER = 14
+local HEAD_Y, SPLIT_X, FOOT_Y = 168, 458, 614
+local LOG_END_Y, FIGHT_END_Y = 282, 462     -- the dividers under the war log and the fighting
+-- the header's buttons: the Relations tab beside Back, or in Back's place without it
+local NUMBERS_X, NUMBERS_W, BACK_X, BACK_W = 522, 150, 676, 92
+local NOTE_RGB, WARN_RGB = { 150, 150, 150 }, { 238, 196, 112 }
+
+local function say(msg)
+    printf("[fotz-tab] %s", tostring(msg))
+end
+
+local function put(w, s)
+    if w then
+        w:SetText(s or "")
+    end
+end
+
+local function show(w, on)
+    if w then
+        w:Show(on)
+    end
+end
+
+-- `s` cut to `n` letters with an ellipsis (133 in windows-1251), for a line narrower than a name
+local function fit(s, n)
+    s = tostring(s or "")
+    if #s <= n then
+        return s
+    end
+    return s:sub(1, n - 1) .. "\133"
+end
+
+-- InitTexture doesn't apply width_factor: a square icon needs its width scaled by 4:3 over the
+-- screen's aspect
+local function aspect()
+    local ok, w, h = pcall(function() return device().width, device().height end)
+    if ok and w and h and h > 0 then
+        return (1024 / 768) / (w / h)
+    end
+    return 0.75
+end
+
+local function square(w)
+    if w then
+        local h = w:GetHeight()
+        w:SetWndSize(vector2():set(h * aspect(), h))
+    end
+end
+
+-- an icon drawn at its own proportions: its width scaled the same way
+local function narrow(w)
+    if w then
+        w:SetWndSize(vector2():set(w:GetWidth() * aspect(), w:GetHeight()))
+    end
+end
+
+local TREND = {
+    up = { "ui_inGame2_arrow_up", 140, 205, 130 },
+    down = { "ui_inGame2_arrow_down", 230, 80, 70 },
+}
+
+local function moved(w, x, y)
+    if w then
+        w:SetWndPos(vector2():set(x, y))
+    end
+    return w
+end
+
+local function tint(w, rgb)
+    if w then
+        w:SetTextColor(GetARGB(255, rgb[1], rgb[2], rgb[3]))
+    end
+end
+
+class "FactionsTab" (CUIScriptWnd)
+
+function FactionsTab:__init(flat) super()
+    self.flat = flat == true
+    self:InitControls()
+end
+
+function FactionsTab:__finalize()
+    if self.flat then
+        FLAT = nil
+    else
+        SINGLETON = nil
+    end
+end
+
+-- the frame's lines, made once: the frame never moves, and only the rule over the fixed lines
+-- and the one over the members are moved or hidden in Fill
+function FactionsTab:InitFrame()
+    local xml = self.xml
+    local function line(x, y, w, h)
+        local s = xml:InitStatic("px", self)
+        if s then
+            s:SetWndPos(vector2():set(x, y))
+            s:SetWndSize(vector2():set(w, h))
+            s:SetTextureColor(GetARGB(RULE_A, RULE[1], RULE[2], RULE[3]))
+        end
+        return s
+    end
+    local inner = FR_R - FR_L - CHAMFER * 2
+    line(FR_L + CHAMFER, FR_T, inner, 1)
+    line(FR_L + CHAMFER, FR_B, inner, 1)
+    line(FR_L, FR_T + CHAMFER, 1, FR_B - FR_T - CHAMFER * 2)
+    line(FR_R, FR_T + CHAMFER, 1, FR_B - FR_T - CHAMFER * 2)
+    line(FR_L + CHAMFER, HEAD_Y, inner, 1)
+    line(FR_L + CHAMFER, FOOT_Y, inner, 1)
+    line(SPLIT_X, HEAD_Y + 8, 1, FOOT_Y - HEAD_Y - 16)
+    line(SPLIT_X + CHAMFER, LOG_END_Y, FR_R - SPLIT_X - CHAMFER * 2, 1)
+    self.members_rule = line(SPLIT_X + CHAMFER, FIGHT_END_Y, FR_R - SPLIT_X - CHAMFER * 2, 1)
+    self.fixed_rule = line(FR_L + CHAMFER, 0, SPLIT_X - FR_L - CHAMFER * 2, 1)
+end
+
+function FactionsTab:InitControls()
+    local x, y = self.flat and PDA_X or 0, self.flat and PDA_Y or 0
+    self:SetWndRect(Frect():set(x, y, x + 1024, y + 768))
+    local xml = CScriptXmlInit()
+    xml:ParseFile("ui_fotz_tab.xml")
+    self.xml = xml
+    if self.flat then
+        xml:InitStatic("flat_bezel", self)
+        put(xml:InitTextWnd("flat_caption", self), fotz_tab.text("st_fotz_tab"))
+    end
+    if not xml:InitStatic("background", self) then
+        say("ui_fotz_tab.xml gave no elements: check the file")
+        return
+    end
+    self:InitFrame()
+    self.icon = xml:InitStatic("icon", self)
+    square(self.icon)
+    self.title = xml:InitTextWnd("title", self)
+    self.subtitle = xml:InitTextWnd("subtitle", self)
+    put(xml:InitTextWnd("standing_heading", self), fotz_tab.text("st_fotz_tab_standing"))
+    put(xml:InitTextWnd("log_heading", self), fotz_tab.text("st_fotz_tab_log"))
+    put(xml:InitTextWnd("fights_heading", self), fotz_tab.text("st_fotz_tab_fighting"))
+    self.members_heading = xml:InitTextWnd("members_heading", self)
+    put(self.members_heading, fotz_tab.text("st_fotz_tab_members"))
+
+    self.rows = {}
+    for i = 1, ROWS do
+        local dy = (i - 1) * ROW_STEP
+        local r = {
+            icon = xml:InitStatic("row_icon", self),
+            name = xml:InitTextWnd("row_name", self),
+            trend = xml:InitStatic("row_trend", self),
+            standing = xml:InitTextWnd("row_standing", self),
+            change = xml:InitTextWnd("row_change", self),
+            detail = xml:InitTextWnd("row_detail", self),
+            event = xml:InitTextWnd("row_event", self),
+        }
+        square(r.icon)
+        narrow(r.trend)
+        for _, w in pairs(r) do
+            moved(w, w:GetWndPos().x, ROW_Y + dy + w:GetWndPos().y)
+        end
+        self.rows[i] = r
+    end
+    -- placed under the last row shown, in Fill
+    self.fixed = {}
+    for i = 1, FIXED_LINES do
+        self.fixed[i] = xml:InitTextWnd("fixed_line", self)
+    end
+    self.log = {}
+    for i = 1, fotz_tab.LOG_LINES do
+        local w = xml:InitTextWnd("log_line", self)
+        self.log[i] = moved(w, w and w:GetWndPos().x or 0, LOG_Y + (i - 1) * LINE_STEP)
+    end
+    self.fights = {}
+    for i = 1, fotz_tab.FIGHT_LINES do
+        local w = xml:InitTextWnd("fight_line", self)
+        self.fights[i] = moved(w, w and w:GetWndPos().x or 0, FIGHT_Y + (i - 1) * FIGHT_STEP)
+    end
+    self.members = {}
+    for i = 1, fotz_tab.MEMBER_LINES + 1 do
+        local w = xml:InitTextWnd("member_line", self)
+        self.members[i] = moved(w, w and w:GetWndPos().x or 0, MEMBER_Y + (i - 1) * LINE_STEP)
+    end
+
+    -- the header's buttons; each label after its plate, so it draws on top
+    self.numbers = xml:Init3tButton("numbers", self)
+    self.numbers_label = xml:InitTextWnd("numbers_label", self)
+    put(self.numbers_label, fotz_tab.text("st_fotz_tab_numbers"))
+    if self.numbers then
+        self:Register(self.numbers, "numbers")
+        self:AddCallback("numbers", ui_events.BUTTON_CLICKED, self.OnNumbers, self)
+    end
+    self.back = xml:Init3tButton("back", self)
+    self.back_label = xml:InitTextWnd("back_label", self)
+    put(self.back_label, fotz_tab.text("st_fotz_tab_back"))
+    if self.back then
+        self:Register(self.back, "back")
+        self:AddCallback("back", ui_events.BUTTON_CLICKED, self.OnBack, self)
+    end
+
+    -- the footer
+    self.status = xml:InitTextWnd("status", self)
+    self.reset_note = xml:InitTextWnd("reset_note", self)
+    self.restore = xml:Init3tButton("restore", self)
+    self.restore_label = xml:InitTextWnd("restore_label", self)
+    if self.restore then
+        self:Register(self.restore, "restore")
+        self:AddCallback("restore", ui_events.BUTTON_CLICKED, self.OnRestore, self)
+    end
+    self.credit = xml:InitTextWnd("credit", self)
+end
+
+-- the numbers: the PDA's own Relations tab
+function FactionsTab:OnNumbers()
+    local ok, err = pcall(fotz_tab.to_relations)
+    if not ok then
+        say("! the Relations tab: " .. tostring(err))
+    end
+end
+
+-- Back to MAC's launcher, the way MAC's own key goes
+function FactionsTab:OnBack()
+    local m = ActorMenu.get_pda_menu()
+    if m then
+        m:SetActiveSubdialog("eptLauncher")
+    end
+end
+
+-- Reset relations as it stands: its label and the line on what it does, or, waiting for the
+-- second click, what that will do
+function FactionsTab:ResetText(label, warn)
+    put(self.restore_label, fotz_tab.text(label))
+    put(self.reset_note, fotz_tab.text(warn and "st_fotz_tab_restore_warn" or "st_fotz_tab_restore_note"))
+    tint(self.reset_note, warn and WARN_RGB or NOTE_RGB)
+end
+
+function FactionsTab:Fill()
+    local p = fotz_tab.page()
+    if self.icon then
+        self.icon:InitTexture(p.icon)
+    end
+    put(self.title, fit(p.title, 40))
+    put(self.subtitle, p.subtitle)
+    put(self.status, p.status)
+    for i, r in ipairs(self.rows or {}) do
+        local row = p.rows[i]
+        for _, w in pairs(r) do
+            show(w, row ~= nil)
+        end
+        if row then
+            if r.icon then
+                r.icon:InitTexture(row.icon)
+            end
+            put(r.name, row.name)
+            put(r.standing, row.standing)
+            if r.standing then
+                r.standing:SetTextColor(GetARGB(255, row.color[1], row.color[2], row.color[3]))
+            end
+            put(r.change, row.change)
+            put(r.detail, fit(row.detail, 32))
+            put(r.event, row.event)
+            local t = TREND[row.trend]
+            show(r.trend, t ~= nil)
+            if t and r.trend then
+                r.trend:InitTexture(t[1])
+                r.trend:SetTextureColor(GetARGB(255, t[2], t[3], t[4]))
+            end
+        end
+    end
+    -- the factions that never change: under a short rule below the last row shown, or in the
+    -- rows' place when there are none
+    local y = ROW_Y + #p.rows * ROW_STEP
+    local ruled = #p.rows > 0 and #p.fixed > 0
+    moved(self.fixed_rule, FR_L + CHAMFER, y + 2)
+    show(self.fixed_rule, ruled)
+    y = ruled and y + 10 or y
+    for i = 1, FIXED_LINES do
+        local w = self.fixed and self.fixed[i]
+        if w then
+            moved(w, w:GetWndPos().x, y + (i - 1) * FIXED_STEP)
+            put(w, p.fixed[i])
+            show(w, p.fixed[i] ~= nil)
+        end
+    end
+    for i, w in ipairs(self.log or {}) do
+        put(w, fit(p.log[i], 60))
+    end
+    -- two lines' worth at most
+    for i, w in ipairs(self.fights or {}) do
+        put(w, fit(p.fights[i], 100))
+    end
+    show(self.members_heading, p.members ~= nil)
+    show(self.members_rule, p.members ~= nil)
+    for i, w in ipairs(self.members or {}) do
+        put(w, p.members and fit(p.members[i], 58) or "")
+    end
+    put(self.credit, p.credit)
+    -- Back while the page came from MAC's tile; flat, or from its own tab, the way out is the PDA's.
+    -- The Relations tab only in the PDA (flat, there's no PDA to switch), in Back's place without it.
+    local back = not self.flat and fotz_tab.back_to_launcher()
+    show(self.back, back)
+    show(self.back_label, back)
+    local nx = back and NUMBERS_X or BACK_X + BACK_W - NUMBERS_W
+    moved(self.numbers, nx, self.numbers and self.numbers:GetWndPos().y or 0)
+    moved(self.numbers_label, nx, self.numbers_label and self.numbers_label:GetWndPos().y or 0)
+    show(self.numbers, not self.flat)
+    show(self.numbers_label, not self.flat)
+    self.confirm_until = nil
+    self:ResetText("st_fotz_tab_restore", false)
+end
+
+function FactionsTab:Reset()
+    local ok, err = pcall(function() self:Fill() end)
+    if not ok then
+        say("! the page could not be filled: " .. tostring(err))
+    end
+end
+
+-- the first click asks, a second within a few seconds resets
+function FactionsTab:OnRestore()
+    local now = time_global()
+    if not (self.confirm_until and now <= self.confirm_until) then
+        self.confirm_until = now + CONFIRM_MS
+        self:ResetText("st_fotz_tab_restore_confirm", true)
+        return
+    end
+    local ok, err = pcall(fotz_politics.restore)
+    if not ok then
+        say("! reset failed: " .. tostring(err))
+    end
+    self:Reset()
+    -- "reset" only when it was: a failure (logged) leaves the button as it was
+    if ok then
+        put(self.restore_label, fotz_tab.text("st_fotz_tab_restored"))
+    end
+end
+
+function FactionsTab:Update()
+    CUIScriptWnd.Update(self)
+    if self.confirm_until and time_global() > self.confirm_until then
+        self.confirm_until = nil
+        self:ResetText("st_fotz_tab_restore", false)
+    end
+end
+
+function FactionsTab:Close()
+    if self:IsShown() then
+        self:HideDialog()
+    end
+end
+
+-- flat, Escape and the page's key close it; in the PDA, the keys are the PDA's
+function FactionsTab:OnKeyboard(dik, action)
+    local res = CUIScriptWnd.OnKeyboard(self, dik, action)
+    if res then
+        return res
+    end
+    if self.flat and action == ui_events.WINDOW_KEY_PRESSED
+        and (dik == DIK_keys.DIK_ESCAPE or dik == fotz_tab.key()) then
+        self:Close()
+        return true
+    end
+    return false
+end
+
+-- the page for the PDA's tab, filled afresh each time it's shown
+function get_ui()
+    SINGLETON = SINGLETON or FactionsTab()
+    SINGLETON:Reset()
+    return SINGLETON
+end
+
+function open_flat()
+    FLAT = FLAT or FactionsTab(true)
+    if not FLAT:IsShown() then
+        FLAT:Reset()
+        FLAT:ShowDialog(true)
+    end
+    return FLAT
+end
+
+function close_flat()
+    if FLAT then
+        FLAT:Close()
+    end
+end
+
+function flat_window()
+    return (FLAT and FLAT:IsShown()) and FLAT or nil
+end

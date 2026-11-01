@@ -1,0 +1,93 @@
+--[[
+Factions of the Zone: DXML, your faction's patches on Sidorovich (fotz_patch). The dialog goes
+into the game's dialogs; the line that offers it is added to his talk alone (the specific
+character his story id names) as his dialog list is built, not in his character file, so he has
+it whichever mod's copy of that file wins. As Arsenal adds its own talks.
+
+He asks how many; each count shows only when you can pay for it, and after each he asks again, so
+you buy as many as you like.
+--]]
+
+DIALOG = "fotz_patch_order"
+TRADER = "esc_2_12_stalker_trader"
+
+local function count(id, n)
+    return [[
+        <phrase id="]] .. id .. [[">
+            <precondition>fotz_patch.can_buy_]] .. n .. [[</precondition>
+            <script_text>fotz_patch.text_]] .. n .. [[</script_text>
+            <action>fotz_patch.buy_]] .. n .. [[</action>
+            <next>2</next>
+        </phrase>]]
+end
+
+local CHOICES = [[
+            <next>11</next>
+            <next>12</next>
+            <next>13</next>
+            <next>14</next>
+            <next>19</next>]]
+
+XML = [[
+<dialog id="]] .. DIALOG .. [[">
+    <precondition>fotz_patch.leading</precondition>
+    <phrase_list>
+        <phrase id="0">
+            <text>st_fotz_patch_ask</text>
+            <next>1</next>
+        </phrase>
+        <phrase id="1">
+            <script_text>fotz_patch.offer_text</script_text>]] .. CHOICES .. [[
+        </phrase>]] .. count(11, 1) .. count(12, 5) .. count(13, 10) .. count(14, 20) .. [[
+        <phrase id="19">
+            <text>st_fotz_patch_not_now</text>
+        </phrase>
+        <phrase id="2">
+            <text>st_fotz_patch_done</text>]] .. CHOICES .. [[
+        </phrase>
+    </phrase_list>
+</dialog>
+]]
+
+local said = {}
+
+local function guarded(what, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok and not said[tostring(err)] then
+        said[tostring(err)] = true
+        printf("[fotz-patch] %s: %s", what, tostring(err))
+    end
+end
+
+-- the dialog, once, in the game's dialogs
+function edit(name, xml)
+    if name ~= [[gameplay\dialogs.xml]] and name ~= [[gameplay/dialogs.xml]] then
+        return false
+    end
+    if #xml:query("dialog[id=" .. DIALOG .. "]") > 0 then
+        return false
+    end
+    xml:insertFromXMLString(XML)
+    return true
+end
+
+-- the line in Sidorovich's talk, once
+function add_talk(character_id, list)
+    if character_id ~= TRADER or list:has(DIALOG) then
+        return false
+    end
+    list:add(DIALOG)
+    return true
+end
+
+function on_xml_read()
+    RegisterScriptCallback("on_xml_read", function(name, xml)
+        guarded("DXML " .. tostring(name), edit, name, xml)
+    end)
+end
+
+function on_game_start()
+    RegisterScriptCallback("on_specific_character_dialog_list", function(character_id, list)
+        guarded("Sidorovich's talk", add_talk, character_id, list)
+    end)
+end
