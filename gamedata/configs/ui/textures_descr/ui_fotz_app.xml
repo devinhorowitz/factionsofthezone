@@ -1,0 +1,10 @@
+<w>
+<!-- The Factions page's tile in Mod App Creator's launcher (z_fotz_mac): this mod's own art,
+     drawn by _tools/make_tile.py, four states in one 512x512 atlas -->
+    <file name="ui\fotz_app">
+        <texture id="fotz_app_e" x="0" y="0" width="256" height="256" />
+        <texture id="fotz_app_h" x="256" y="0" width="256" height="256" />
+        <texture id="fotz_app_t" x="0" y="256" width="256" height="256" />
+        <texture id="fotz_app_d" x="256" y="256" width="256" height="256" />
+    </file>
+</w>

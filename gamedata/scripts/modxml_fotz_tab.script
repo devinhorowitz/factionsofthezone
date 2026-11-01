@@ -1,0 +1,44 @@
+--[[
+Factions of the Zone: DXML, an invisible PDA tab button for the Factions page's section, which
+Mod App Creator's tile opens (z_fotz_mac).
+
+The PDA shows its tab bar and caption only for a section with a button, and switches only to a
+section that has one. So the button is parked off screen, with no width and a see-through caption,
+like Arsenal's and MAC's own, in every PDA layout with a tab bar and a caption: pda.xml, pda_16.xml
+and the per-model layouts some mods swap in, not MAC's launcher page or other pda_ files.
+--]]
+
+SECTION = "eptFactions"
+local CAPTION = "st_fotz_tab"
+
+local said = {}
+
+-- the parked button, once per layout
+function edit(name, xml)
+    if not string.match(name, "^ui[\\/]pda[%w_]*%.xml$") then
+        return false
+    end
+    local tab = xml:query("tab")[1]
+    if not (tab and xml:query("caption_static")[1]) then
+        return false
+    end
+    if #xml:query("tab > button[id=" .. SECTION .. "]") > 0 then
+        return false
+    end
+    xml:insertFromXMLString([[<button x="1000" y="0" width="0" height="0" id="]] .. SECTION .. [[" frame_mode="0">]]
+        .. [[<text align="c" vert_align="c" x="0" y="0" font="letterica16">]] .. CAPTION .. [[</text>]]
+        .. [[<text_color><e a="0" r="0" g="0" b="0"/><t a="0" r="0" g="0" b="0"/>]]
+        .. [[<d a="0" r="0" g="0" b="0"/><h a="0" r="0" g="0" b="0"/></text_color></button>]], tab)
+    return true
+end
+
+-- DXML calls each mod's edit in turn and catches nothing: an error here is caught and logged once
+function on_xml_read()
+    RegisterScriptCallback("on_xml_read", function(name, xml)
+        local ok, err = pcall(edit, name, xml)
+        if not ok and not said[tostring(err)] then
+            said[tostring(err)] = true
+            printf("[fotz-tab] DXML %s: %s", tostring(name), tostring(err))
+        end
+    end)
+end

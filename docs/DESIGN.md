@@ -5,7 +5,20 @@ make war and truces, and talk about it on the PDA. The player can stand with one
 them, or stay out of it. It is built for G.A.M.M.A. (Anomaly 1.5.3 with Modded Exes, LuaJIT
 2.0.4), next to Seasons of the Zone and Arsenal.
 
-This is a plan, not a manual. What exists today is the census (0.1.0).
+**Why.** Today the player is a loner tied to one faction and bound to whatever alliances that
+faction has. Factions of the Zone fills that gap: make a faction of your own, with a Homestead
+settlement as its base; recruit settlers who may, as their loyalty grows, join it; build your own
+alliances; and face rival factions that compete with the Zone's own. That also gives warfare
+mods, Warfare mode or Capture the Zone, a reason to fight.
+
+**Where it started.** On the G.A.M.M.A. Discord on 2026-10-26, Pikapika asked how close G.A.M.M.A.
+was to a mod that lets you start your own faction: in Fallout 4 he ran a mercenary company,
+recruiting everyone he could, giving them jobs, helping one faction and hurting another, and
+"homestead is like first step of making your own faction". The idea went to Homestead's author the
+same hour, and this mod is its faction half.
+
+This is a plan, not a manual. What exists today is the census (0.1.0), the politics engine
+(0.2.0) and the first part of your own faction (0.3.0).
 
 ## Decisions (2026-10-31)
 
@@ -19,9 +32,10 @@ This is a plan, not a manual. What exists today is the census (0.1.0).
   outposts and settlers, and changes Homestead only through public hooks.
 - **Faithful caps.** The base game's fixed factions and lore pairs stay fixed, every other pair
   has caps, and MCM can loosen them.
-- **The player's own faction comes after 1.0.** It is one faction among many, of the player's
-  making, competing for members (see "Later"). Whether it is a declared engine community or a
-  script-only allegiance is still open.
+- **The player's own faction comes next,** ahead of the territory steer: it's why the mod exists.
+  It is one faction among many, of the player's making, competing for members (see "Later" for
+  the full idea). Whether it is a declared engine community or a script-only allegiance is being
+  settled by a prototype.
 
 ## Engine facts it rests on
 
@@ -37,6 +51,29 @@ Seen on this install, or read in source and marked so.
   list reaches assertions (source: FAC-03), and the setter changes neither goodwill, the matrix,
   squad membership nor smart assignment. Communities are the matrix in
   `configs/creatures/game_relations.ltx`, which G.A.M.M.A. Economy ships as a whole file here.
+- **A new faction can be declared by DLTX, and it works** (seen 2026-10-31, a prototype):
+  - append the faction and its `actor_` twin to `[game_relations] communities`, and give each a
+    row in `[communities_relations]` and `[communities_sympathy]`. Every community needs a row,
+    but a short row is padded with 0 (neutral), so no other mod's rows need touching and two
+    faction mods can coexist;
+  - an NPC moved into it stays a member through a save and load, and the player can join it as
+    its `actor_` twin;
+  - team numbers must stay under 64 (the engine's `max_team_count`, checked only in debug
+    builds). Stalker factions use 0-31 and mutants 39-68, so 32-38 are free; another faction mod
+    already uses 32 and 33.
+- **Removing a declared faction bricks saves that hold members.** Loading such a save without the
+  declaration is a fatal error ("item by index not found in section game_relations"; seen
+  2026-10-31).
+- **But membership can be kept out of every save** (seen 2026-10-31). `save_state` runs before the
+  engine writes objects, and a server object's saved faction is 4 bytes in its state packet: after
+  the 2-byte header come money (u32), specific character (stringZ), trader flags (s32) and profile
+  (stringZ), then the community index (s32). Editing only those bytes, for online, offline and dead
+  members alike, puts every member back in their old faction in the save without touching the
+  live NPC. A save made that way loads with the declaration removed.
+- **Never set a dead NPC's faction.** `set_character_community` on a corpse corrupted the heap; pass
+  an NPC's own `squad()` and `group()`, not 0 and 0.
+- **No script changes an offline NPC's faction**: the server object only has a getter. The state
+  packet edit is the only way.
 - **Squads leave without dying.** Homestead, ZCP and others remove squads with `alife_release`, so
   no death callback fires. Strength is counted by census, not by deaths.
 - **A smart's `faction` field is set only while it is online.** Offline, who holds a smart has to
@@ -71,43 +108,204 @@ gained or lost, smarts that changed hands, relations that moved. The point is to
 G.A.M.M.A.'s world does on its own before anything changes it. The census is also the politics
 engine's input: strength and territory are its counts.
 
-## 2. The politics engine
+## Your faction (0.3.0, first part)
 
-- **State per faction:** strength and territory (from the census), supply (a few abstract
-  stocks), mood, and an attitude toward every other faction.
-- **A daily tick** turns what happened into change: losses and gains by census, ground won or
-  lost, kills between factions, emissions, the season (Seasons' `sotz_api` when present), and the
-  player's deeds.
-- **Wars, truces and alliances are events**, each with a date, a cause, a duration and terms
-  ("Duty and Freedom at war since 14 May over the Army Warehouses"). The relation between two
-  factions is the configured value plus the effects of the events in force, inside the pair's
-  caps. Only events are saved; relations are rebuilt from them.
-- **The event deck** (after Zone Frontline): a truce after heavy losses on both sides, a coalition
-  against the strongest, incidents, trade, betrayal, ultimatums, prisoner exchanges, escalation.
-  A ceasefire waits for the fighting to stop (after DFRC): it is refused while the pair is in
-  combat, and alliances can lapse.
-- **Paced, not per death** (after Warfare Alife Overhaul 1.6): what happens adds to a pending
-  total per pair, applied a few times a game day within a daily budget, with a pull back toward
-  the configured value. Relations stay inside ±4750, since `change_faction_relations` resets a
-  pair at the limit to 0 half the time. The matrix's columns come from an explicit list:
-  `game_relations.factions_table_all` doesn't follow the order of `[communities_relations]`.
+`fotz_faction.script`, declared in `configs/mod_system_fotz_faction.ltx` (`fotz_own`, team 36, and
+its player twin `actor_fotz_own`, team 37).
+
+- **Founding** (MCM, per save): it starts with every relation of the faction you came from (both
+  directions, for the faction and its player twin), and it and its twin are friends (2000). You
+  lead it from your old faction, keeping its traders, tasks and dialogs. "You join it" (MCM, off
+  unless chosen) puts you in the player twin instead, so your own relations follow your
+  faction's as politics moves them. G.A.M.M.A. doesn't know that faction (see "Compatibility to
+  watch"), which is why it isn't the default. While you're disguised in another faction's suit,
+  you're left alone.
+- **In politics** (`fotz_politics`): your faction is a side like any other. It and every faction
+  whose relations change make a pair, starting from its founding relations rather than the
+  config's; the cells moved are its own rows and its player twin's, never its members' relation to
+  you. Its members' kills count for it, and so do yours while you lead it (at the player's half
+  weight), instead of for your old faction. Wars, truces and alliances follow as for any pair, in
+  its own name, with the default news icon. Two factions both at war with yours grow closer. A
+  disbanded faction's drift, pressure and events are dropped, and a new one (each faction has an
+  id) starts from its own founding.
+- **Members:** your companions join, with their own squad and group, and leave when they stop
+  being companions. A member who comes online is given the faction on the next update, never
+  inside net spawn, and only if their id still names them (their profile is checked; ids are
+  reused after release).
+- **No save holds it.** Before each save every member, online, offline or dead, is set back to
+  their old faction in their state packet, and you to yours; the dead are then dropped from the
+  roster. You, the online members and every member's server object (which the game reads for
+  A-Life, offline combat and kill credit) are back in it on the next update. Removing the mod needs
+  no step: tested by founding, saving and loading with Factions disabled. A save with a faction,
+  loaded where the faction isn't declared (a broken install), keeps it aside as saved: nothing names
+  an undeclared community, which the engine asserts on.
+- **Others in it.** Other mods can spread the faction: Homestead caches each settler's faction
+  when it recruits them and gives its camp traders the camp's dominant one, so a companion who
+  joined and was then recruited would put `fotz_own` in Homestead's save and onto its traders,
+  and Homestead would set it again after Factions is gone (a crash: the faction is undeclared). So
+  anyone in the faction who isn't a member is saved in your old faction too (their live faction is
+  left alone), and the tables other mods save (`PARTNERS`: Homestead's camps, rival camps,
+  expeditions, convoys and retaliation timers) get the old faction in place of ours: a settler's
+  own faction where it's known, on each update, at the save and at load. Only a game that has had
+  a faction pays for this; the save's sweep reads every object once.
+- **Disbanding** (MCM) returns everyone at once: the living and online live, the rest in their
+  state packet.
+- **Next:** residents of a Homestead settlement who may join as their loyalty grows, and members
+  who may leave; the Factions tab with your roster and your faction's relations.
+
+## 2. The politics engine (0.2.0)
+
+`fotz_politics.script`, tuned by `configs/plugins/fotz_politics.ltx`.
+
+- **Pressure per pair.** Kills between two factions (online through `npc_on_death_callback`,
+  offline by listening in on `game_relations.offline_npc_on_death`), weighted by the victim's rank;
+  the player's kills count half, for the player's own faction, or for the one they lead (see "Your
+  faction"). From each day's census: smarts one
+  faction took from the other since the day before, and fronts, the smarts both are fighting
+  over. And a third faction both are at war with pushes two factions together.
+- **Paced, not per death** (after Warfare Alife Overhaul 1.6): pressure waits per pair and moves
+  the relation once a game day, within a daily budget, and what has built up fades back toward the
+  start by a tenth a day, except in a war, which only a truce ends. Changed relations stay inside
+  ±4750, since the base game's `change_faction_relations` resets a pair at ±5000 to 0 half the
+  time.
+- **Events.** A war when a pair crosses -1000, an alliance at 1000; each is dated, with a cause
+  (the biggest of recent kills, ground and fronts, and where) and a voice (the side that bled
+  most). A war ends in a truce once the pair has two quiet days, or after two weeks; the truce
+  holds the line above -1000 for five days and halves new grievances (after DFRC's ceasefires that
+  wait for the fighting to stop). An alliance lapses when nothing holds it up.
+- **What's saved:** `m_data.fotz`, keyed by faction and smart names: each pair's drift from where
+  the game started it, the pressure waiting, the events in force, recent grievances and a history
+  of the last 50 events, and each cell's last value and the drift it carried. Relations are rebuilt
+  from the drift on every load (see the save, below).
+- **Pairs that start at war stay at war.** In G.A.M.M.A., 7 of the 16 changeable pairs start at
+  -2000 (among them Duty–Mercenaries and Clear Sky–Military); they can be pushed further but a
+  peace between them is later work. Wars can be declared among the other 9, which start neutral.
 - **Lore guardrails:**
   - Monolith, Sin, ISG, Renegades, traders, mutants and Zombified never change, as in the base
     game's dynamic relations.
   - The base game's 12 fixed lore pairs stay fixed, among them Duty–Freedom, Army–Loners and
     Bandits–Duty.
-  - Every other pair has caps in a config that DLTX can edit, in the spirit of Fluid Relations.
-  - Story characters and quest factions are left alone.
-- **One system changes relations.** If the player turns on the base game's dynamic relations,
-  or runs Fluid Relations (which replaces `game_relations.script`), Dynamic Faction Relations
-  Customizer, or Warfare mode (with Warfare Alife Overhaul's relation pacing), Factions only
-  watches and reports. Each of them saves and reapplies relations itself, so reapplying ours on
-  load would overwrite theirs. Killing Friends Reduces Goodwill changes the player's goodwill,
-  not the matrix, and can run beside it.
-- **`game_relations` functions are looked up at call time.** DFRC, Show All Faction Relations and
-  Faction Story Safeguard replace or wrap several of them.
+  - Every other pair moves at most -3000 to +2500 from its start; a pair can have its own caps.
+  - Story characters and quest factions are left alone: nothing here touches a character.
+  - **Open: hubs.** A war with a hub's faction (the Loners at the Skadovsk, Duty at the Bar) brings
+    fights there: vanilla targeting lets enemies go for a base between 3 and 6 am, and AlifePlus
+    once sent hostile squads to the Skadovsk to trade and heal (its #17). Watch hub smarts in the
+    census before deciding whether a declared war should spare them.
+- **One system changes relations.** While the base game's dynamic relations, Fluid Relations
+  (which replaces `game_relations.script`), Dynamic Faction Relations Customizer, or Warfare mode
+  (with Warfare Alife Overhaul's relation pacing) run, Factions writes the game's relations back
+  and stops counting. Each of them saves and reapplies relations itself. Killing Friends Reduces
+  Goodwill changes the player's goodwill, not the matrix, and can run beside it.
+- **A cell's start, and others' changes** (fixed in the 2026-10-31 sweep).
+  - The base game keeps the relations other scripts save (`game_relations.save_relation`, in the
+    actor's pstor) and puts them back at every load. Banjaji's disguise saves copies of live cells,
+    Factions' drift and all; reading the start live after a load counted that drift twice, more on
+    every load, and the copy outlived the mod.
+  - So each cell's last value and the drift it carried are saved. At a load, a cell that holds that
+    value (the base game put back a copy) has its start from the save; any other value is the start
+    (the engine's reset, or a value another script saved).
+  - What else sets a cell is noticed at each apply and before each save. On the pair's own rows (A
+    to B, B to A, as a story ceasefire writes them): the pair starts over from the values it has
+    now, its drift, pressure and event ended (a war ended so goes in the war log, without news), so
+    Factions never fights the change or drifts the pair past it. On a player row only (a disguise):
+    the row's start moves with the change, so the other script's value holds; when the script puts
+    back what Factions had there (the disguise taken off), the row is Factions' again.
+  - Before each save, a value in that store that is Factions' own (what it wrote, or what a script
+    put back on a row it had held) goes back to the cell's start, so removing the mod leaves the
+    game's values. Seen in game (run 13): a disguise put on and off across a drift change, a save, a
+    load with and without Factions.
+- **Later:** strength and supply per faction, emissions, the season, the player's deeds beyond
+  kills, and the rest of the event deck (after Zone Frontline): a coalition against the strongest,
+  incidents, trade, betrayal, ultimatums, prisoner exchanges.
 
 ## 3. Territory
+
+**Built (0.4.0): `fotz_territory.script`.**
+
+- **The hook:** `simulation_board:get_squad_target` asks each target for its score
+  (`se:evaluate_prior`), which a smart resolves at call time to
+  `simulation_objects.evaluate_prior`. G.A.M.M.A. Economy's `target_prior.script` replaces both
+  as it loads. `axr_main` loads every script before it calls any `on_game_start`, so Factions
+  wraps G.A.M.M.A.'s version from its own `on_game_start`.
+- **The weight:** for a smart held by a faction the squad's own is at war with (the game's
+  enmity, -1000 or below, read live at each census), its score is
+  multiplied by `1 + k * (2 * share - 1)`, where `share` is the squad's faction's share of the
+  two factions' fighters on that level (the census's per-level counts). It's kept within `lo` and
+  `hi` (`[territory]` in `plugins\fotz_politics.ltx`: 0.5, 0.6, 1.5; three to one gives 1.25,
+  one to three 0.75). A score of 0 stays 0. A truce lifts a pair out of enmity, so it doesn't
+  steer; your own faction has no squads to steer.
+- **Fronts only:** a level both sides have fighters on. Deep in enemy country, with none of its
+  own on the level, a faction's squads choose as the game would. Seen in game: weighing every
+  level put most entries at the 0.6 floor (Duty toward Limansk, the Swamp base, the CNPP) and
+  lowered 8% of all scores; fronts only weighs 349 smarts and changes 3.7% (422 raised, 756
+  lowered in a minute of play, of 31,493).
+- **Cost, measured in game:** 2.55 us a score unwrapped, 2.75 us wrapped, on a real smart and
+  squad; about 525 scores a second in play, so about 0.1 ms a second.
+- **Why enmity, not politics' wars:** G.A.M.M.A. starts 7 of the 16 changeable pairs at -2000
+  (Duty and the Mercenaries among them). They never cross -1000, so politics never declares a war
+  between them, though they are at war. Seen in game: Duty and the Mercenaries reached -1084 with
+  no war event, and a steer on events weighed nothing. A war politics declares holds its pair
+  below the line, so enmity covers it.
+- **The table** (faction, then smart id, then weight) is rebuilt from each census and the
+  relations then in force. A score looks up two tables; a squad with nothing weighed for it costs
+  no more than that.
+- **Left alone:** story squads, squads with a scripted target, the player's companions, and
+  Homestead's outpost garrisons (`stalker_camp_builder.rival_camps[*].squad_id`).
+- **Other mods' squads.** The steer only sees a squad the game routes itself: `sim_squad_scripted`
+  (G.A.M.M.A.'s is ZCP 1.4 Balanced Spawns') asks the board for targets only in `generic_update`,
+  when the squad has no script target (a scripted target, `random_targets`, a target condlist, a
+  hostage, a companion, or a mod's own `get_script_target`) and isn't locked (`__lock`). So:
+  - AlifePlus directs its squads by `scripted_target` or, for chases, its `get_script_target`
+    hook, and never calls the board's scoring; a squad it releases goes back to the game.
+  - ZHOPA directs its managed squads through its `get_script_target` hook. It calls
+    `evaluate_prior` only to test a score above 0, which the steer never changes.
+  - A mod can hold squads without a script target: a garrison kept at its post by
+    `current_action` and `stay_time`, which asks the board again once its stay runs out. For
+    these, `fotz_territory.add_owner(name, fn)` (and `remove_owner`) lets the mod claim them; so
+    does AlifePlus's owner registry (`ap_api.get_owner`). Homestead's `is_held_squad` (its
+    camps' garrisons, reinforcements and convoys) and Capture the Zone's `ctz_campaign_owned`
+    mark are read directly. A claim that fails counts as a claim, logged once.
+- **The switch:** MCM's "Squads lean toward winning fronts", and Warfare mode, which runs the
+  squads itself (politics' own switch doesn't matter: enmity exists without it). Off, the
+  original is put back if Factions' wrapper is still the one in place. If another mod wrapped
+  over it, it stays and passes everything through, and turning the steer back on doesn't wrap
+  again (that would weigh twice, or recurse). Nothing is saved.
+- **Each census logs** its fronts, how many smarts are weighed for how many factions, and how
+  many scores it raised and lowered since the last.
+- **The fronts** (`fotz_territory.FRONTS`, from each census): every level two census factions at
+  war (enmity either way) both have fighters on, each pair once, the biggest first. A side with
+  two thirds of the fighters on one has the upper hand (`leader`). The Factions page and the
+  map say from them where the fighting is (`fotz_tab.fights`).
+- **Upper-hand news:** where a side has newly taken the upper hand on a front (from the other
+  side, or from close) since the last census, it says so, at news level "all": only a front that
+  was there at the last census (fronts come and go as squads move), with at least `FRONT_MIN`
+  (10) fighters, and at most `NEWS_PER_DAY` (2), the biggest first. Who had the upper hand where
+  is kept in memory only, so the first census after a load sets it and says nothing. An error
+  there is logged and the steer is rebuilt anyway.
+- **The fronts on the PDA map** (`fotz_map.script`, spot types from `modxml_fotz_map.script`,
+  label layout `ui_fotz_map.xml`; MCM "Fronts on the PDA map", on by default):
+  - One marker per level the page names a fight on (`fotz_tab.fights`: fronts of `FRONT_MIN`
+    fighters or more and `SIDE_MIN` (3) a side; seen in game, many fronts were a big force and
+    one or two stragglers, "Monolith 37, Freedom 1", which aren't fights). The game's attack-base
+    ring (`ui_pda2_attack_base2`), red where the fight is your side's, amber elsewhere. A label
+    under it names the fight's two main sides ("Bandits vs Ecologists"); hovering it gives the
+    page's sentence for the level and the factions there hostile to you (-1000 or below), the most
+    fighters first, four and then "and N more". No counts: the 2026-11-01 play test found them
+    hard to read, a list of numbers to compare.
+  - It sits at a smart where the fight's two main sides meet: one either side holds that the
+    census found contested, else one the side behind holds (where an attack would go), else one
+    the side ahead holds. A level where neither holds a smart gets no marker.
+  - Rebuilt at each census, from territory's `on_census`. A marker that hasn't changed is left
+    alone; one that changed, or that another mod removed, is taken off and put back, so a label
+    is only ever made on a marker just added and no stale widget is touched.
+  - Never saved: `map_add_object_spot`, not `_ser`. Capture the Zone's notes record that its
+    custom spot types, saved, were its strongest load-crash suspect: a save holding a spot whose
+    type is gone can't load. Factions' markers come off as a game unloads and with the switch.
+  - The label needs Modded Exes' `map_get_object_spot_static`; without it, or without a widget,
+    the marker and its hint still show. mmmint's PDA Map Location Labels has no hook to feed, so
+    Factions draws its own, on its own spot types, beside that mod's labels.
+
+**The plan it came from:**
 
 - **Control per level** comes from the census: smarts held per faction, contested smarts, and
   fighters on the level.
@@ -117,23 +315,90 @@ engine's input: strength and territory are its counts.
   ranks), with a bounded multiplier (ZHOPA clamps its own to 0.35-1.5). Factions never sets a
   squad's `scripted_target`; AlifePlus, ZHOPA, P.O.L.I.C.Y and Pathfinder all do, and two
   commanders fight. It never touches story squads, squads with a script target, squads another
-  mod owns (AlifePlus's `ap_api.get_owner`, ZHOPA's managed flag, CtZ's mark), or Homestead's
-  garrisons.
+  mod owns (AlifePlus's `ap_api.get_owner`, ZHOPA's managed squads, a mod's own mark), or
+  Homestead's garrisons.
 - **No spawn rows.** AlifePlus writes `respawn_params` and `last_respawn_update` on smarts,
   AlifeBalance and ZCP gate on the latter; Factions leaves them alone.
 - **Uninstall-safe wrappers** (after ZHOPA): one switch unwinds every callback and wrapper, and
   a wrapper is put back only if it is still ours.
-- **Fronts** show up as news, on the Factions tab and, with mmmint's PDA Map Location Labels, on
-  the map.
+- **Fronts** show up as news, on the Factions tab and on the map (built: its own markers, since
+  mmmint's PDA Map Location Labels has no hook).
 - **Spawns** follow later and carefully: ZCP and Squad Filler own them in G.A.M.M.A.
 
 ## 4. PDA and news
 
-- **A tab of its own** through `pda_dynamic_tabs.register`, plus an MCM key that opens it flat
-  (the 3D PDA softens PDA pages). It shows relations with trend arrows, territory, the war log,
-  leaders, and the player's standing. The vanilla Relations tab stays.
+- **The Factions tab (0.3.0):** `fotz_tab.script` registers it a second into play (Modded Exes'
+  `pda_dynamic_tabs`); `ui_fotz_tab.script` and `configs/ui/ui_fotz_tab.xml` draw it.
+  - **Three ways in, the player's choice:** its own PDA tab, Mod App Creator's tile
+    (`z_fotz_mac`, with a parked section `eptFactions` added by DXML in `modxml_fotz_tab`, which
+    MAC routes to the page; Back on the page returns to the launcher), or an MCM key that opens
+    it flat, sharp in the 3D PDA, closing on Escape, the key, or a load. MAC is optional: without
+    it the page has its tab; with it, the tile, unless MCM's "Its own PDA tab" (there only with
+    MAC) asks for the tab (`fotz_tab.wants_tab`, `sync`, as Arsenal and Seasons do). The key works
+    either way.
+  What it shows, all built as text by `fotz_tab.page()`, in words. The numbers are the PDA's
+  own Relations tab's, and a button on the page goes there (`fotz_tab.to_relations`; from the
+  PDA only: flat, there's no PDA to switch). The 2026-11-01 play test found the page's numbers
+  repeated that tab, and the unchangeable ones crowded the list.
+  - your side: the faction you lead (its name, founding, old faction, members) or, without one,
+    your own, with that faction's icon; and whether politics is in charge or why not;
+  - a row for each faction whose relation with your side can change: its standing in words and
+    colors (an event in force first, then the game's lines at -1000 and 1000), the war, truce or
+    alliance holding it, with its date, which way politics' last day moved it (the game's small
+    arrows, green up, red down, and "getting better" or "getting worse"; politics keeps each
+    pair's last move in `S.trend`), and its leader (the game's `faction_profile.ltx` through
+    `faction_expansions`, marked dead once he is or is gone; a trader's server object has no
+    `alive()` and counts as living);
+  - the factions that never change with your side (fixed pairs and factions), a line for each
+    standing, permanent enemies first: "Permanent enemies: Monolith, Renegades, Sin and UNISG.";
+  - the war log, newest first, four lines; where the fighting is (`fotz_tab.fights`, from
+    territory's fronts at the last census), four lines: a sentence a level, about your side when
+    it fights there, else the level's strongest side, against every enemy it faces there, with a
+    verdict from the share the stronger has of it and its biggest enemy (in control from 0.8,
+    winning from two thirds, ahead from 0.55, else evenly matched, which names only those two),
+    your side named as yours ("your Duty"), your side's levels first, then the most fighters;
+    your members, five and "and N more", near, away or dead;
+  - "Reset relations" (`fotz_politics.restore`), after a second click: every pair back where it
+    started, events ended, a line in the log. A line beside it says what it does; on the first
+    click it says what the second will do, in amber.
+  - Laid out as Seasons' and Arsenal's pages are (`ui_fotz_tab.xml`): a chamfered frame with its
+    corners open, a header with a rule under it (your side's icon, name and line; the Relations
+    tab and Back at its right), a split between the columns, dividers between the right column's
+    sections, a short rule over the fixed lines, and a footer under a rule (politics' state, Reset
+    relations, the credit). The lines are one white pixel of this mod's, stretched and tinted, as
+    Seasons draws its own; amber headings in letterica18.
+  Still to come: Clear Sky's per-side strength as a bar. The vanilla Relations tab stays.
+- **Your faction's patch** (`fotz_patch.script`, `mod_system_fotz_patch.ltx`): `fotz_own_patch`,
+  a child of the game's `csky_patch`, named for your faction's community so the base game's
+  `death_manager` drops one from a fallen member. Its art is one file,
+  `textures\ui\fotz_your_faction.dds` (`_tools/make_art.py`), 100x100: the icon is 2x2 cells of
+  the 50 px grid at scale 2, as the HD faction patches have theirs, and the same square is the
+  page's emblem for your faction (`fotz_your_faction`). A player replaces that file to make the
+  faction theirs. Wearable Devices' bracer draws a patch put on it from the item's `wd_bracer_patch`
+  (Clear Sky's, inherited from `csky_patch`, until this names its own): `fotz\fotz_bracer_patch`,
+  the same patch at 512x512 with mipmaps, placed and tilted as WD's own patch textures are.
+  Sidorovich sells them in a dialog (`modxml_fotz_patch` puts it in the game's
+  dialogs and in his talk alone, as his dialog list is built): one, five, ten or twenty at the
+  item's cost each, offered only when you can pay, as often as you like. An item stays in a save,
+  unlike the faction, so MCM's "Remove your faction's patches" releases every one in the alife
+  before the mod goes.
+- **The plan it came from:** relations with trend arrows, territory, the war log, leaders, and the
+  player's standing.
+  - The model is Clear Sky's faction-war page: each side's members, strength and leader.
+  - Register it from an actor callback, never during a load (a registration during a load
+    crashed in testing).
+  - The war log keeps strategic events only (wars, truces, alliances, ground lost and taken), not
+    every message.
+  - A "restore relations" button: clearing the drift puts every pair back where the game started
+    it, mid-save. Six players asked for a way back without a new game.
+- **Art by reference only.** The tab points at textures the game already has: the faction icon
+  atlas (`ui_mm_faction_<faction>`, 64 px, with inactive variants), leader portraits and the news
+  icons. HD packs that replace them (HD Faction Patches, BBFI) show through, and Factions ships no
+  art of others: almost no art addon on ModDB grants reuse. The one picture it ships is its own:
+  the MAC tile, a banner drawn in code (`_tools/make_tile.py`). A tile borrowing the faction icon
+  atlas would break under HD Faction Patches, which moves every icon in it.
 - **News in the factions' own voices,** signed with portraits, on the PDA only; the player plays
-  nearly HUD-less. MCM sets how much.
+  nearly HUD-less. MCM sets how much. Never an internal id ("dolg", "killer") in a message.
 - English and Russian.
 
 ## 5. Partners
@@ -142,20 +407,36 @@ engine's input: strength and territory are its counts.
   fixed level lists, couriers and turf wars feeding the politics engine, and raids that follow
   the war. What a moving world breaks there (campmates forced friendly every 10 s, cached settler
   factions, turrets that follow the player's relations) is fixed through hooks we ask Homestead's
-  author for, not by wrapping its file-local tables.
+  author for, not by wrapping its file-local tables. Issue #378's follow-up asks for three:
+  callbacks for settler events, a supported way to change a settler's community, and the
+  prosperity data on the settler record. Since 501f2fe its outposts change hands on their own
+  (with a 6-hour cooldown), and wiping a hostile garrison brings a retaliation camp 2 to 4 hours
+  later; the census sees both as ground taken.
+- **Homestead's custom factions.** Its author has said a coming update brings custom factions with
+  an emblem-making GUI (Discord, 2026-10-28), starting from your current relations: the same idea
+  as this mod's, from the same conversation. They should be one faction, not two (two declared
+  player factions would fight over team ids, the player's faction and save safety): Factions
+  keeps the declaration, the relations, the members and the save safety; Homestead keeps the
+  flag, the emblem and the settlement, and reads the faction through a hook. Until then its
+  Settlement Flag shows a Loner flag for a Factions leader (no
+  `homestead_settlement_flag_fotz_own` section; it falls back).
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.
 - **Arsenal:** a faction's supply could thin its traders' stock and its squads' gear.
 - **Immersive Identification:** identifications could log "last seen" squads for the tab.
+- **Candidates to ask:** PDA Map Location Labels and Faction Icons (mmmint) for a hook to show
+  holders and fronts on the map; KUD Tactical Net (NPCs radio sightings, with an API) for front
+  reports; Word of Mouth (NPCs say what they and the area are up to) for gossip about the war.
 
 ## 6. Capture the Zone
 
 Queen-Jadwiga's Capture the Zone (CtZ) is a strategic campaign for Anomaly. Its repository is no
 longer public (404 on 2026-10-31), and a search that day found no fork, mirror, archive snapshot
 or ModDB page, and no player reports. What is known comes from the Anomaly Development Reference,
-which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario). We
-don't plan around it.
+which studied Alpha 0.0.5j (commit `eba6660`, a Rostok/Army Warehouses prototype scenario). Its
+author has since shared a newer build with us, and is glad for Factions to use its code, with
+credit. The points below are about 0.0.5j.
 
 - **What it does:** faction-owned forts at named smarts, campaign squads ("detachments") it marks
   with its own fields and pins to forts or sends on assaults, field and fort battles, a rouble
@@ -175,20 +456,30 @@ don't plan around it.
     a save loads. Factions' load only reapplies relations.
   - A schema nobody checks. CtZ stamps a save version but never reads it. Factions' key carries a
     version that the load migrates or refuses.
-- **Living with it:** if CtZ comes back, Factions leaves squads with its `ctz_campaign_owned`
-  mark alone, and its forts could feed the territory score.
+- **Living with it:** the territory steer leaves squads with CtZ's `ctz_campaign_owned` mark
+  alone (0.4.0; its garrisons are held by stay time, not a script target), and its forts could
+  feed the territory score.
 
 Homestead, CtZ and Factions would all move squads; only one should steer a given squad, and a
 squad another mod pinned is never steered.
 
 ## The save
 
-- **0.1.0 writes nothing to the save.** The census file is outside it.
-- **From 0.2.0:** one key, `m_data.fotz`, with a version, the events in force, a short history of
-  past ones, and per-faction stocks. Keys are faction and smart names, never object ids.
-- **Uninstalling:** the key is ignored, relations return to the configs at the next load, and
-  goodwill the player earned stays. Squads the steer moved stay where they went; nothing else in
-  the alife is changed.
+- **The census writes nothing to the save.** Its file is outside it.
+- **0.2.0 adds one key, `m_data.fotz`,** with a version (a save of another version is set aside
+  and the engine starts over), each pair's drift, the pressure waiting, the events in force,
+  recent grievances, the last census's holders, and a history of past events. Keys are faction and
+  smart names, never object ids.
+- **Every load** reads each managed cell of the matrix as the game has it after the base game's
+  own reapply (at the first update), and sets it to that start plus the pair's drift: the faction
+  rows and the player's `actor_` rows, as the base game's dynamic relations do. Turned off in MCM,
+  or standing down, it sets the starts back.
+- **0.3.0 adds `m_data.fotz_faction`:** your faction's name, the faction you came from, its
+  founding relations, and its members (id, old faction, name, profile). No object in the save is
+  ever in your faction (see "Your faction").
+- **Uninstalling:** the keys are ignored, relations return to the configs at the next load, every
+  member and you are in your old factions, and goodwill the player earned stays. Squads the steer
+  moved (from 0.4.0) stay where they went; nothing else in the alife is changed.
 - The base game's `drx_df_*` pstor keys belong to its dynamic relations; Factions never writes
   them.
 
@@ -201,6 +492,10 @@ squad another mod pinned is never steered.
 - **Squads and spawns:** ZCP (owns the squad scripts), Squad Filler, AlifePlus and Xlib (in
   G.A.M.M.A., off in this profile), AlifeBalance, ZHOPA, P.O.L.I.C.Y, Pathfinder, Warfare mode
   (unstable in G.A.M.M.A.), Homestead's garrisons (re-pinned every 10 s).
+- **Mods that assume relations stand still.** When Warfare flipped relations, AlifePlus sent ISG
+  squads to restock at a now-hostile Clear Sky base (its #7, reported by Warfare Alife Overhaul's
+  author; fixed in 357d5e3 along with three more causes). Factions' wars do the same, so test them
+  with AlifePlus on before 1.0.
 - **PDA:** Show All Faction Relations patches the Relations tab; DFRC and DNM Fixes (on in
   G.A.M.M.A.) patch `dynamic_news_manager`, PDA Message Core reorders news, and AlifePlus holds
   lines. News goes through the helpers, rate-limited.
@@ -208,15 +503,90 @@ squad another mod pinned is never steered.
   Safeguard and Immersive Faction Swap.
 - These come from a survey of 23 Anomaly mods on 2026-10-31, as the ones to stay compatible
   with.
+- **Your faction, as G.A.M.M.A. sees it** (an audit of every enabled script that reads a faction,
+  2026-10-31, about 180 sites in 70 files). When you join it, you're in a faction nothing else
+  knows:
+  - **Disguise** (Banjaji's, as G.A.M.M.A. patches it) takes any faction other than your home one
+    for a disguise. On every load and every armor change it "undisguises" you (a message, NPCs
+    forgetting you) and rewrites your faction's relation with your old one from its own saved
+    value. Factions puts you back a second later.
+  - **Faction-bound content goes quiet:** dialogs gated on your faction, the Mysteries of the Zone
+    task, credit for clearing a smart, faction fast travel, PDA v2's squads of your faction, and
+    the Chain artefact's bonus.
+  - **Latent:** G.A.M.M.A. UI's faction prices script would ask the engine about a faction named
+    "fotz" on every trade (a fatal error), but it doesn't load today (its `faction_stocks` is
+    missing).
+  - Leading from your old faction ("You join it" off, the default since 2026-10-31) avoids all of
+    these. A story change of your
+    faction (`set_actor_true_community`) leaves the faction's record of where you came from stale.
+- **Your members, as G.A.M.M.A. sees them:** their bodies get no faction loot, patch or PDA, and
+  the news names them with this mod's own strings. Mods that save a member's faction get the old
+  one in its place (`PARTNERS`): Homestead's camps, and Fair Autocomplete's kill records (it
+  checks a death's faction against relations, a fatal error once ours is undeclared).
+  Nothing else in G.A.M.M.A. copies the player's faction onto an NPC, and nothing writes the
+  disguise system's `default_faction` from the player's current faction.
 - **Performance:** daily work only, nothing per frame. The census reports its own cost.
+
+## What players ask for
+
+From the newest comments on 27 faction addons and 12 forum threads on ModDB (2026-10-31), counted
+by how many different people raised each. They shape the plan:
+
+- **A war that keeps moving (about 15).** The top complaint about every faction mod is a Zone where
+  nothing happens: factions take ground and stop, relations barely move in two weeks. The census
+  should count days with no change on each front, and a front stalled for days gets a nudge.
+- **Lore first (about 13).** Players argue pair by pair, and peace mid-firefight or Duty friendly
+  with the Military breaks the game for them. This backs the fixed pairs and caps; per-pair caps
+  might belong in MCM.
+- **No runaway winner (about 9).** Monolith or the Ecologists ending up with the whole map. The
+  census should track each faction's share of held smarts; expansion should cost something.
+  These two pull against the first, so pacing, caps and fading stay central.
+- **A faction or base of one's own (about 9)** and **ground you can see change hands, bases
+  included (about 8):** the player's faction (later) and the territory steer (0.4.0).
+- **Neutral hubs and peace zones (about 8):** the Bar, the Skadovsk, Yanov. This leans the open
+  question about hubs toward sparing them.
+- **Deeds, not only kills, move politics (about 8):** tasks done for a faction, rescues. DFRC's
+  rule that unseen kills don't count was praised.
+- **A way back mid-save (about 6):** the tab's "restore relations" button.
+- **News the player controls (about 5),** with no internal names: already the MCM news level.
+
+From the Homestead thread on Discord (June to October 2026), asks that land on Factions:
+
+- **A base for your faction:** base pieces built over days with money, resources and manpower; the
+  Palace of Culture taken from Monolith; forward bases.
+- **Factions with their own style:** camp types, bonuses and broadcasts by faction.
+- **Fixed points to fight over:** places factions claim and build their own structures on, raided
+  at night.
+- **Camps that make sense:** settlers of hostile factions fought each other until Homestead
+  checked residents' relations at recruiting. Those checks don't rerun when a war turns two
+  residents' factions hostile; Homestead's periodic "campmates friendly" refresh is what holds a
+  camp together, and the territory table it checks (`TERRITORY_RULING_FACTIONS`) is fixed, a place
+  for the territory steer to feed through a hook.
+- **Show each settler's faction** in the UI: the Factions tab's roster.
+
+**What failed in other faction mods, and Factions' answer:**
+
+- Spawn bloat (hundreds of squads stacked on one smart): Factions spawns nothing.
+- Saves bricked during play or after removal: one versioned key, relations rebuilt on load, and
+  an uninstall leaves only the key behind.
+- Chaos (peace mid-firefight, mutant kills souring relations, everything at war): kills count only
+  between two human factions, changes are paced, and the lore pairs never move.
+- Story breakage (leaders and traders gone, quest targets killed): Factions never removes or kills
+  anyone.
+- A whole-file `pda.script` stripping looted PDAs, and Relations-tab patches breaking each other:
+  Factions keeps its own tab and ships none of those files.
+- Constant polling (a map-labels mod checks every location): daily work only.
 
 ## Milestones
 
 1. **0.1.0, the census.** Read-only; learn the world.
-2. **0.2.0, the politics engine.** Events, relations rebuilt on load, news.
-3. **0.3.0, the Factions tab.** Relations, territory, the war log, the player's standing.
+2. **0.2.0, the politics engine.** Events, relations rebuilt on load, news. (Built.)
+3. **0.3.0, your faction** (founding, companions, disbanding and save safety built). Found it (a name and an emblem), with a Homestead settlement as its
+   base; residents who may join as their loyalty grows, and members who may leave; your faction's
+   relations moved by the politics engine like any other. The Factions tab comes with it: your
+   faction's roster, every faction's relations, the war log, your standing.
 4. **0.4.0, territory.** The light steer, fronts in the news and on the map.
-5. **0.5.0, partners.** Seasons and Homestead.
+5. **0.5.0, partners.** Seasons, Homestead's hooks, Capture the Zone.
 6. **1.0.0.**
 
 ## Later
@@ -239,3 +609,28 @@ squad another mod pinned is never steered.
   sabotage a depot.
 - **Standing beyond goodwill:** trust tiers that unlock services, favors, debts, bounties.
 - Leaders with temperaments, faction economies that move prices, prisoners and exchanges.
+- **Factions with a state of mind** that moves with history: expansion, consolidation, recovery,
+  desperation. A defeat makes one faction dig in and another lash out. Holding ground takes
+  surviving strength, a faction may raid instead of occupy, and expansion costs exposed fronts, so
+  no one snowballs.
+- **Not every faction expands** (an idea from CoC Warfare's author): Ecologists go after anomalies
+  and data, traders after trade.
+- **A Monolith threat from the north** that pushes south now and then (four players asked).
+- **Ideas from Clear Sky's Faction War mods:** a squad in trouble radios for help and its faction
+  pays you in cash and standing; a front-line informant who sells who holds what; a front that
+  falls back a phase when a camp is lost.
+- **A base's stock changes hands** when the base does (CoC's Faction Stash Raid).
+- **Shared factions ("invasions").** Players share the factions they make, and others let them
+  into their own single-player games as rivals, a little like invasions in Dark Souls: turn it on,
+  and a faction someone real built competes in your Zone.
+  - The game can't go online from Lua. A launcher tool would fetch shared factions before the game
+    starts, the way Seasons of the Zone's `play.bat` fetches the weather, and the mod reads them.
+  - A shared faction is data only (name, emblem, members, temperament, strength), never code,
+    checked on import, names filtered.
+  - Each one needs a declared community slot, so the mod would ship a few spare slots beside the
+    player's own.
+  - Open: the file format, where they're hosted, and how strong an imported faction may start.
+- Players have asked AlifePlus for some of the same: NPCs who rise in rank and switch factions
+  (#24), leaders, mechanics, medics and traders replaced when killed, with the old bodies cleared
+  (#25), a squad member who betrays the rest for loot and turns renegade (#31), and payback for
+  wiping squads (#15).

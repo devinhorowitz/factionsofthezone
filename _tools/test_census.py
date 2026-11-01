@@ -42,6 +42,14 @@ MUTANTS = {
     "unsorted": ("        table.sort(keys)\n", ""),
     "quote": ("if ch == '\"' then return '\\\\\"' end", "if ch == '\"' then return '\"' end"),
     "overwrite": ('io.open(path(), "a")', 'io.open(path(), "w")'),
+    "no_front_count": ("                fr.n = fr.n + 1\n", ""),
+    "listeners_need_log": ("if not (enabled() or #LISTENERS > 0) then", "if not enabled() then"),
+    "write_when_off": ("        if enabled() then\n            local ok2, err2 = pcall",
+                       "        if true then\n            local ok2, err2 = pcall"),
+    "log_failure_stops_census": ("            local ok2, err2 = pcall(function()\n                local f = assert(io.open(path(), \"a\"))\n"
+                                 "                f:write(to_json(c), \"\\n\")\n                f:close()\n            end)\n",
+                                 "            local f = assert(io.open(path(), \"a\"))\n            f:write(to_json(c), \"\\n\")\n"
+                                 "            f:close()\n            local ok2, err2 = true, nil\n"),
 }
 
 WORLD = r"""
@@ -275,6 +283,7 @@ def run(src):
         check(c["smarts"] == {"bar_dolg_general": "dolg", "bar_zastava": "bandit", "bar_visitors": "dolg",
                               'esc_"odd"\\name': "stalker"}, "holders %s" % c["smarts"])
         check(c["contested"] == ["bar_zastava"], "contested %s" % c["contested"])
+        check(c["fronts"] == {"bandit/stalker": {"n": 1, "at": "bar_zastava"}}, "fronts %s" % c["fronts"])
         check(c["held"] == 4, "held %s" % c["held"])
         check(c["levels"]["l05_bar"] == {"smarts": 4, "held": {"dolg": 2, "bandit": 1}, "contested": 1},
               "the Bar %s" % c["levels"]["l05_bar"])
@@ -295,6 +304,17 @@ def run(src):
             d.pop("real"), d.pop("ms")
         check(a == b, "two censuses of one world differ")
 
+        # with the log off, a listener still gets each census, and nothing is written
+        lua.execute("GOT = {}")
+        env.listen(lua.eval("function(c) GOT[#GOT + 1] = c.date end"))
+        g.MCM["fotz/census"] = False
+        g.DATE[3] = 16
+        g.NOW = 105000
+        cb["actor_on_update"]()
+        check(list(g.GOT.values()) == ["2012-05-16 08:00"], "the listener got %s" % list(g.GOT.values()))
+        check(len(lines()) == 2, "a census was written with the log off")
+        g.MCM["fotz/census"] = None
+
         # an error stays inside the census: logged, nothing written, nothing thrown
         g.OBJ[10].get_squad_community = lua.eval("function() error('boom') end")
         g.DATE[3] = 17
@@ -303,9 +323,21 @@ def run(src):
         check(len(lines()) == 2, "a failed census wrote a line")
         check(any(l.startswith("! [fotz-census]") and "boom" in l for l in g.LOG.values()),
               "the error wasn't logged")
+        g.OBJ[10].get_squad_community = lua.eval("function(self) return self.comm end")
+
+        # with the log on but a file it can't open (a folder that isn't there): the line is lost,
+        # the listener still gets the census
+        g.OUTDIR = out.replace("\\", "/") + "/missing/folder"
+        n = len(lines())
+        g.DATE[3] = 18
+        g.NOW = 130000
+        cb["actor_on_update"]()
+        check(list(g.GOT.values())[-1:] == ["2012-05-18 08:00"] and len(lines()) == n,
+              "an unwritable log: the listener got %s" % list(g.GOT.values()))
+        g.OUTDIR = out.replace("\\", "/")
 
         log = list(g.LOG.values())
-        check(sum(l.startswith("[fotz-census] ") for l in log) == 2, "summary lines: %s" % log)
+        check(sum(l.startswith("[fotz-census] ") for l in log) == 4, "summary lines: %s" % log)
         check(all("%" not in l for l in log), "a %% reached the log: %s" % log)
         check("2012-05-14 08:00 (load): 11 squads, 22 fighters, 4 smarts held, 1 contested" in log[0],
               "summary %s" % log[0])
@@ -332,7 +364,7 @@ def main():
         print("FAIL: %s" % e)
         return 1
     except Exception as e:
-        print("FAIL (error): %s: %s" % (type(e).__name__, e))
+        print("FAIL (error): %s: %s" % (type(e).__name__, " | ".join(str(e).splitlines())))
         return 1
 
 

@@ -2,7 +2,8 @@
 # msgctxt is the string id, msgid the English text it was translated from, msgstr the Russian.
 # build_text.py writes gamedata/configs/text/rus/ from this file and the English table, and
 # refuses an id whose English has changed since it was translated (msgid differs) or that has
-# no Russian yet. Term choices follow Seasons of the Zone's.
+# no Russian yet. Term choices follow Seasons of the Zone's. A name filled into a sentence stays
+# nominative, so it is framed: группировка «{b}», позиция «{place}».
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -11,6 +12,42 @@ msgstr ""
 msgctxt "ui_mcm_menu_fotz"
 msgid "Factions of the Zone"
 msgstr "Фракции Зоны"
+
+msgctxt "ui_mcm_fotz_politics"
+msgid "Factions change their relations"
+msgstr "Группировки меняют отношения"
+
+msgctxt "ui_mcm_fotz_politics_desc"
+msgid "Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it."
+msgstr "Раз в игровые сутки убийства, захваченные позиции и линии фронта меняют отношения между группировками, а за ними следуют войны, перемирия и союзы. Если выключить, каждая группировка вернётся к отношениям, заданным игрой."
+
+msgctxt "ui_mcm_fotz_map"
+msgid "Fronts on the PDA map"
+msgstr "Фронты на карте КПК"
+
+msgctxt "ui_mcm_fotz_map_desc"
+msgid "A marker on each level where hostile factions fight, 10 fighters or more and at least 3 a side: red when the fight is your side's, amber otherwise, with the two sides named under it. Hover it to see who is winning and which factions there are hostile to you. The markers are never saved."
+msgstr "Метка на каждой локации, где воюют враждующие группировки, 10 бойцов или больше и не меньше 3 с каждой стороны: красная, если это бой вашей стороны, янтарная в остальных случаях, а под ней названы обе стороны. Наведите на метку, чтобы увидеть, кто побеждает и какие группировки там враждебны вам. Метки никогда не сохраняются."
+
+msgctxt "ui_mcm_fotz_news"
+msgid "News on the PDA"
+msgstr "Новости в КПК"
+
+msgctxt "ui_mcm_fotz_news_desc"
+msgid "Factions announce wars, truces and alliances on the PDA. With Everything, they also report the ground they take."
+msgstr "Группировки объявляют в КПК войны, перемирия и союзы. В режиме «Всё» они ещё сообщают о захваченных позициях."
+
+msgctxt "ui_mcm_lst_fotz_news_off"
+msgid "Off"
+msgstr "Выкл."
+
+msgctxt "ui_mcm_lst_fotz_news_events"
+msgid "Wars, truces and alliances"
+msgstr "Войны, перемирия и союзы"
+
+msgctxt "ui_mcm_lst_fotz_news_all"
+msgid "Everything"
+msgstr "Всё"
 
 msgctxt "ui_mcm_fotz_census"
 msgid "Keep a census"
@@ -21,5 +58,518 @@ msgid "Once a game day, and once after each load, count every faction's squads a
 msgstr "Раз в игровые сутки и после каждой загрузки считать отряды каждой фракции и занятую ими территорию и записывать это в fotz_census.jsonl в папке appdata игры. На игру это не влияет."
 
 msgctxt "ui_mcm_fotz_about"
-msgid "This version only takes a census: it watches the factions and changes nothing yet."
-msgstr "Эта версия только ведёт перепись: она наблюдает за фракциями и пока ничего не меняет."
+msgid "Relations change only between factions the base game lets change, within lore limits. Factions of the Zone steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations."
+msgstr "Отношения меняются только между группировками, которым это позволяет сама игра, и в пределах лора. Мод уступает, пока отношениями занимаются динамические отношения самой игры, Fluid Relations, Dynamic Faction Relations Customizer или режим «Война группировок»."
+
+msgctxt "st_fotz_news_war_kills"
+msgid "Too many of ours have died at the hands of {b}. From today we are at war with them."
+msgstr "Слишком много наших погибло от рук группировки «{b}». С сегодняшнего дня мы с ними воюем."
+
+msgctxt "st_fotz_news_war_ground"
+msgid "{b} took {place} from us. From today we are at war with them."
+msgstr "Группировка «{b}» отняла у нас позицию «{place}». С сегодняшнего дня мы с ними воюем."
+
+msgctxt "st_fotz_news_war_front"
+msgid "We have fought {b} at {place} for days. From today we are at war with them."
+msgstr "Который день мы бьёмся с группировкой «{b}» у позиции «{place}». С сегодняшнего дня мы с ними воюем."
+
+msgctxt "st_fotz_news_truce"
+msgid "The line with {b} has gone quiet. We hold our fire, for now."
+msgstr "На линии с группировкой «{b}» стало тихо. Пока не стреляем."
+
+msgctxt "st_fotz_news_alliance"
+msgid "We stand with {b} against {enemy}. Treat them as friends."
+msgstr "Мы вместе с группировкой «{b}» против группировки «{enemy}». Относитесь к ним как к друзьям."
+
+msgctxt "st_fotz_news_alliance_plain"
+msgid "We are allies of {b} now. Treat them as friends."
+msgstr "Теперь мы союзники группировки «{b}». Относитесь к ним как к друзьям."
+
+msgctxt "st_fotz_news_alliance_over"
+msgid "Our alliance with {b} is over."
+msgstr "Наш союз с группировкой «{b}» окончен."
+
+msgctxt "st_fotz_news_ground"
+msgid "We took {place} from {b}."
+msgstr "Мы заняли позицию «{place}», выбив оттуда группировку «{b}»."
+
+msgctxt "st_fotz_news_front_upper"
+msgid "In {place} the upper hand over {b} is ours now."
+msgstr "В районе «{place}» перевес над группировкой «{b}» теперь за нами."
+
+msgctxt "fotz_own"
+msgid "Your faction"
+msgstr "Ваша группировка"
+
+msgctxt "actor_fotz_own"
+msgid "Your faction"
+msgstr "Ваша группировка"
+
+msgctxt "st_fotz_default_name"
+msgid "Your faction"
+msgstr "Ваша группировка"
+
+msgctxt "ui_mcm_fotz_faction"
+msgid "Lead a faction of your own"
+msgstr "Своя группировка"
+
+msgctxt "ui_mcm_fotz_faction_desc"
+msgid "Found a faction of your own. It starts with the friends and enemies of the faction you came from, and your companions join it. Turned off, it is disbanded and everyone goes back to their old faction. No save ever holds it, so removing the mod later needs nothing."
+msgstr "Основать свою группировку. Её друзья и враги поначалу те же, что у вашей прежней группировки, а ваши спутники вступают в неё. Если выключить, группировка распускается и все возвращаются в свои прежние группировки. Ни одно сохранение её не содержит, поэтому удаление мода потом ничего не требует."
+
+msgctxt "ui_mcm_fotz_faction_name"
+msgid "Its name"
+msgstr "Название"
+
+msgctxt "ui_mcm_fotz_faction_name_desc"
+msgid "What your faction is called in the news."
+msgstr "Как ваша группировка называется в новостях."
+
+msgctxt "ui_mcm_fotz_faction_join"
+msgid "You join it"
+msgstr "Вы вступаете в неё"
+
+msgctxt "ui_mcm_fotz_faction_join_desc"
+msgid "Off unless you choose it: you lead your faction from your old one and keep its traders, tasks and dialogs. On, you stand in your faction yourself and its friends and enemies are yours, but G.A.M.M.A. doesn't know your faction: the disguise system thinks you're in disguise, and traders, tasks, dialogs and fast travel tied to your old faction treat you as an outsider."
+msgstr "Выключено, если вы не выберете иначе: вы руководите группировкой, оставаясь в прежней, и сохраняете её торговцев, задания и диалоги. Если включить, вы сами состоите в своей группировке, и её друзья и враги становятся вашими, но G.A.M.M.A. её не знает: система маскировки считает вас переодетым, а торговцы, задания, диалоги и быстрое перемещение прежней группировки считают вас чужаком."
+
+msgctxt "ui_mcm_fotz_faction_companions"
+msgid "Companions join it"
+msgstr "Спутники вступают в неё"
+
+msgctxt "ui_mcm_fotz_faction_companions_desc"
+msgid "Your companions join your faction, and leave it when they leave you."
+msgstr "Ваши спутники вступают в вашу группировку и покидают её, когда уходят от вас."
+
+msgctxt "st_fotz_news_founded"
+msgid "{name} is founded. Its friends and enemies start as your old faction's."
+msgstr "Группировка «{name}» основана. Её друзья и враги поначалу те же, что у вашей прежней группировки."
+
+msgctxt "st_fotz_news_joined"
+msgid "{who} has joined {name}."
+msgstr "{who} вступает в группировку «{name}»."
+
+msgctxt "st_fotz_news_left"
+msgid "{who} has left {name}."
+msgstr "{who} покидает группировку «{name}»."
+
+msgctxt "st_fotz_news_disbanded"
+msgid "{name} is disbanded. Everyone goes back to their old faction."
+msgstr "Группировка «{name}» распущена. Все возвращаются в свои прежние группировки."
+
+msgctxt "st_fotz_faction_stalker"
+msgid "Loners"
+msgstr "Одиночки"
+
+msgctxt "st_fotz_faction_bandit"
+msgid "Bandits"
+msgstr "Бандиты"
+
+msgctxt "st_fotz_faction_csky"
+msgid "Clear Sky"
+msgstr "Чистое Небо"
+
+msgctxt "st_fotz_faction_dolg"
+msgid "Duty"
+msgstr "Долг"
+
+msgctxt "st_fotz_faction_freedom"
+msgid "Freedom"
+msgstr "Свобода"
+
+msgctxt "st_fotz_faction_killer"
+msgid "Mercenaries"
+msgstr "Наёмники"
+
+msgctxt "st_fotz_faction_army"
+msgid "Military"
+msgstr "Военные"
+
+msgctxt "st_fotz_faction_ecolog"
+msgid "Ecologists"
+msgstr "Экологи"
+
+msgctxt "st_fotz_faction_monolith"
+msgid "Monolith"
+msgstr "Монолит"
+
+msgctxt "st_fotz_faction_renegade"
+msgid "Renegades"
+msgstr "Ренегаты"
+
+msgctxt "st_fotz_faction_greh"
+msgid "Sin"
+msgstr "Грех"
+
+msgctxt "st_fotz_faction_isg"
+msgid "UNISG"
+msgstr "UNISG"
+
+msgctxt "st_dyn_news_comm_fotz_own_1"
+msgid "a stalker"
+msgstr "сталкер"
+
+msgctxt "st_dyn_news_comm_fotz_own_2"
+msgid "a fighter"
+msgstr "боец"
+
+msgctxt "st_dyn_news_comm_fotz_own_3"
+msgid "some stalker"
+msgstr "сталкера"
+
+msgctxt "st_dyn_news_comm_fotz_own_4"
+msgid "some fighter"
+msgstr "бойца"
+
+msgctxt "st_dyn_news_comm_fotz_own_5"
+msgid "stalker"
+msgstr "сталкер"
+
+msgctxt "st_dyn_news_comm_fotz_own_6"
+msgid "Stalker"
+msgstr "Сталкеры"
+
+msgctxt "st_dyn_news_comm_fotz_own_7"
+msgid "stalkers"
+msgstr "сталкер"
+
+msgctxt "st_dyn_news_comm_fotz_own_8"
+msgid "fighters"
+msgstr "боец"
+
+msgctxt "st_dyn_news_comm_fotz_own_9"
+msgid "some stalkers"
+msgstr "сталкеры"
+
+msgctxt "st_dyn_news_comm_fotz_own_10"
+msgid "fighters"
+msgstr "бойцы"
+
+msgctxt "st_dyn_news_comm_fotz_own_11"
+msgid "Guys, we need some help!"
+msgstr "SOS! Ребята, выручайте!"
+
+msgctxt "st_dyn_news_comm_fotz_own_12"
+msgid "Help us!"
+msgstr "SOS!"
+
+msgctxt "st_dyn_news_comm_fotz_own_13"
+msgid "Help us out!"
+msgstr "Требуется помощь, выручайте."
+
+msgctxt "st_dyn_news_comm_fotz_own_14"
+msgid "Brothers, help!"
+msgstr "Братишки! Спасите..."
+
+msgctxt "st_fotz_tab"
+msgid "Factions"
+msgstr "Группировки"
+
+msgctxt "st_fotz_tab_yours"
+msgid "Your faction · founded {date} · came from: {from} · members: {n}"
+msgstr "Ваша группировка · основана {date} · прежняя: «{from}» · бойцов: {n}"
+
+msgctxt "st_fotz_tab_no_faction"
+msgid "You lead no faction of your own. Found one in MCM, under Factions of the Zone."
+msgstr "У вас нет своей группировки. Её можно основать в MCM, в разделе «Фракции Зоны»."
+
+msgctxt "st_fotz_tab_in_charge"
+msgid "Relations change as the factions fight."
+msgstr "Отношения меняются по ходу боёв между группировками."
+
+msgctxt "st_fotz_tab_down_off"
+msgid "Relations stand still: turned off in MCM."
+msgstr "Отношения не меняются: выключено в MCM."
+
+msgctxt "st_fotz_tab_down_dynamic"
+msgid "Relations are left to the base game's dynamic relations."
+msgstr "Отношениями управляют динамические отношения самой игры."
+
+msgctxt "st_fotz_tab_down_warfare"
+msgid "Relations are left to Warfare mode."
+msgstr "Отношениями управляет режим «Война группировок»."
+
+msgctxt "st_fotz_tab_down_dfrc"
+msgid "Relations are left to Dynamic Faction Relations Customizer."
+msgstr "Отношениями управляет Dynamic Faction Relations Customizer."
+
+msgctxt "st_fotz_tab_down_fluid"
+msgid "Relations are left to Fluid Relations."
+msgstr "Отношениями управляет Fluid Relations."
+
+msgctxt "st_fotz_tab_standing"
+msgid "How the factions stand with you"
+msgstr "Как к вам относятся группировки"
+
+msgctxt "st_fotz_tab_band_war"
+msgid "At war"
+msgstr "Война"
+
+msgctxt "st_fotz_tab_band_enemies"
+msgid "Hostile"
+msgstr "Враги"
+
+msgctxt "st_fotz_tab_band_truce"
+msgid "Truce"
+msgstr "Перемирие"
+
+msgctxt "st_fotz_tab_band_neutral"
+msgid "Neutral"
+msgstr "Нейтралы"
+
+msgctxt "st_fotz_tab_band_friends"
+msgid "Friendly"
+msgstr "Друзья"
+
+msgctxt "st_fotz_tab_band_alliance"
+msgid "Allied"
+msgstr "Союз"
+
+msgctxt "st_fotz_tab_war_since"
+msgid "at war since {date}"
+msgstr "война с {date}"
+
+msgctxt "st_fotz_tab_truce_until"
+msgid "truce until {date}"
+msgstr "перемирие до {date}"
+
+msgctxt "st_fotz_tab_alliance_since"
+msgid "allied since {date}"
+msgstr "союз с {date}"
+
+msgctxt "st_fotz_tab_log"
+msgid "War log"
+msgstr "Хроника"
+
+msgctxt "st_fotz_tab_log_war"
+msgid "{a} and {b} went to war"
+msgstr "«{a}» и «{b}»: война"
+
+msgctxt "st_fotz_tab_log_war_over"
+msgid "{a} and {b} stopped fighting"
+msgstr "«{a}» и «{b}»: война окончена"
+
+msgctxt "st_fotz_tab_log_truce"
+msgid "{a} and {b} made a truce"
+msgstr "«{a}» и «{b}»: перемирие"
+
+msgctxt "st_fotz_tab_log_truce_over"
+msgid "The truce between {a} and {b} ended"
+msgstr "«{a}» и «{b}»: перемирие окончено"
+
+msgctxt "st_fotz_tab_log_alliance"
+msgid "{a} and {b} became allies"
+msgstr "«{a}» и «{b}»: союз"
+
+msgctxt "st_fotz_tab_log_alliance_over"
+msgid "{a} and {b} are allies no more"
+msgstr "«{a}» и «{b}»: союз распался"
+
+msgctxt "st_fotz_tab_log_restored"
+msgid "Relations reset to their start"
+msgstr "Отношения сброшены к исходным"
+
+msgctxt "st_fotz_tab_log_none"
+msgid "Nothing yet: wars, truces and alliances show here."
+msgstr "Пока ничего: здесь будут войны, перемирия и союзы."
+
+msgctxt "st_fotz_map_label"
+msgid "{a} vs {b}"
+msgstr "{a} — {b}"
+
+msgctxt "st_fotz_tab_members"
+msgid "Members"
+msgstr "Бойцы"
+
+msgctxt "st_fotz_tab_member_near"
+msgid "{name} ({from}), with you"
+msgstr "{name} («{from}»), рядом"
+
+msgctxt "st_fotz_tab_member_away"
+msgid "{name} ({from}), away"
+msgstr "{name} («{from}»), далеко"
+
+msgctxt "st_fotz_tab_member_dead"
+msgid "{name} ({from}), dead"
+msgstr "{name} («{from}»), погиб"
+
+msgctxt "st_fotz_tab_members_none"
+msgid "No members yet: your companions join."
+msgstr "Бойцов пока нет: ваши спутники вступают сами."
+
+msgctxt "st_fotz_tab_members_more"
+msgid "and {n} more"
+msgstr "и ещё {n}"
+
+msgctxt "st_fotz_tab_restore"
+msgid "Reset relations"
+msgstr "Сбросить отношения"
+
+msgctxt "st_fotz_tab_restore_confirm"
+msgid "Click again to reset"
+msgstr "Нажмите ещё раз"
+
+msgctxt "st_fotz_tab_restored"
+msgid "Relations reset"
+msgstr "Отношения сброшены"
+
+msgctxt "st_fotz_tab_credit"
+msgid "Factions of the Zone {v} · Windwalker"
+msgstr "Фракции Зоны {v} · Windwalker"
+
+msgctxt "ui_mcm_fotz_tab_key"
+msgid "Factions page key"
+msgstr "Клавиша страницы группировок"
+
+msgctxt "ui_mcm_fotz_tab_key_desc"
+msgid "Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page also opens from its own PDA tab, or from its tile in Mod App Creator's launcher."
+msgstr "Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Страница открывается и из своей вкладки КПК или из значка в меню приложений Mod App Creator."
+
+msgctxt "st_fotz_tab_sep"
+msgid "·"
+msgstr "·"
+
+msgctxt "st_fotz_tab_leader_dead"
+msgid "{name} (dead)"
+msgstr "{name} (погиб)"
+
+msgctxt "st_fotz_tab_back"
+msgid "Back"
+msgstr "Назад"
+
+msgctxt "ui_mcm_fotz_pda_tab"
+msgid "Its own PDA tab"
+msgstr "Своя вкладка КПК"
+
+msgctxt "ui_mcm_fotz_pda_tab_desc"
+msgid "The Factions page opens your way: from its tile in Mod App Creator's launcher, from a PDA tab of its own (check this), or in a window of its own with the key below. Without Mod App Creator it always has its tab."
+msgstr "Страница группировок открывается как вам удобнее: из значка в меню приложений Mod App Creator, из своей вкладки КПК (отметьте) или в отдельном окне по клавише ниже. Без Mod App Creator у неё всегда своя вкладка."
+
+msgctxt "ui_mcm_fotz_territory"
+msgid "Squads lean toward winning fronts"
+msgstr "Отряды тянутся к выигрышным фронтам"
+
+msgctxt "ui_mcm_fotz_territory_desc"
+msgid "A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself."
+msgstr "Группировка чаще посылает отряды к позициям врагов там, где на этой локации её бойцов больше, и реже туда, где больше вражеских. Это лишь перевес в собственном выборе игры, куда идти отрядам: без приказов и без новых отрядов. Выключено в режиме «Война группировок», где отрядами управляет он сам."
+
+
+msgctxt "st_fotz_tab_trend_up"
+msgid "getting better"
+msgstr "налаживаются"
+
+msgctxt "st_fotz_tab_trend_down"
+msgid "getting worse"
+msgstr "портятся"
+
+msgctxt "st_fotz_tab_fixed_enemies"
+msgid "Permanent enemies: {list}."
+msgstr "Враги навсегда: {list}."
+
+msgctxt "st_fotz_tab_fixed_neutral"
+msgid "Always neutral: {list}."
+msgstr "Нейтралитет навсегда: {list}."
+
+msgctxt "st_fotz_tab_fixed_friends"
+msgid "Permanent friends: {list}."
+msgstr "Друзья навсегда: {list}."
+
+msgctxt "st_fotz_tab_fighting"
+msgid "Where the fighting is"
+msgstr "Где идут бои"
+
+msgctxt "st_fotz_tab_fighting_wait"
+msgid "Not counted yet: the census comes shortly after a load."
+msgstr "Ещё не подсчитано: перепись вскоре после загрузки."
+
+msgctxt "st_fotz_tab_fighting_none"
+msgid "No fighting: no two hostile factions share a level."
+msgstr "Боёв нет: ни на одной локации нет двух враждующих группировок."
+
+msgctxt "st_fotz_fight_control"
+msgid "{place}: {w} in control, {l} nearly gone"
+msgstr "{place}: {w} — полный контроль, {l} — на грани"
+
+msgctxt "st_fotz_fight_winning"
+msgid "{place}: {w} winning, {l} losing"
+msgstr "{place}: {w} — перевес, {l} — отступление"
+
+msgctxt "st_fotz_fight_ahead"
+msgid "{place}: {w} ahead, {l} holding on"
+msgstr "{place}: {w} — небольшой перевес, {l} — оборона"
+
+msgctxt "st_fotz_fight_even"
+msgid "{place}: {w} and {l} evenly matched"
+msgstr "{place}: {w} и {l} — на равных"
+
+msgctxt "st_fotz_your"
+msgid "your {name}"
+msgstr "{name} (вы)"
+
+msgctxt "st_fotz_and"
+msgid "and"
+msgstr "и"
+
+msgctxt "st_fotz_more"
+msgid "{n} more"
+msgstr "ещё {n}"
+
+msgctxt "st_fotz_tab_numbers"
+msgid "Relation numbers"
+msgstr "Цифры отношений"
+
+msgctxt "st_fotz_map_hostile"
+msgid "Hostile to you here: {list}"
+msgstr "Здесь враждебны вам: {list}"
+
+msgctxt "st_fotz_tab_restore_note"
+msgid "Reset puts every relation back where it was before the fighting moved it, and ends all wars, truces and alliances."
+msgstr "Сброс возвращает все отношения к тем, что были до боёв, и завершает все войны, перемирия и союзы."
+
+msgctxt "st_fotz_tab_restore_warn"
+msgid "A second click puts every relation back and ends all wars, truces and alliances. It can't be undone."
+msgstr "Второе нажатие вернёт все отношения и завершит все войны, перемирия и союзы. Отменить это нельзя."
+
+msgctxt "st_fotz_patch"
+msgid "Patch (Your faction)"
+msgstr "Нашивка (ваша группировка)"
+
+msgctxt "st_fotz_patch_descr"
+msgid "Your own faction's insignia, sewn to order in Cordon. Your members wear it, and a fallen one leaves it behind."
+msgstr "Знак вашей собственной группировки, сшитый на заказ на Кордоне. Его носят ваши бойцы, и павший оставляет его после себя."
+
+msgctxt "st_fotz_patch_ask"
+msgid "Can you get patches sewn for my faction?"
+msgstr "Сможешь достать нашивки для моей группировки?"
+
+msgctxt "st_fotz_patch_offer"
+msgid "Patches with your own emblem? There's a woman in the village who sews. {price} RU apiece. How many?"
+msgstr "Нашивки с твоей эмблемой? В деревне одна женщина шьёт. {price} руб. за штуку. Сколько?"
+
+msgctxt "st_fotz_patch_buy_one"
+msgid "One, for {total} RU."
+msgstr "Одну, за {total} руб."
+
+msgctxt "st_fotz_patch_buy"
+msgid "{n}, for {total} RU."
+msgstr "{n} штук, за {total} руб."
+
+msgctxt "st_fotz_patch_done"
+msgid "There, fresh off the needle. Anything else?"
+msgstr "Держи, только с иголки. Что-нибудь ещё?"
+
+msgctxt "st_fotz_patch_not_now"
+msgid "That's all for now."
+msgstr "Пока всё."
+
+msgctxt "ui_mcm_fotz_remove_patches"
+msgid "Remove your faction's patches"
+msgstr "Убрать нашивки вашей группировки"
+
+msgctxt "ui_mcm_fotz_remove_patches_desc"
+msgid "Takes every patch of your faction out of the game, wherever it is: on you, in stashes, on the fallen. Do this before removing Factions of the Zone: a save that holds one can't load without it."
+msgstr "Убирает из игры все нашивки вашей группировки, где бы они ни были: у вас, в тайниках, на павших. Сделайте это перед удалением Factions of the Zone: сохранение с нашивкой без мода не загрузится."
+
+msgctxt "st_fotz_patch_removed"
+msgid "Your faction's patches taken out of the game: {n}."
+msgstr "Нашивки вашей группировки убраны из игры: {n}."

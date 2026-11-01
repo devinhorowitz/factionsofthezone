@@ -1,16 +1,41 @@
 --[[
 Factions of the Zone: its MCM page. Options are read with ui_mcm.get("fotz/<id>").
+
+The faction options belong to the save you're playing: fotz_faction sets them from the save at
+each load, and changing them founds, renames or disbands that save's faction.
 --]]
 
 function on_mcm_load()
-    return {
+    local page = {
         id = "fotz",
         sh = true,
         gr = {
             { id = "title", type = "slide", link = "ui_options_slider_player", text = "ui_mcm_menu_fotz",
               size = { 512, 50 }, spacing = 20 },
+            { id = "faction", type = "check", val = 1, def = false },
+            { id = "faction_name", type = "input", val = 0, def = "" },
+            { id = "faction_join", type = "check", val = 1, def = false },
+            { id = "faction_companions", type = "check", val = 1, def = true },
+            { id = "line1", type = "line" },
+            { id = "politics", type = "check", val = 1, def = true },
+            { id = "territory", type = "check", val = 1, def = true },
+            { id = "map", type = "check", val = 1, def = true },
+            { id = "news", type = "list", val = 0, def = "events", content = {
+                { "off", "fotz_news_off" },
+                { "events", "fotz_news_events" },
+                { "all", "fotz_news_all" },
+            } },
             { id = "census", type = "check", val = 1, def = true },
+            -- before removing the mod: every patch of your faction out of the game (fotz_patch)
+            { id = "remove_patches", type = "check", val = 1, def = false },
+            { id = "tab_key", type = "key_bind", val = 2, def = -1 },
             { id = "about", type = "desc", text = "ui_mcm_fotz_about" },
         },
     }
+    -- with Mod App Creator, the page opens from its tile unless this asks for its own tab; without
+    -- MAC it always has the tab, so the option isn't there
+    if z_fotz_mac and z_fotz_mac.available() then
+        table.insert(page.gr, #page.gr, { id = "pda_tab", type = "check", val = 1, def = false })
+    end
+    return page
 end

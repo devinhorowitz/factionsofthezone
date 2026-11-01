@@ -3,6 +3,39 @@
 	<string id="ui_mcm_menu_fotz">
 		<text>Фракции Зоны</text>
 	</string>
+	<string id="ui_mcm_fotz_politics">
+		<text>Группировки меняют отношения</text>
+	</string>
+	<string id="ui_mcm_fotz_politics_desc">
+		<text>Раз в игровые сутки убийства, захваченные позиции и линии фронта меняют отношения между группировками, а за ними следуют войны, перемирия и союзы. Если выключить, каждая группировка вернётся к отношениям, заданным игрой.</text>
+	</string>
+	<string id="ui_mcm_fotz_territory">
+		<text>Отряды тянутся к выигрышным фронтам</text>
+	</string>
+	<string id="ui_mcm_fotz_territory_desc">
+		<text>Группировка чаще посылает отряды к позициям врагов там, где на этой локации её бойцов больше, и реже туда, где больше вражеских. Это лишь перевес в собственном выборе игры, куда идти отрядам: без приказов и без новых отрядов. Выключено в режиме «Война группировок», где отрядами управляет он сам.</text>
+	</string>
+	<string id="ui_mcm_fotz_map">
+		<text>Фронты на карте КПК</text>
+	</string>
+	<string id="ui_mcm_fotz_map_desc">
+		<text>Метка на каждой локации, где воюют враждующие группировки, 10 бойцов или больше и не меньше 3 с каждой стороны: красная, если это бой вашей стороны, янтарная в остальных случаях, а под ней названы обе стороны. Наведите на метку, чтобы увидеть, кто побеждает и какие группировки там враждебны вам. Метки никогда не сохраняются.</text>
+	</string>
+	<string id="ui_mcm_fotz_news">
+		<text>Новости в КПК</text>
+	</string>
+	<string id="ui_mcm_fotz_news_desc">
+		<text>Группировки объявляют в КПК войны, перемирия и союзы. В режиме «Всё» они ещё сообщают о захваченных позициях.</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_off">
+		<text>Выкл.</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_events">
+		<text>Войны, перемирия и союзы</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_all">
+		<text>Всё</text>
+	</string>
 	<string id="ui_mcm_fotz_census">
 		<text>Вести перепись</text>
 	</string>
@@ -10,6 +43,384 @@
 		<text>Раз в игровые сутки и после каждой загрузки считать отряды каждой фракции и занятую ими территорию и записывать это в fotz_census.jsonl в папке appdata игры. На игру это не влияет.</text>
 	</string>
 	<string id="ui_mcm_fotz_about">
-		<text>Эта версия только ведёт перепись: она наблюдает за фракциями и пока ничего не меняет.</text>
+		<text>Отношения меняются только между группировками, которым это позволяет сама игра, и в пределах лора. Мод уступает, пока отношениями занимаются динамические отношения самой игры, Fluid Relations, Dynamic Faction Relations Customizer или режим «Война группировок».</text>
+	</string>
+	<string id="st_fotz_news_war_kills">
+		<text>Слишком много наших погибло от рук группировки «{b}». С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_war_ground">
+		<text>Группировка «{b}» отняла у нас позицию «{place}». С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_war_front">
+		<text>Который день мы бьёмся с группировкой «{b}» у позиции «{place}». С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_truce">
+		<text>На линии с группировкой «{b}» стало тихо. Пока не стреляем.</text>
+	</string>
+	<string id="st_fotz_news_alliance">
+		<text>Мы вместе с группировкой «{b}» против группировки «{enemy}». Относитесь к ним как к друзьям.</text>
+	</string>
+	<string id="st_fotz_news_alliance_plain">
+		<text>Теперь мы союзники группировки «{b}». Относитесь к ним как к друзьям.</text>
+	</string>
+	<string id="st_fotz_news_alliance_over">
+		<text>Наш союз с группировкой «{b}» окончен.</text>
+	</string>
+	<string id="st_fotz_news_ground">
+		<text>Мы заняли позицию «{place}», выбив оттуда группировку «{b}».</text>
+	</string>
+	<string id="st_fotz_news_front_upper">
+		<text>В районе «{place}» перевес над группировкой «{b}» теперь за нами.</text>
+	</string>
+	<string id="fotz_own">
+		<text>Ваша группировка</text>
+	</string>
+	<string id="actor_fotz_own">
+		<text>Ваша группировка</text>
+	</string>
+	<string id="st_fotz_default_name">
+		<text>Ваша группировка</text>
+	</string>
+	<string id="ui_mcm_fotz_faction">
+		<text>Своя группировка</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_desc">
+		<text>Основать свою группировку. Её друзья и враги поначалу те же, что у вашей прежней группировки, а ваши спутники вступают в неё. Если выключить, группировка распускается и все возвращаются в свои прежние группировки. Ни одно сохранение её не содержит, поэтому удаление мода потом ничего не требует.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name">
+		<text>Название</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name_desc">
+		<text>Как ваша группировка называется в новостях.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join">
+		<text>Вы вступаете в неё</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join_desc">
+		<text>Выключено, если вы не выберете иначе: вы руководите группировкой, оставаясь в прежней, и сохраняете её торговцев, задания и диалоги. Если включить, вы сами состоите в своей группировке, и её друзья и враги становятся вашими, но G.A.M.M.A. её не знает: система маскировки считает вас переодетым, а торговцы, задания, диалоги и быстрое перемещение прежней группировки считают вас чужаком.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions">
+		<text>Спутники вступают в неё</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions_desc">
+		<text>Ваши спутники вступают в вашу группировку и покидают её, когда уходят от вас.</text>
+	</string>
+	<string id="st_fotz_news_founded">
+		<text>Группировка «{name}» основана. Её друзья и враги поначалу те же, что у вашей прежней группировки.</text>
+	</string>
+	<string id="st_fotz_news_joined">
+		<text>{who} вступает в группировку «{name}».</text>
+	</string>
+	<string id="st_fotz_news_left">
+		<text>{who} покидает группировку «{name}».</text>
+	</string>
+	<string id="st_fotz_news_disbanded">
+		<text>Группировка «{name}» распущена. Все возвращаются в свои прежние группировки.</text>
+	</string>
+	<string id="st_fotz_faction_stalker">
+		<text>Одиночки</text>
+	</string>
+	<string id="st_fotz_faction_bandit">
+		<text>Бандиты</text>
+	</string>
+	<string id="st_fotz_faction_csky">
+		<text>Чистое Небо</text>
+	</string>
+	<string id="st_fotz_faction_dolg">
+		<text>Долг</text>
+	</string>
+	<string id="st_fotz_faction_freedom">
+		<text>Свобода</text>
+	</string>
+	<string id="st_fotz_faction_killer">
+		<text>Наёмники</text>
+	</string>
+	<string id="st_fotz_faction_army">
+		<text>Военные</text>
+	</string>
+	<string id="st_fotz_faction_ecolog">
+		<text>Экологи</text>
+	</string>
+	<string id="st_fotz_faction_monolith">
+		<text>Монолит</text>
+	</string>
+	<string id="st_fotz_faction_renegade">
+		<text>Ренегаты</text>
+	</string>
+	<string id="st_fotz_faction_greh">
+		<text>Грех</text>
+	</string>
+	<string id="st_fotz_faction_isg">
+		<text>UNISG</text>
+	</string>
+	<string id="st_fotz_tab">
+		<text>Группировки</text>
+	</string>
+	<string id="st_fotz_tab_yours">
+		<text>Ваша группировка · основана {date} · прежняя: «{from}» · бойцов: {n}</text>
+	</string>
+	<string id="st_fotz_tab_no_faction">
+		<text>У вас нет своей группировки. Её можно основать в MCM, в разделе «Фракции Зоны».</text>
+	</string>
+	<string id="st_fotz_tab_in_charge">
+		<text>Отношения меняются по ходу боёв между группировками.</text>
+	</string>
+	<string id="st_fotz_tab_down_off">
+		<text>Отношения не меняются: выключено в MCM.</text>
+	</string>
+	<string id="st_fotz_tab_down_dynamic">
+		<text>Отношениями управляют динамические отношения самой игры.</text>
+	</string>
+	<string id="st_fotz_tab_down_warfare">
+		<text>Отношениями управляет режим «Война группировок».</text>
+	</string>
+	<string id="st_fotz_tab_down_dfrc">
+		<text>Отношениями управляет Dynamic Faction Relations Customizer.</text>
+	</string>
+	<string id="st_fotz_tab_down_fluid">
+		<text>Отношениями управляет Fluid Relations.</text>
+	</string>
+	<string id="st_fotz_tab_standing">
+		<text>Как к вам относятся группировки</text>
+	</string>
+	<string id="st_fotz_tab_band_war">
+		<text>Война</text>
+	</string>
+	<string id="st_fotz_tab_band_enemies">
+		<text>Враги</text>
+	</string>
+	<string id="st_fotz_tab_band_truce">
+		<text>Перемирие</text>
+	</string>
+	<string id="st_fotz_tab_band_neutral">
+		<text>Нейтралы</text>
+	</string>
+	<string id="st_fotz_tab_band_friends">
+		<text>Друзья</text>
+	</string>
+	<string id="st_fotz_tab_band_alliance">
+		<text>Союз</text>
+	</string>
+	<string id="st_fotz_tab_trend_up">
+		<text>налаживаются</text>
+	</string>
+	<string id="st_fotz_tab_trend_down">
+		<text>портятся</text>
+	</string>
+	<string id="st_fotz_tab_war_since">
+		<text>война с {date}</text>
+	</string>
+	<string id="st_fotz_tab_truce_until">
+		<text>перемирие до {date}</text>
+	</string>
+	<string id="st_fotz_tab_alliance_since">
+		<text>союз с {date}</text>
+	</string>
+	<string id="st_fotz_tab_fixed_enemies">
+		<text>Враги навсегда: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_neutral">
+		<text>Нейтралитет навсегда: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_friends">
+		<text>Друзья навсегда: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_log">
+		<text>Хроника</text>
+	</string>
+	<string id="st_fotz_tab_log_war">
+		<text>«{a}» и «{b}»: война</text>
+	</string>
+	<string id="st_fotz_tab_log_war_over">
+		<text>«{a}» и «{b}»: война окончена</text>
+	</string>
+	<string id="st_fotz_tab_log_truce">
+		<text>«{a}» и «{b}»: перемирие</text>
+	</string>
+	<string id="st_fotz_tab_log_truce_over">
+		<text>«{a}» и «{b}»: перемирие окончено</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance">
+		<text>«{a}» и «{b}»: союз</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance_over">
+		<text>«{a}» и «{b}»: союз распался</text>
+	</string>
+	<string id="st_fotz_tab_log_restored">
+		<text>Отношения сброшены к исходным</text>
+	</string>
+	<string id="st_fotz_tab_log_none">
+		<text>Пока ничего: здесь будут войны, перемирия и союзы.</text>
+	</string>
+	<string id="st_fotz_tab_fighting">
+		<text>Где идут бои</text>
+	</string>
+	<string id="st_fotz_tab_fighting_wait">
+		<text>Ещё не подсчитано: перепись вскоре после загрузки.</text>
+	</string>
+	<string id="st_fotz_tab_fighting_none">
+		<text>Боёв нет: ни на одной локации нет двух враждующих группировок.</text>
+	</string>
+	<string id="st_fotz_fight_control">
+		<text>{place}: {w} — полный контроль, {l} — на грани</text>
+	</string>
+	<string id="st_fotz_fight_winning">
+		<text>{place}: {w} — перевес, {l} — отступление</text>
+	</string>
+	<string id="st_fotz_fight_ahead">
+		<text>{place}: {w} — небольшой перевес, {l} — оборона</text>
+	</string>
+	<string id="st_fotz_fight_even">
+		<text>{place}: {w} и {l} — на равных</text>
+	</string>
+	<string id="st_fotz_your">
+		<text>{name} (вы)</text>
+	</string>
+	<string id="st_fotz_and">
+		<text>и</text>
+	</string>
+	<string id="st_fotz_more">
+		<text>ещё {n}</text>
+	</string>
+	<string id="st_fotz_map_label">
+		<text>{a} — {b}</text>
+	</string>
+	<string id="st_fotz_map_hostile">
+		<text>Здесь враждебны вам: {list}</text>
+	</string>
+	<string id="st_fotz_tab_members">
+		<text>Бойцы</text>
+	</string>
+	<string id="st_fotz_tab_member_near">
+		<text>{name} («{from}»), рядом</text>
+	</string>
+	<string id="st_fotz_tab_member_away">
+		<text>{name} («{from}»), далеко</text>
+	</string>
+	<string id="st_fotz_tab_member_dead">
+		<text>{name} («{from}»), погиб</text>
+	</string>
+	<string id="st_fotz_tab_members_none">
+		<text>Бойцов пока нет: ваши спутники вступают сами.</text>
+	</string>
+	<string id="st_fotz_tab_members_more">
+		<text>и ещё {n}</text>
+	</string>
+	<string id="st_fotz_tab_restore">
+		<text>Сбросить отношения</text>
+	</string>
+	<string id="st_fotz_tab_restore_confirm">
+		<text>Нажмите ещё раз</text>
+	</string>
+	<string id="st_fotz_tab_restored">
+		<text>Отношения сброшены</text>
+	</string>
+	<string id="st_fotz_tab_restore_note">
+		<text>Сброс возвращает все отношения к тем, что были до боёв, и завершает все войны, перемирия и союзы.</text>
+	</string>
+	<string id="st_fotz_tab_restore_warn">
+		<text>Второе нажатие вернёт все отношения и завершит все войны, перемирия и союзы. Отменить это нельзя.</text>
+	</string>
+	<string id="st_fotz_tab_numbers">
+		<text>Цифры отношений</text>
+	</string>
+	<string id="st_fotz_tab_leader_dead">
+		<text>{name} (погиб)</text>
+	</string>
+	<string id="st_fotz_tab_back">
+		<text>Назад</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab">
+		<text>Своя вкладка КПК</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab_desc">
+		<text>Страница группировок открывается как вам удобнее: из значка в меню приложений Mod App Creator, из своей вкладки КПК (отметьте) или в отдельном окне по клавише ниже. Без Mod App Creator у неё всегда своя вкладка.</text>
+	</string>
+	<string id="st_fotz_tab_sep">
+		<text>·</text>
+	</string>
+	<string id="st_fotz_tab_credit">
+		<text>Фракции Зоны {v} · Windwalker</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key">
+		<text>Клавиша страницы группировок</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key_desc">
+		<text>Открывает страницу группировок в отдельном окне, чётче, чем в 3D-КПК. Страница открывается и из своей вкладки КПК или из значка в меню приложений Mod App Creator.</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_1">
+		<text>сталкер</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_2">
+		<text>боец</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_3">
+		<text>сталкера</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_4">
+		<text>бойца</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_5">
+		<text>сталкер</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_6">
+		<text>Сталкеры</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_7">
+		<text>сталкер</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_8">
+		<text>боец</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_9">
+		<text>сталкеры</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_10">
+		<text>бойцы</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_11">
+		<text>SOS! Ребята, выручайте!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_12">
+		<text>SOS!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_13">
+		<text>Требуется помощь, выручайте.</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_14">
+		<text>Братишки! Спасите...</text>
+	</string>
+	<string id="st_fotz_patch">
+		<text>Нашивка (ваша группировка)</text>
+	</string>
+	<string id="st_fotz_patch_descr">
+		<text>Знак вашей собственной группировки, сшитый на заказ на Кордоне. Его носят ваши бойцы, и павший оставляет его после себя.</text>
+	</string>
+	<string id="st_fotz_patch_ask">
+		<text>Сможешь достать нашивки для моей группировки?</text>
+	</string>
+	<string id="st_fotz_patch_offer">
+		<text>Нашивки с твоей эмблемой? В деревне одна женщина шьёт. {price} руб. за штуку. Сколько?</text>
+	</string>
+	<string id="st_fotz_patch_buy_one">
+		<text>Одну, за {total} руб.</text>
+	</string>
+	<string id="st_fotz_patch_buy">
+		<text>{n} штук, за {total} руб.</text>
+	</string>
+	<string id="st_fotz_patch_done">
+		<text>Держи, только с иголки. Что-нибудь ещё?</text>
+	</string>
+	<string id="st_fotz_patch_not_now">
+		<text>Пока всё.</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches">
+		<text>Убрать нашивки вашей группировки</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches_desc">
+		<text>Убирает из игры все нашивки вашей группировки, где бы они ни были: у вас, в тайниках, на павших. Сделайте это перед удалением Factions of the Zone: сохранение с нашивкой без мода не загрузится.</text>
+	</string>
+	<string id="st_fotz_patch_removed">
+		<text>Нашивки вашей группировки убраны из игры: {n}.</text>
 	</string>
 </string_table>

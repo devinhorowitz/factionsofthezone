@@ -1,0 +1,341 @@
+--[[
+Factions of the Zone: territory, the light steer.
+
+A bias, not a command. When a squad picks its next target, the game scores the smart terrains
+(simulation_objects.evaluate_prior, which G.A.M.M.A. Economy's target_prior replaces) and takes one
+of the best. Factions multiplies the score of a smart held by a faction the squad's own is at war
+with (the game's enmity, -1000 or below, read live): up where its faction outnumbers the holder on
+that level, down where it is outnumbered (on levels where both sides have fighters: fronts),
+within the config's bounds. No squad's scripted target is set, no spawn rows are written, and a
+score of 0 (not allowed) stays 0.
+
+The table is rebuilt from each census (once a game day, and after each load) and the relations
+then in force, the politics engine's wars among them. The same census gives the fronts the
+Factions page lists, and news where a side has newly taken the upper hand on one. Left alone:
+story squads, squads with a scripted target, the player's companions, Homestead's outpost
+garrisons, and squads another mod claims (add_owner, or AlifePlus's owner registry). It stands
+down for Warfare mode, which runs the squads itself, and with its MCM switch. One
+wrapper, put in place as the game starts (after every script has loaded, so it wraps the version
+G.A.M.M.A. Economy put there), and unwound when the switch goes off if it is still the one in
+place. It saves nothing.
+--]]
+
+VERSION = "0.4.0"
+CONFIG = "plugins\\fotz_politics.ltx"
+ENEMIES = -1000           -- the game's line: a faction at or below it toward another is at war
+
+cfg = nil
+STEER = {}                -- faction -> smart id -> multiplier
+STATS = { calls = 0, raised = 0, lowered = 0 }
+local orig, wrapper       -- the scoring we wrapped, and ours
+local on = false          -- steering now
+local exempt = {}         -- squad id -> whether the steer leaves it alone, until the next census
+local garrison = {}       -- Homestead's outpost garrisons, by squad id
+
+local function log(fmt, ...)
+    printf("[fotz-territory] " .. fmt, ...)
+end
+
+function load_config(ini)
+    ini = ini or ini_file(CONFIG)
+    local function num(k, d)
+        return ini:r_float_ex("territory", k) or d
+    end
+    cfg = { k = num("k", 0.5), lo = num("lo", 0.6), hi = num("hi", 1.5) }
+end
+
+-- the multiplier for a front where one side has `mine` fighters on the level and the other `theirs`
+function multiplier(mine, theirs)
+    local total = (mine or 0) + (theirs or 0)
+    if total <= 0 then
+        return 1
+    end
+    local m = 1 + cfg.k * (2 * (mine or 0) / total - 1)
+    return math.max(cfg.lo, math.min(cfg.hi, m))
+end
+
+local function fighters(c, f, lv)
+    local e = c.factions and c.factions[f]
+    local l = e and e.levels and e.levels[lv]
+    return l and l.fighters or 0
+end
+
+-- other mods' squads. A squad another mod directs has a script target (a scripted target, its
+-- own get_script_target, a condlist) or Xlib's lock, so the game never asks it to choose and the
+-- steer never sees it. A mod that holds squads without one (a garrison kept at its post by its
+-- stay time, say) can claim them here, or in AlifePlus's owner registry: the steer leaves a
+-- claimed squad alone, and the squads Homestead holds. A claim that fails counts as one.
+local owners = {}         -- name -> function(squad), true while that mod holds the squad
+local failed = {}         -- owners whose claim has failed, logged once
+
+function add_owner(name, fn)
+    if type(name) ~= "string" or type(fn) ~= "function" then
+        return false
+    end
+    owners[name] = fn
+    return true
+end
+
+function remove_owner(name)
+    owners[name] = nil
+end
+
+-- the name of the mod holding a squad, or nil
+function owner_of(squad)
+    for name, fn in pairs(owners) do
+        local ok, mine = pcall(fn, squad)
+        if not ok and not failed[name] then
+            failed[name] = true
+            log("! %s's claim failed, its squads are left alone: %s", name, tostring(mine))
+        end
+        if mine or not ok then
+            return name
+        end
+    end
+    -- Capture the Zone's campaign squads (Queen Jadwiga's mod), which it marks on the squad and
+    -- holds at their forts by their stay time
+    if squad.ctz_campaign_owned then
+        return "ctz"
+    end
+    -- Homestead's camps, their reinforcements and convoys (what it registers with AlifePlus)
+    local hs = stalker_camp_builder
+    if hs and type(hs.is_held_squad) == "function" then
+        local ok, held = pcall(hs.is_held_squad, squad)
+        if held or not ok then
+            return "homestead"
+        end
+    end
+    local ap = ap_api
+    if ap and type(ap.get_owner) == "function" then
+        -- a lookup that fails gives its error, not nil: that squad is left alone too
+        local _, name = pcall(ap.get_owner, squad)
+        return name
+    end
+end
+
+-- whether the steer leaves a squad alone: a story squad, the player's companions, a Homestead
+-- garrison (kept per census), one with a scripted target, or one another mod claims (checked each
+-- time)
+local function left_alone(squad)
+    local id = squad.id
+    local e = exempt[id]
+    if e == nil then
+        local comp = axr_companions and axr_companions.companion_squads
+        e = get_object_story_id(id) ~= nil or (comp ~= nil and comp[id] ~= nil) or garrison[id] == true
+        exempt[id] = e
+    end
+    return e or squad.scripted_target ~= nil or owner_of(squad) ~= nil
+end
+
+-- the table, from a census and the wars in force; returns how many smarts it weighs
+function rebuild(c)
+    STEER, exempt, garrison = {}, {}, {}
+    local sb = stalker_camp_builder
+    if type(sb) == "table" and type(sb.rival_camps) == "table" then
+        for _, camp in pairs(sb.rival_camps) do
+            if type(camp) == "table" and camp.squad_id then
+                garrison[camp.squad_id] = true
+            end
+        end
+    end
+    -- who is at war with whom: the game's own enmity, read live (a war the politics engine
+    -- declared holds its pair there; a truce lifts it out). G.A.M.M.A. starts some pairs at -2000,
+    -- enemies with no war ever declared. The census's factions only: your own has no squads
+    local wars = {}
+    local list = fotz_census.FACTIONS
+    for _, f in ipairs(list) do
+        for _, h in ipairs(list) do
+            if f ~= h and relation_registry.community_relation(f, h) <= ENEMIES then
+                wars[h] = wars[h] or {}
+                wars[h][f] = true
+            end
+        end
+    end
+    local n = 0
+    for name, holder in pairs(c and c.smarts or {}) do
+        local enemies = wars[holder]
+        local se = enemies and SIMBOARD.smarts_by_names[name]
+        if se then
+            local lv = fotz_census.level_of(se)
+            for f in pairs(enemies) do
+                -- a front is a level both sides are on; deep in enemy country, with none of its
+                -- own there, a faction's squads choose as the game would
+                local mine = fighters(c, f, lv)
+                local m = mine > 0 and multiplier(mine, fighters(c, holder, lv)) or 1
+                if m ~= 1 then
+                    STEER[f] = STEER[f] or {}
+                    STEER[f][se.id] = m
+                    n = n + 1
+                end
+            end
+        end
+    end
+    return n
+end
+
+-- fronts --------------------------------------------------------------------------------------
+
+UPPER = 2 / 3             -- a side with this share of a front's fighters has the upper hand
+FRONT_MIN = 10            -- fewer fighters than this on both sides together isn't news
+NEWS_PER_DAY = 2
+FRONTS = {}               -- the last census's fronts, the biggest first
+COUNTED = false           -- whether a census has given the fronts since the load
+local upper = nil         -- "a|b|level" -> the side with the upper hand (false: close), last census
+
+-- every front in a census: a level two enemy factions both have fighters on, each pair once
+function fronts(c)
+    local list = fotz_census.FACTIONS
+    local out = {}
+    for i, a in ipairs(list) do
+        for j = i + 1, #list do
+            local b = list[j]
+            if relation_registry.community_relation(a, b) <= ENEMIES
+                or relation_registry.community_relation(b, a) <= ENEMIES then
+                local la = c.factions and c.factions[a] and c.factions[a].levels or {}
+                for lv, at in pairs(la) do
+                    local fa, fb = at.fighters or 0, fighters(c, b, lv)
+                    if fa > 0 and fb > 0 then
+                        out[#out + 1] = { a = a, b = b, level = lv, fa = fa, fb = fb }
+                    end
+                end
+            end
+        end
+    end
+    table.sort(out, function(x, y)
+        if x.fa + x.fb ~= y.fa + y.fb then
+            return x.fa + x.fb > y.fa + y.fb
+        end
+        return x.a .. x.b .. x.level < y.a .. y.b .. y.level
+    end)
+    return out
+end
+
+-- the side with the upper hand on a front, or nil while it's close
+function leader(f)
+    local total = f.fa + f.fb
+    if f.fa >= UPPER * total then
+        return f.a, f.b
+    elseif f.fb >= UPPER * total then
+        return f.b, f.a
+    end
+end
+
+-- the fronts from a census; news where a side has newly taken the upper hand (none from the
+-- first census after a load, which only sets where things stand), the biggest fronts first
+local function take_fronts(c)
+    FRONTS = fronts(c)
+    COUNTED = true
+    local now, said = {}, 0
+    for _, f in ipairs(FRONTS) do
+        local key = f.a .. "|" .. f.b .. "|" .. f.level
+        local win, lose = leader(f)
+        now[key] = win or false
+        -- only a front that was there last time: fronts come and go as squads move
+        local was = upper and upper[key]
+        if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN and said < NEWS_PER_DAY then
+            local P = fotz_politics
+            if P and P.say and P.say("all", "st_fotz_news_front_upper", win,
+                { b = P.faction_name(lose), place = game.translate_string(f.level) }) then
+                said = said + 1
+            end
+        end
+    end
+    upper = now
+end
+
+-- the wrapper: two table reads for a squad the steer has nothing for
+local function steered(target, squad, ...)
+    local prior = orig(target, squad, ...)
+    if not on then
+        return prior
+    end
+    STATS.calls = STATS.calls + 1
+    local t = STEER[squad.player_id]
+    local m = t and t[target.id]
+    if m == nil or left_alone(squad) then
+        return prior
+    end
+    if m > 1 then
+        STATS.raised = STATS.raised + 1
+    else
+        STATS.lowered = STATS.lowered + 1
+    end
+    return prior * m
+end
+
+function install()
+    if not (simulation_objects and type(simulation_objects.evaluate_prior) == "function") then
+        log("! no simulation_objects.evaluate_prior: no steer")
+        return false
+    end
+    -- still in place, or still inside a wrapper another mod put over ours: wrapping again would
+    -- weigh twice
+    if wrapper then
+        return true
+    end
+    orig = simulation_objects.evaluate_prior
+    wrapper = steered
+    simulation_objects.evaluate_prior = wrapper
+    return true
+end
+
+-- the original put back, but only if ours is still the one in place: a mod that wrapped over it
+-- keeps its wrapper, and ours passes everything through while the steer is off
+function uninstall()
+    if wrapper and simulation_objects and simulation_objects.evaluate_prior == wrapper then
+        simulation_objects.evaluate_prior = orig
+        wrapper = nil
+        return true
+    end
+    return false
+end
+
+-- on unless MCM turns it off, or Warfare mode runs the squads (not _G.WARFARE, which the base
+-- warfare.script sets true as the game starts whatever the mode)
+function enabled()
+    if ui_mcm and ui_mcm.get("fotz/territory") == false then
+        return false
+    end
+    return not (IsWarfare and IsWarfare())
+end
+
+-- the switch: in place and steering, or out of the way
+function refresh()
+    on = enabled()
+    if on then
+        on = install()
+    else
+        uninstall()
+    end
+    return on
+end
+
+local function on_census(c)
+    refresh()
+    local ok, err = pcall(take_fronts, c)
+    if not ok then
+        log("! fronts: %s", tostring(err))
+    end
+    -- the fronts on the PDA map, from the same census
+    if fotz_map and fotz_map.update then
+        ok, err = pcall(fotz_map.update, c)
+        if not ok then
+            log("! the map: %s", tostring(err))
+        end
+    end
+    local n = rebuild(c)
+    local factions = 0
+    for _ in pairs(STEER) do
+        factions = factions + 1
+    end
+    log("%s: %s fronts; %s smarts weighed for %s factions (%s); since the last census %s scores, %s raised, %s lowered",
+        tostring(c and c.date), #FRONTS, n, factions, on and "steering" or "off", STATS.calls, STATS.raised, STATS.lowered)
+    STATS.calls, STATS.raised, STATS.lowered = 0, 0, 0
+end
+
+function on_game_start()
+    load_config()
+    refresh()
+    fotz_census.listen(on_census)
+    RegisterScriptCallback("on_option_change", refresh)
+end

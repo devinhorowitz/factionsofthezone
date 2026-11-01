@@ -1,0 +1,19 @@
+; Factions of the Zone: the faction you lead, fotz_own, and its player twin, actor_fotz_own.
+;
+; Team numbers must stay under 64 (the engine's max_team_count); stalker factions use 0-31 and
+; another faction mod uses 32 and 33. Each row holds one value: the engine reads every missing
+; column as 0, and fotz_faction.script sets the real relations when you found your faction.
+;
+; No save ever holds these: before each save the mod returns every member, and you, to the faction
+; they came from. Removing the mod is safe.
+
+![game_relations]
+>communities = fotz_own, 36, actor_fotz_own, 37
+
+![communities_relations]
+fotz_own = 0
+actor_fotz_own = 0
+
+![communities_sympathy]
+fotz_own = 0.0
+actor_fotz_own = 0.0

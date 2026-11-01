@@ -22,8 +22,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 GD = os.path.join(ROOT, "gamedata")
 NAME = "Factions of the Zone"
-VERSION = "0.1.0"
-TESTS = ["test_census.py", "test_text.py"]
+VERSION = "0.4.0"
+TESTS = ["test_census.py", "test_text.py", "test_politics.py", "test_faction.py", "test_tab.py", "test_territory.py", "test_map.py", "test_patch.py"]
 
 META = """[General]
 modid=0
@@ -54,6 +54,10 @@ def check():
             p = os.path.join(root, f)
             if f.endswith(".xml"):
                 text = open(p, "rb").read().decode("cp1251")
+                # the engine's UI parser gives up on a file with anything before its root element,
+                # and every widget it hands back is then nil: a fatal at the first use
+                if os.path.basename(root) == "ui" and not text.lstrip().startswith("<w>"):
+                    bad.append("%s: something before the root element <w>" % p)
                 try:
                     ET.fromstring(text.split("?>", 1)[1] if text.startswith("<?xml") else text)
                     n_xml += 1
@@ -102,6 +106,12 @@ def install(mods):
 
 
 def main():
+    # an install counts as a launch (the game lock), so a flag this doesn't know installs nothing
+    args = sys.argv[1:]
+    known = args in ([], ["--check"]) or (len(args) == 2 and args[0] == "--mods")
+    if not known:
+        print(__doc__)
+        return 2
     bad = check()
     if bad:
         print("NOT installed:")

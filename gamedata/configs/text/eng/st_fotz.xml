@@ -3,6 +3,39 @@
 	<string id="ui_mcm_menu_fotz">
 		<text>Factions of the Zone</text>
 	</string>
+	<string id="ui_mcm_fotz_politics">
+		<text>Factions change their relations</text>
+	</string>
+	<string id="ui_mcm_fotz_politics_desc">
+		<text>Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it.</text>
+	</string>
+	<string id="ui_mcm_fotz_territory">
+		<text>Squads lean toward winning fronts</text>
+	</string>
+	<string id="ui_mcm_fotz_territory_desc">
+		<text>A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself.</text>
+	</string>
+	<string id="ui_mcm_fotz_map">
+		<text>Fronts on the PDA map</text>
+	</string>
+	<string id="ui_mcm_fotz_map_desc">
+		<text>A marker on each level where hostile factions fight, 10 fighters or more and at least 3 a side: red when the fight is your side's, amber otherwise, with the two sides named under it. Hover it to see who is winning and which factions there are hostile to you. The markers are never saved.</text>
+	</string>
+	<string id="ui_mcm_fotz_news">
+		<text>News on the PDA</text>
+	</string>
+	<string id="ui_mcm_fotz_news_desc">
+		<text>Factions announce wars, truces and alliances on the PDA. With Everything, they also report the ground they take.</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_off">
+		<text>Off</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_events">
+		<text>Wars, truces and alliances</text>
+	</string>
+	<string id="ui_mcm_lst_fotz_news_all">
+		<text>Everything</text>
+	</string>
 	<string id="ui_mcm_fotz_census">
 		<text>Keep a census</text>
 	</string>
@@ -10,6 +43,386 @@
 		<text>Once a game day, and once after each load, count every faction's squads and the ground they hold, and write it to fotz_census.jsonl in the game's appdata folder. It changes nothing in the game.</text>
 	</string>
 	<string id="ui_mcm_fotz_about">
-		<text>This version only takes a census: it watches the factions and changes nothing yet.</text>
+		<text>Relations change only between factions the base game lets change, within lore limits. Factions of the Zone steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations.</text>
+	</string>
+	<string id="st_fotz_news_war_kills">
+		<text>Too many of ours have died at the hands of {b}. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_war_ground">
+		<text>{b} took {place} from us. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_war_front">
+		<text>We have fought {b} at {place} for days. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_truce">
+		<text>The line with {b} has gone quiet. We hold our fire, for now.</text>
+	</string>
+	<string id="st_fotz_news_alliance">
+		<text>We stand with {b} against {enemy}. Treat them as friends.</text>
+	</string>
+	<string id="st_fotz_news_alliance_plain">
+		<text>We are allies of {b} now. Treat them as friends.</text>
+	</string>
+	<string id="st_fotz_news_alliance_over">
+		<text>Our alliance with {b} is over.</text>
+	</string>
+	<string id="st_fotz_news_ground">
+		<text>We took {place} from {b}.</text>
+	</string>
+	<string id="st_fotz_news_front_upper">
+		<text>In {place} the upper hand over {b} is ours now.</text>
+	</string>
+	<string id="fotz_own">
+		<text>Your faction</text>
+	</string>
+	<string id="actor_fotz_own">
+		<text>Your faction</text>
+	</string>
+	<string id="st_fotz_default_name">
+		<text>Your faction</text>
+	</string>
+	<string id="ui_mcm_fotz_faction">
+		<text>Lead a faction of your own</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_desc">
+		<text>Found a faction of your own. It starts with the friends and enemies of the faction you came from, and your companions join it. Turned off, it is disbanded and everyone goes back to their old faction. No save ever holds it, so removing the mod later needs nothing.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name">
+		<text>Its name</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_name_desc">
+		<text>What your faction is called in the news.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join">
+		<text>You join it</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_join_desc">
+		<text>Off unless you choose it: you lead your faction from your old one and keep its traders, tasks and dialogs. On, you stand in your faction yourself and its friends and enemies are yours, but G.A.M.M.A. doesn't know your faction: the disguise system thinks you're in disguise, and traders, tasks, dialogs and fast travel tied to your old faction treat you as an outsider.</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions">
+		<text>Companions join it</text>
+	</string>
+	<string id="ui_mcm_fotz_faction_companions_desc">
+		<text>Your companions join your faction, and leave it when they leave you.</text>
+	</string>
+	<string id="st_fotz_news_founded">
+		<text>{name} is founded. Its friends and enemies start as your old faction's.</text>
+	</string>
+	<string id="st_fotz_news_joined">
+		<text>{who} has joined {name}.</text>
+	</string>
+	<string id="st_fotz_news_left">
+		<text>{who} has left {name}.</text>
+	</string>
+	<string id="st_fotz_news_disbanded">
+		<text>{name} is disbanded. Everyone goes back to their old faction.</text>
+	</string>
+	<string id="st_fotz_faction_stalker">
+		<text>Loners</text>
+	</string>
+	<string id="st_fotz_faction_bandit">
+		<text>Bandits</text>
+	</string>
+	<string id="st_fotz_faction_csky">
+		<text>Clear Sky</text>
+	</string>
+	<string id="st_fotz_faction_dolg">
+		<text>Duty</text>
+	</string>
+	<string id="st_fotz_faction_freedom">
+		<text>Freedom</text>
+	</string>
+	<string id="st_fotz_faction_killer">
+		<text>Mercenaries</text>
+	</string>
+	<string id="st_fotz_faction_army">
+		<text>Military</text>
+	</string>
+	<string id="st_fotz_faction_ecolog">
+		<text>Ecologists</text>
+	</string>
+	<string id="st_fotz_faction_monolith">
+		<text>Monolith</text>
+	</string>
+	<string id="st_fotz_faction_renegade">
+		<text>Renegades</text>
+	</string>
+	<string id="st_fotz_faction_greh">
+		<text>Sin</text>
+	</string>
+	<string id="st_fotz_faction_isg">
+		<text>UNISG</text>
+	</string>
+	<!-- the Factions tab (fotz_tab, ui_fotz_tab) and its MCM key -->
+	<string id="st_fotz_tab">
+		<text>Factions</text>
+	</string>
+	<string id="st_fotz_tab_yours">
+		<text>Your faction · founded {date} · came from: {from} · members: {n}</text>
+	</string>
+	<string id="st_fotz_tab_no_faction">
+		<text>You lead no faction of your own. Found one in MCM, under Factions of the Zone.</text>
+	</string>
+	<string id="st_fotz_tab_in_charge">
+		<text>Relations change as the factions fight.</text>
+	</string>
+	<string id="st_fotz_tab_down_off">
+		<text>Relations stand still: turned off in MCM.</text>
+	</string>
+	<string id="st_fotz_tab_down_dynamic">
+		<text>Relations are left to the base game's dynamic relations.</text>
+	</string>
+	<string id="st_fotz_tab_down_warfare">
+		<text>Relations are left to Warfare mode.</text>
+	</string>
+	<string id="st_fotz_tab_down_dfrc">
+		<text>Relations are left to Dynamic Faction Relations Customizer.</text>
+	</string>
+	<string id="st_fotz_tab_down_fluid">
+		<text>Relations are left to Fluid Relations.</text>
+	</string>
+	<string id="st_fotz_tab_standing">
+		<text>How the factions stand with you</text>
+	</string>
+	<string id="st_fotz_tab_band_war">
+		<text>At war</text>
+	</string>
+	<string id="st_fotz_tab_band_enemies">
+		<text>Hostile</text>
+	</string>
+	<string id="st_fotz_tab_band_truce">
+		<text>Truce</text>
+	</string>
+	<string id="st_fotz_tab_band_neutral">
+		<text>Neutral</text>
+	</string>
+	<string id="st_fotz_tab_band_friends">
+		<text>Friendly</text>
+	</string>
+	<string id="st_fotz_tab_band_alliance">
+		<text>Allied</text>
+	</string>
+	<string id="st_fotz_tab_trend_up">
+		<text>getting better</text>
+	</string>
+	<string id="st_fotz_tab_trend_down">
+		<text>getting worse</text>
+	</string>
+	<string id="st_fotz_tab_war_since">
+		<text>at war since {date}</text>
+	</string>
+	<string id="st_fotz_tab_truce_until">
+		<text>truce until {date}</text>
+	</string>
+	<string id="st_fotz_tab_alliance_since">
+		<text>allied since {date}</text>
+	</string>
+	<string id="st_fotz_tab_fixed_enemies">
+		<text>Permanent enemies: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_neutral">
+		<text>Always neutral: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_friends">
+		<text>Permanent friends: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_log">
+		<text>War log</text>
+	</string>
+	<string id="st_fotz_tab_log_war">
+		<text>{a} and {b} went to war</text>
+	</string>
+	<string id="st_fotz_tab_log_war_over">
+		<text>{a} and {b} stopped fighting</text>
+	</string>
+	<string id="st_fotz_tab_log_truce">
+		<text>{a} and {b} made a truce</text>
+	</string>
+	<string id="st_fotz_tab_log_truce_over">
+		<text>The truce between {a} and {b} ended</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance">
+		<text>{a} and {b} became allies</text>
+	</string>
+	<string id="st_fotz_tab_log_alliance_over">
+		<text>{a} and {b} are allies no more</text>
+	</string>
+	<string id="st_fotz_tab_log_restored">
+		<text>Relations reset to their start</text>
+	</string>
+	<string id="st_fotz_tab_log_none">
+		<text>Nothing yet: wars, truces and alliances show here.</text>
+	</string>
+	<string id="st_fotz_tab_fighting">
+		<text>Where the fighting is</text>
+	</string>
+	<string id="st_fotz_tab_fighting_wait">
+		<text>Not counted yet: the census comes shortly after a load.</text>
+	</string>
+	<string id="st_fotz_tab_fighting_none">
+		<text>No fighting: no two hostile factions share a level.</text>
+	</string>
+	<string id="st_fotz_fight_control">
+		<text>{place}: {w} in control, {l} nearly gone</text>
+	</string>
+	<string id="st_fotz_fight_winning">
+		<text>{place}: {w} winning, {l} losing</text>
+	</string>
+	<string id="st_fotz_fight_ahead">
+		<text>{place}: {w} ahead, {l} holding on</text>
+	</string>
+	<string id="st_fotz_fight_even">
+		<text>{place}: {w} and {l} evenly matched</text>
+	</string>
+	<string id="st_fotz_your">
+		<text>your {name}</text>
+	</string>
+	<string id="st_fotz_and">
+		<text>and</text>
+	</string>
+	<string id="st_fotz_more">
+		<text>{n} more</text>
+	</string>
+	<string id="st_fotz_map_label">
+		<text>{a} vs {b}</text>
+	</string>
+	<string id="st_fotz_map_hostile">
+		<text>Hostile to you here: {list}</text>
+	</string>
+	<string id="st_fotz_tab_members">
+		<text>Members</text>
+	</string>
+	<string id="st_fotz_tab_member_near">
+		<text>{name} ({from}), with you</text>
+	</string>
+	<string id="st_fotz_tab_member_away">
+		<text>{name} ({from}), away</text>
+	</string>
+	<string id="st_fotz_tab_member_dead">
+		<text>{name} ({from}), dead</text>
+	</string>
+	<string id="st_fotz_tab_members_none">
+		<text>No members yet: your companions join.</text>
+	</string>
+	<string id="st_fotz_tab_members_more">
+		<text>and {n} more</text>
+	</string>
+	<string id="st_fotz_tab_restore">
+		<text>Reset relations</text>
+	</string>
+	<string id="st_fotz_tab_restore_confirm">
+		<text>Click again to reset</text>
+	</string>
+	<string id="st_fotz_tab_restored">
+		<text>Relations reset</text>
+	</string>
+	<string id="st_fotz_tab_restore_note">
+		<text>Reset puts every relation back where it was before the fighting moved it, and ends all wars, truces and alliances.</text>
+	</string>
+	<string id="st_fotz_tab_restore_warn">
+		<text>A second click puts every relation back and ends all wars, truces and alliances. It can't be undone.</text>
+	</string>
+	<string id="st_fotz_tab_numbers">
+		<text>Relation numbers</text>
+	</string>
+	<string id="st_fotz_tab_leader_dead">
+		<text>{name} (dead)</text>
+	</string>
+	<string id="st_fotz_tab_back">
+		<text>Back</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab">
+		<text>Its own PDA tab</text>
+	</string>
+	<string id="ui_mcm_fotz_pda_tab_desc">
+		<text>The Factions page opens your way: from its tile in Mod App Creator's launcher, from a PDA tab of its own (check this), or in a window of its own with the key below. Without Mod App Creator it always has its tab.</text>
+	</string>
+	<string id="st_fotz_tab_sep">
+		<text>·</text>
+	</string>
+	<string id="st_fotz_tab_credit">
+		<text>Factions of the Zone {v} · Windwalker</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key">
+		<text>Factions page key</text>
+	</string>
+	<string id="ui_mcm_fotz_tab_key_desc">
+		<text>Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page also opens from its own PDA tab, or from its tile in Mod App Creator's launcher.</text>
+	</string>
+	<!-- the base game's news names a faction by these; your faction's members are stalkers -->
+	<string id="st_dyn_news_comm_fotz_own_1">
+		<text>a stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_2">
+		<text>a fighter</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_3">
+		<text>some stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_4">
+		<text>some fighter</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_5">
+		<text>stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_6">
+		<text>Stalker</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_7">
+		<text>stalkers</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_8">
+		<text>fighters</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_9">
+		<text>some stalkers</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_10">
+		<text>fighters</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_11">
+		<text>Guys, we need some help!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_12">
+		<text>Help us!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_13">
+		<text>Help us out!</text>
+	</string>
+	<string id="st_dyn_news_comm_fotz_own_14">
+		<text>Brothers, help!</text>
+	</string>
+	<string id="st_fotz_patch">
+		<text>Patch (Your faction)</text>
+	</string>
+	<string id="st_fotz_patch_descr">
+		<text>Your own faction's insignia, sewn to order in Cordon. Your members wear it, and a fallen one leaves it behind.</text>
+	</string>
+	<string id="st_fotz_patch_ask">
+		<text>Can you get patches sewn for my faction?</text>
+	</string>
+	<string id="st_fotz_patch_offer">
+		<text>Patches with your own emblem? There's a woman in the village who sews. {price} RU apiece. How many?</text>
+	</string>
+	<string id="st_fotz_patch_buy_one">
+		<text>One, for {total} RU.</text>
+	</string>
+	<string id="st_fotz_patch_buy">
+		<text>{n}, for {total} RU.</text>
+	</string>
+	<string id="st_fotz_patch_done">
+		<text>There, fresh off the needle. Anything else?</text>
+	</string>
+	<string id="st_fotz_patch_not_now">
+		<text>That's all for now.</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches">
+		<text>Remove your faction's patches</text>
+	</string>
+	<string id="ui_mcm_fotz_remove_patches_desc">
+		<text>Takes every patch of your faction out of the game, wherever it is: on you, in stashes, on the fallen. Do this before removing Factions of the Zone: a save that holds one can't load without it.</text>
+	</string>
+	<string id="st_fotz_patch_removed">
+		<text>Your faction's patches taken out of the game: {n}.</text>
 	</string>
 </string_table>
