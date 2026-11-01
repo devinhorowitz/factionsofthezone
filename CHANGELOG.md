@@ -18,26 +18,33 @@
   fights and kill credit saw their old faction until they next came near).
 - A day whose census log can't be written still counts (politics, territory and the map).
 - A truce lasts its five days in every time zone.
-- The map markers' hover list puts each front on its own line.
+- The map markers' hover text breaks onto its own lines.
 - Switching from Mod App Creator's tile to the page's own tab while the page is open takes the PDA
   to the new tab; before, it reopened on the map under the page's caption.
-- The Factions page: a long leader name gives way before the ground and fighters numbers; the
-  fronts read "Not counted yet" for the seconds before the first census after a load;
-  "Relations restored" shows only when they were.
+- The Factions page: where the fighting is reads "Not counted yet" for the seconds before the
+  first census after a load; "Relations restored" shows only when they were.
 - A save holding a faction, loaded where the faction isn't declared (a broken install), keeps it
   aside instead of crashing.
 
 ### 0.4.0: territory
 
-- **Fronts on the Factions page.** The Zone's fronts from the last census: each level two
-  factions at war both have fighters on, with each side's count, the bigger side first. Your own
-  faction's fronts come first, then the biggest, five in all. To make room, the war log shows its
-  last six events and your members list five.
-- **Fronts on the PDA map.** A marker on each level with a front of 10 fighters or more (and 3
-  a side: a big force and a few stragglers isn't a front), at a smart where its biggest front
-  meets: red where your side fights, amber elsewhere, with the biggest front named under it.
-  Hover it for the level's fronts. The markers are never saved, so removing the mod leaves
-  nothing in a save, and MCM can turn them off.
+- **The Factions page in words.** No numbers: the PDA's own Relations tab has them, and a
+  button on the page goes there. A row for each faction whose relation with your side can change
+  says how it stands with you (at war, hostile, in a truce, neutral, friendly, allied), what holds
+  it and since when, and whether it's getting better or worse. The factions that never change
+  share a line for each standing ("Permanent enemies: Monolith, Renegades, Sin and UNISG.").
+- **Where the fighting is, on the Factions page.** A sentence a level from the last census:
+  "Agroprom: Mercenaries winning, your Duty losing". It's about your side where it fights, else
+  the level's strongest side, against every enemy it faces there; the verdict (in control,
+  winning, ahead, evenly matched) is from its share of the fighters against its biggest enemy. A
+  fight needs 10 fighters or more and 3 a side (a big force and a few stragglers isn't one). Your
+  side's levels come first, then the biggest, four in all. The war log shows its last four
+  events and your members list five.
+- **The fighting on the PDA map.** A marker on each level with a fight, at a smart where its two
+  main sides meet: red where it's your side's, amber elsewhere, with the two sides named under it
+  ("Bandits vs Ecologists"). Hover it for the page's sentence and the factions there hostile to
+  you. The markers are never saved, so removing the mod leaves nothing in a save, and MCM can
+  turn them off.
 - **News from the fronts.** When a side takes the upper hand on a front (two thirds of the
   fighters there), it says so in its own voice, with PDA news set to everything. Only a front that
   was there at the last census and has at least 10 fighters on it counts, and at most two such

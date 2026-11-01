@@ -33,9 +33,10 @@ relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mod
 go next, ground held by an enemy weighs more where its faction outnumbers that enemy on the level,
 and less where it's outnumbered. It's only a bias in the game's own choice: nothing is ordered or
 spawned, and story squads, squads on a scripted errand, your companions and Homestead's garrisons
-are left alone. The Factions page lists the fronts with each side's fighters, a side that takes
-the upper hand on one says so on your PDA, and the PDA map marks each level's fronts: red where
-your side fights, amber elsewhere, with the fronts listed when you hover the marker.
+are left alone. The Factions page says where the fighting is and who is winning, a level a
+line; a side that takes the upper hand on a front says so on your PDA; and the PDA map marks each
+fight with its two sides' names, red where it's your side's, amber elsewhere. Hover a marker for
+who is winning there and which factions there are hostile to you.
 
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster. No character in a save is ever in your faction: just before
@@ -55,9 +56,12 @@ in `fotz_census.jsonl` in the game's appdata folder (`<Anomaly>\appdata`).
 python _tools/census_report.py "<Anomaly>\appdata\fotz_census.jsonl"
 ```
 
-**The Factions page.** Your side (the faction you lead, or your own), each faction's standing with
-it, how far and which way it has moved, its leader, the ground and fighters the census found, the
-war log, the fronts, your members, and a button that puts every relation back where it started.
+**The Factions page.** Your side (the faction you lead, or your own) and, in words, how each
+faction whose relation with it can change stands with you, what holds it there (a war, a truce, an
+alliance), whether it's getting better or worse, and its leader; the factions that never change,
+a line for each standing ("Permanent enemies: ..."); the war log; where the fighting is; your
+members; a button to the PDA's own Relations tab, which has the numbers; and a button that puts
+every relation back where it started.
 
 Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
 key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
@@ -66,7 +70,7 @@ works either way.
 
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
 yourself, off unless you choose it, and whether companions join), politics on or off, the
-territory steer, the fronts on the PDA map, PDA news (off, wars and truces, or everything), the census log, the Factions
+territory steer, the fighting on the PDA map, PDA news (off, wars and truces, or everything), the census log, the Factions
 page key, and, with Mod App Creator, the page's own PDA tab.
 
 ## For other mods
@@ -100,9 +104,9 @@ own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it.
   your faction through founding, saves (byte-level packets), loads, disguise and disbanding,
   `test_tab.py` checks what the Factions page shows on top of the real politics engine and the
   ways in, `test_territory.py` runs the territory steer against a stand-in for the game's target
-  scoring, `test_map.py` runs the fronts on the PDA map against a stand-in for its spots, and
+  scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots, and
   `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (221 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (235 so far); every
   one must fail.
 - `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
   `build.py --check` passes and only once CHANGELOG.md has a section for the version.

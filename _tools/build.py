@@ -106,6 +106,12 @@ def install(mods):
 
 
 def main():
+    # an install counts as a launch (the game lock), so a flag this doesn't know installs nothing
+    args = sys.argv[1:]
+    known = args in ([], ["--check"]) or (len(args) == 2 and args[0] == "--mods")
+    if not known:
+        print(__doc__)
+        return 2
     bad = check()
     if bad:
         print("NOT installed:")

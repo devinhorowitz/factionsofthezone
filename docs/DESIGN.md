@@ -274,8 +274,8 @@ its player twin `actor_fotz_own`, team 37).
   many scores it raised and lowered since the last.
 - **The fronts** (`fotz_territory.FRONTS`, from each census): every level two census factions at
   war (enmity either way) both have fighters on, each pair once, the biggest first. A side with
-  two thirds of the fighters on one has the upper hand (`leader`). The Factions page lists them;
-  their own faction's fronts first.
+  two thirds of the fighters on one has the upper hand (`leader`). The Factions page and the
+  map say from them where the fighting is (`fotz_tab.fights`).
 - **Upper-hand news:** where a side has newly taken the upper hand on a front (from the other
   side, or from close) since the last census, it says so, at news level "all": only a front that
   was there at the last census (fronts come and go as squads move), with at least `FRONT_MIN`
@@ -284,13 +284,15 @@ its player twin `actor_fotz_own`, team 37).
   there is logged and the steer is rebuilt anyway.
 - **The fronts on the PDA map** (`fotz_map.script`, spot types from `modxml_fotz_map.script`,
   label layout `ui_fotz_map.xml`; MCM "Fronts on the PDA map", on by default):
-  - One marker per level whose fronts include one of `FRONT_MIN` fighters or more and `SIDE_MIN`
-    (3) a side: seen in game, many fronts were a big force and one or two stragglers ("Monolith
-    37, Freedom 1"), which the map leaves out (the page shows every front as it is). The game's
-    attack-base ring (`ui_pda2_attack_base2`), red where your side fights on the level, amber
-    elsewhere. Hovering it lists the level's fronts (four, then "and N more"); a label under it
-    names the biggest ("Duty 30 : 12 Mercenaries").
-  - It sits at a smart where the level's biggest front meets: one either side holds that the
+  - One marker per level the page names a fight on (`fotz_tab.fights`: fronts of `FRONT_MIN`
+    fighters or more and `SIDE_MIN` (3) a side; seen in game, many fronts were a big force and
+    one or two stragglers, "Monolith 37, Freedom 1", which aren't fights). The game's attack-base
+    ring (`ui_pda2_attack_base2`), red where the fight is your side's, amber elsewhere. A label
+    under it names the fight's two main sides ("Bandits vs Ecologists"); hovering it gives the
+    page's sentence for the level and the factions there hostile to you (-1000 or below), the most
+    fighters first, four and then "and N more". No counts: the 2026-11-01 play test found them
+    hard to read, a list of numbers to compare.
+  - It sits at a smart where the fight's two main sides meet: one either side holds that the
     census found contested, else one the side behind holds (where an attack would go), else one
     the side ahead holds. A level where neither holds a smart gets no marker.
   - Rebuilt at each census, from territory's `on_census`. A marker that hasn't changed is left
@@ -334,19 +336,28 @@ its player twin `actor_fotz_own`, team 37).
     it the page has its tab; with it, the tile, unless MCM's "Its own PDA tab" (there only with
     MAC) asks for the tab (`fotz_tab.wants_tab`, `sync`, as Arsenal and Seasons do). The key works
     either way.
-  What it shows, all built as text by `fotz_tab.page()`:
+  What it shows, all built as text by `fotz_tab.page()`, in words. The numbers are the PDA's
+  own Relations tab's, and a button on the page goes there (`fotz_tab.to_relations`; from the
+  PDA only: flat, there's no PDA to switch). The 2026-11-01 play test found the page's numbers
+  repeated that tab, and the unchangeable ones crowded the list.
   - your side: the faction you lead (its name, founding, old faction, members) or, without one,
     your own, with that faction's icon; and whether politics is in charge or why not;
-  - each faction's standing with your side, in words and colors (an event in force first, then
-    the game's lines at -1000 and 1000), how far politics has moved it ("never changes" for fixed
-    pairs and factions), which way it moved on politics' last day (the game's small arrows, green
-    up, red down; politics keeps each pair's last move in `S.trend`), its leader (the game's
-    `faction_profile.ltx` through `faction_expansions`, marked dead once he is or is gone; a
-    trader's server object has no `alive()` and counts as living), the ground and fighters of the
-    last census, and the war, truce or alliance holding it, with its date;
-  - the war log, newest first, six lines; the fronts (territory's, from the last census), five
-    lines, your faction's first, each with both sides' fighters, the bigger first; your members,
-    five and "and N more", near, away or dead;
+  - a row for each faction whose relation with your side can change: its standing in words and
+    colors (an event in force first, then the game's lines at -1000 and 1000), the war, truce or
+    alliance holding it, with its date, which way politics' last day moved it (the game's small
+    arrows, green up, red down, and "getting better" or "getting worse"; politics keeps each
+    pair's last move in `S.trend`), and its leader (the game's `faction_profile.ltx` through
+    `faction_expansions`, marked dead once he is or is gone; a trader's server object has no
+    `alive()` and counts as living);
+  - the factions that never change with your side (fixed pairs and factions), a line for each
+    standing, permanent enemies first: "Permanent enemies: Monolith, Renegades, Sin and UNISG.";
+  - the war log, newest first, four lines; where the fighting is (`fotz_tab.fights`, from
+    territory's fronts at the last census), four lines: a sentence a level, about your side when
+    it fights there, else the level's strongest side, against every enemy it faces there, with a
+    verdict from the share the stronger has of it and its biggest enemy (in control from 0.8,
+    winning from two thirds, ahead from 0.55, else evenly matched, which names only those two),
+    your side named as yours ("your Duty"), your side's levels first, then the most fighters;
+    your members, five and "and N more", near, away or dead;
   - "Restore relations" (`fotz_politics.restore`), after a second click: every pair back where it
     started, events ended, a line in the log.
   Still to come: Clear Sky's per-side strength as a bar. The vanilla Relations tab stays.

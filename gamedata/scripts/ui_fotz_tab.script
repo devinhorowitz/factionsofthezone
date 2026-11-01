@@ -2,9 +2,11 @@
 Factions of the Zone: the Factions page, as the PDA's tab and as a window of its own.
 
 It lays out fotz_tab.page() and nothing else: the header (your side's icon, name, a line on it,
-and whether politics is in charge), each faction's standing on the left, the war log, the fronts
-and your members on the right, and "Restore relations", which asks for a second click. The layout is
-ui_fotz_tab.xml; rows and lines are its templates, moved down by a step.
+and whether politics is in charge); on the left how each faction that can change stands with you,
+then the factions that never change; on the right the war log, where the fighting is and your
+members; at the foot the PDA's Relations tab (from the PDA only: flat, there's no PDA to switch)
+and "Restore relations", which asks for a second click. The layout is ui_fotz_tab.xml; rows and
+lines are its templates, moved down by a step.
 
 The art is the game's own (the faction icons, ui_mm_faction_<faction>; the button and the 2D
 PDA's frame), so an HD pack that replaces them shows through, and nothing here can be missing.
@@ -17,8 +19,9 @@ local SINGLETON = nil
 local FLAT = nil
 -- the PDA's pages sit this far into the screen (pda_16.xml), and so does the flat window
 local PDA_X, PDA_Y = 112, 34
-local ROWS, ROW_Y, ROW_STEP = 12, 210, 34
-local LOG_Y, FRONT_Y, MEMBER_Y, LINE_STEP = 210, 348, 468, 18
+local ROWS, ROW_Y, ROW_STEP = 8, 210, 34
+local FIXED_LINES, FIXED_STEP = 3, 36
+local LOG_Y, FIGHT_Y, FIGHT_STEP, MEMBER_Y, LINE_STEP = 210, 316, 36, 492, 18
 local CONFIRM_MS = 4000
 
 local function say(msg)
@@ -118,7 +121,7 @@ function FactionsTab:InitControls()
     self.status = xml:InitTextWnd("status", self)
     put(xml:InitTextWnd("standing_heading", self), fotz_tab.text("st_fotz_tab_standing"))
     put(xml:InitTextWnd("log_heading", self), fotz_tab.text("st_fotz_tab_log"))
-    put(xml:InitTextWnd("fronts_heading", self), fotz_tab.text("st_fotz_tab_fronts"))
+    put(xml:InitTextWnd("fights_heading", self), fotz_tab.text("st_fotz_tab_fighting"))
     self.members_heading = xml:InitTextWnd("members_heading", self)
     put(self.members_heading, fotz_tab.text("st_fotz_tab_members"))
 
@@ -141,15 +144,20 @@ function FactionsTab:InitControls()
         end
         self.rows[i] = r
     end
+    -- placed under the last row shown, in Fill
+    self.fixed = {}
+    for i = 1, FIXED_LINES do
+        self.fixed[i] = xml:InitTextWnd("fixed_line", self)
+    end
     self.log = {}
     for i = 1, fotz_tab.LOG_LINES do
         local w = xml:InitTextWnd("log_line", self)
         self.log[i] = moved(w, w and w:GetWndPos().x or 0, LOG_Y + (i - 1) * LINE_STEP)
     end
-    self.fronts = {}
-    for i = 1, fotz_tab.FRONT_LINES do
-        local w = xml:InitTextWnd("front_line", self)
-        self.fronts[i] = moved(w, w and w:GetWndPos().x or 0, FRONT_Y + (i - 1) * LINE_STEP)
+    self.fights = {}
+    for i = 1, fotz_tab.FIGHT_LINES do
+        local w = xml:InitTextWnd("fight_line", self)
+        self.fights[i] = moved(w, w and w:GetWndPos().x or 0, FIGHT_Y + (i - 1) * FIGHT_STEP)
     end
     self.members = {}
     for i = 1, fotz_tab.MEMBER_LINES + 1 do
@@ -157,6 +165,13 @@ function FactionsTab:InitControls()
         self.members[i] = moved(w, w and w:GetWndPos().x or 0, MEMBER_Y + (i - 1) * LINE_STEP)
     end
 
+    self.numbers = xml:Init3tButton("numbers", self)
+    self.numbers_label = xml:InitTextWnd("numbers_label", self)
+    put(self.numbers_label, fotz_tab.text("st_fotz_tab_numbers"))
+    if self.numbers then
+        self:Register(self.numbers, "numbers")
+        self:AddCallback("numbers", ui_events.BUTTON_CLICKED, self.OnNumbers, self)
+    end
     self.restore = xml:Init3tButton("restore", self)
     -- the label after its plate, so it draws on top
     self.restore_label = xml:InitTextWnd("restore_label", self)
@@ -172,6 +187,14 @@ function FactionsTab:InitControls()
         self:AddCallback("back", ui_events.BUTTON_CLICKED, self.OnBack, self)
     end
     self.credit = xml:InitTextWnd("credit", self)
+end
+
+-- the numbers: the PDA's own Relations tab
+function FactionsTab:OnNumbers()
+    local ok, err = pcall(fotz_tab.to_relations)
+    if not ok then
+        say("! the Relations tab: " .. tostring(err))
+    end
 end
 
 -- Back to MAC's launcher, the way MAC's own key goes
@@ -205,7 +228,7 @@ function FactionsTab:Fill()
                 r.standing:SetTextColor(GetARGB(255, row.color[1], row.color[2], row.color[3]))
             end
             put(r.change, row.change)
-            put(r.detail, fotz_tab.detail_fit(row, 50))
+            put(r.detail, fit(row.detail, 34))
             put(r.event, row.event)
             local t = TREND[row.trend]
             show(r.trend, t ~= nil)
@@ -215,11 +238,22 @@ function FactionsTab:Fill()
             end
         end
     end
+    -- the factions that never change, under the last row shown
+    local y = ROW_Y + #p.rows * ROW_STEP + 6
+    for i = 1, FIXED_LINES do
+        local w = self.fixed and self.fixed[i]
+        if w then
+            moved(w, w:GetWndPos().x, y + (i - 1) * FIXED_STEP)
+            put(w, p.fixed[i])
+            show(w, p.fixed[i] ~= nil)
+        end
+    end
     for i, w in ipairs(self.log or {}) do
         put(w, fit(p.log[i], 60))
     end
-    for i, w in ipairs(self.fronts or {}) do
-        put(w, fit(p.fronts[i], 56))
+    -- two lines' worth at most
+    for i, w in ipairs(self.fights or {}) do
+        put(w, fit(p.fights[i], 104))
     end
     show(self.members_heading, p.members ~= nil)
     for i, w in ipairs(self.members or {}) do
@@ -230,6 +264,8 @@ function FactionsTab:Fill()
     local back = not self.flat and fotz_tab.back_to_launcher()
     show(self.back, back)
     show(self.back_label, back)
+    show(self.numbers, not self.flat)
+    show(self.numbers_label, not self.flat)
     self.confirm_until = nil
     put(self.restore_label, fotz_tab.text("st_fotz_tab_restore"))
 end

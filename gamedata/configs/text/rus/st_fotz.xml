@@ -19,7 +19,7 @@
 		<text>Фронты на карте КПК</text>
 	</string>
 	<string id="ui_mcm_fotz_map_desc">
-		<text>Метка на каждой локации, где на фронте 10 бойцов или больше и не меньше 3 с каждой стороны: красная там, где воюет ваша сторона, янтарная в остальных местах, а под ней самый крупный фронт. Наведите на метку, чтобы увидеть фронты локации. Метки никогда не сохраняются.</text>
+		<text>Метка на каждой локации, где воюют враждующие группировки, 10 бойцов или больше и не меньше 3 с каждой стороны: красная, если это бой вашей стороны, янтарная в остальных случаях, а под ней названы обе стороны. Наведите на метку, чтобы увидеть, кто побеждает и какие группировки там враждебны вам. Метки никогда не сохраняются.</text>
 	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>Новости в КПК</text>
@@ -181,7 +181,7 @@
 		<text>Отношениями управляет Fluid Relations.</text>
 	</string>
 	<string id="st_fotz_tab_standing">
-		<text>Отношения</text>
+		<text>Как к вам относятся группировки</text>
 	</string>
 	<string id="st_fotz_tab_band_war">
 		<text>Война</text>
@@ -201,8 +201,11 @@
 	<string id="st_fotz_tab_band_alliance">
 		<text>Союз</text>
 	</string>
-	<string id="st_fotz_tab_strength">
-		<text>позиций: {held} · бойцов: {fighters}</text>
+	<string id="st_fotz_tab_trend_up">
+		<text>налаживаются</text>
+	</string>
+	<string id="st_fotz_tab_trend_down">
+		<text>портятся</text>
 	</string>
 	<string id="st_fotz_tab_war_since">
 		<text>война с {date}</text>
@@ -213,32 +216,35 @@
 	<string id="st_fotz_tab_alliance_since">
 		<text>союз с {date}</text>
 	</string>
-	<string id="st_fotz_tab_fixed">
-		<text>не меняется</text>
+	<string id="st_fotz_tab_fixed_enemies">
+		<text>Враги навсегда: {list}.</text>
 	</string>
-	<string id="st_fotz_tab_change">
-		<text>{n} от начала</text>
+	<string id="st_fotz_tab_fixed_neutral">
+		<text>Нейтралитет навсегда: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_friends">
+		<text>Друзья навсегда: {list}.</text>
 	</string>
 	<string id="st_fotz_tab_log">
 		<text>Хроника</text>
 	</string>
 	<string id="st_fotz_tab_log_war">
-		<text>Война: «{a}» и «{b}»</text>
+		<text>«{a}» и «{b}»: война</text>
 	</string>
 	<string id="st_fotz_tab_log_war_over">
-		<text>Конец войны: «{a}» и «{b}»</text>
+		<text>«{a}» и «{b}»: война окончена</text>
 	</string>
 	<string id="st_fotz_tab_log_truce">
-		<text>Перемирие: «{a}» и «{b}»</text>
+		<text>«{a}» и «{b}»: перемирие</text>
 	</string>
 	<string id="st_fotz_tab_log_truce_over">
-		<text>Конец перемирия: «{a}» и «{b}»</text>
+		<text>«{a}» и «{b}»: перемирие окончено</text>
 	</string>
 	<string id="st_fotz_tab_log_alliance">
-		<text>Союз: «{a}» и «{b}»</text>
+		<text>«{a}» и «{b}»: союз</text>
 	</string>
 	<string id="st_fotz_tab_log_alliance_over">
-		<text>Конец союза: «{a}» и «{b}»</text>
+		<text>«{a}» и «{b}»: союз распался</text>
 	</string>
 	<string id="st_fotz_tab_log_restored">
 		<text>Отношения возвращены к началу</text>
@@ -246,29 +252,41 @@
 	<string id="st_fotz_tab_log_none">
 		<text>Пока ничего: здесь будут войны, перемирия и союзы.</text>
 	</string>
-	<string id="st_fotz_tab_fronts">
-		<text>Фронты: бойцов у каждой стороны</text>
+	<string id="st_fotz_tab_fighting">
+		<text>Где идут бои</text>
 	</string>
-	<string id="st_fotz_tab_front">
-		<text>{place}: «{a}» {na}, «{b}» {nb}</text>
-	</string>
-	<string id="st_fotz_tab_fronts_wait">
+	<string id="st_fotz_tab_fighting_wait">
 		<text>Ещё не подсчитано: перепись вскоре после загрузки.</text>
 	</string>
-	<string id="st_fotz_tab_fronts_none">
-		<text>Нет: ни на одной локации нет двух воюющих группировок.</text>
+	<string id="st_fotz_tab_fighting_none">
+		<text>Боёв нет: ни на одной локации нет двух враждующих группировок.</text>
 	</string>
-	<string id="st_fotz_map_hint">
-		<text>Фронты в районе «{place}»:</text>
+	<string id="st_fotz_fight_control">
+		<text>{place}: {w} — полный контроль, {l} — на грани</text>
 	</string>
-	<string id="st_fotz_map_line">
-		<text>«{a}» {na}, «{b}» {nb}</text>
+	<string id="st_fotz_fight_winning">
+		<text>{place}: {w} — перевес, {l} — отступление</text>
 	</string>
-	<string id="st_fotz_map_more">
-		<text>и ещё {n}</text>
+	<string id="st_fotz_fight_ahead">
+		<text>{place}: {w} — небольшой перевес, {l} — оборона</text>
+	</string>
+	<string id="st_fotz_fight_even">
+		<text>{place}: {w} и {l} — на равных</text>
+	</string>
+	<string id="st_fotz_your">
+		<text>{name} (вы)</text>
+	</string>
+	<string id="st_fotz_and">
+		<text>и</text>
+	</string>
+	<string id="st_fotz_more">
+		<text>ещё {n}</text>
 	</string>
 	<string id="st_fotz_map_label">
-		<text>{a} {na} : {nb} {b}</text>
+		<text>{a} — {b}</text>
+	</string>
+	<string id="st_fotz_map_hostile">
+		<text>Здесь враждебны вам: {list}</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Бойцы</text>
@@ -296,6 +314,9 @@
 	</string>
 	<string id="st_fotz_tab_restored">
 		<text>Отношения возвращены</text>
+	</string>
+	<string id="st_fotz_tab_numbers">
+		<text>Цифры отношений</text>
 	</string>
 	<string id="st_fotz_tab_leader_dead">
 		<text>{name} (погиб)</text>

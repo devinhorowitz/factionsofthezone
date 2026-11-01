@@ -1,11 +1,13 @@
 --[[
-Factions of the Zone: the fronts on the PDA map.
+Factions of the Zone: the fighting on the PDA map.
 
-One marker on each level whose fronts (fotz_territory.FRONTS, from the last census) include one of
-FRONT_MIN fighters or more, at least SIDE_MIN a side (a few stragglers by a big force aren't a front): the game's attack-base ring, red where your side fights there, amber
-elsewhere. It sits at a smart where the level's biggest front meets: one either side holds with
-hostile squads at it, else one the side behind holds (where an attack would go), else one the side
-ahead holds. Hovering it lists the level's fronts; a short label under it names the biggest. The
+One marker on each level where there's a fight (fotz_tab.fights, from territory's fronts at the
+last census: FRONT_MIN fighters or more, at least SIDE_MIN a side, so a few stragglers by a big force
+aren't one): the game's attack-base ring, red when the fight is your side's, amber otherwise. Its
+label names the two sides of the fight, the stronger first ("Bandits vs Ecologists"); hovering it
+gives the page's sentence for the level (who is winning, in words) and the factions there that are
+hostile to you. It sits at a smart where the fight meets: one either side holds with hostile squads
+at it, else one the side behind holds (where an attack would go), else one the side ahead holds. The
 markers are rebuilt at each census (fotz_territory calls update).
 
 Nothing here is saved: the markers are added with map_add_object_spot, not its _ser twin, and their
@@ -19,8 +21,7 @@ a marker another mod may have removed is ever touched.
 
 SPOT = "fotz_front"             -- amber, modxml_fotz_map
 SPOT_YOURS = "fotz_front_yours" -- red
-LINES = 4                       -- fronts listed in a marker's hint
-SIDE_MIN = 3                    -- fighters a side, for a front on the map
+HOSTILE_NAMES = 4               -- names the hint's hostile line gives before "and N more"
 COLORS = { [SPOT] = { 238, 196, 112 }, [SPOT_YOURS] = { 230, 80, 70 } }
 
 local placed = {}               -- smart id -> the marker put there
@@ -58,7 +59,7 @@ local function ground(c)
     return held, contested
 end
 
--- where a front's marker goes: a smart's name, or nil
+-- where a fight's marker goes: a smart's name, or nil
 function anchor(f, held, contested)
     local a, b = held[f.a] or {}, held[f.b] or {}
     local best
@@ -79,56 +80,51 @@ function anchor(f, held, contested)
     return behind[1] or ahead[1]
 end
 
--- a front's two sides, the bigger first
-local function sides(f)
-    if f.fb > f.fa then
-        return f.b, f.a, f.fb, f.fa
-    end
-    return f.a, f.b, f.fa, f.fb
-end
-
--- the markers a census calls for, in the order of the fronts (the biggest first): each with its
--- smart id, spot type, hint and label
-function markers(fronts, c, side)
-    local T, P, text = fotz_territory, fotz_politics, fotz_tab.text
-    local levels, order = {}, {}
-    for _, f in ipairs(fronts or {}) do
-        if f.fa + f.fb >= T.FRONT_MIN and math.min(f.fa, f.fb) >= SIDE_MIN then
-            local list = levels[f.level]
-            if not list then
-                list = {}
-                levels[f.level] = list
-                order[#order + 1] = f.level
-            end
-            list[#list + 1] = f
+-- the factions with fighters on a level that are hostile to your side, the most fighters first
+function hostile_here(c, lv, side)
+    local list = {}
+    for _, f in ipairs(fotz_census.FACTIONS or {}) do
+        local e = f ~= side and c.factions and c.factions[f]
+        local at = e and e.levels and e.levels[lv]
+        if at and (at.fighters or 0) > 0 and relation_registry.community_relation(side, f) <= -1000 then
+            list[#list + 1] = { f = f, n = at.fighters }
         end
     end
-    local held, contested = ground(c or {})
+    table.sort(list, function(x, y)
+        if x.n ~= y.n then
+            return x.n > y.n
+        end
+        return x.f < y.f
+    end)
+    local names = {}
+    for i, it in ipairs(list) do
+        names[i] = fotz_politics.faction_name(it.f)
+    end
+    return names
+end
+
+-- the markers a census calls for, a level each, in the order of its fights (your side's first,
+-- then the biggest): each with its smart id, spot type, hint and label
+function markers(fronts, c, side)
+    local P, text = fotz_politics, fotz_tab.text
+    c = c or {}
+    local held, contested = ground(c)
     local out = {}
-    for _, lv in ipairs(order) do
-        local list = levels[lv]
-        local name = anchor(list[1], held[lv] or {}, contested)
+    for _, fx in ipairs(fotz_tab.fights(fronts, side)) do
+        local a, b = fx.w[1], fx.l[1]
+        local name = anchor({ a = a, b = b, fa = fx.n[a], fb = fx.n[b] }, held[fx.level] or {}, contested)
         local se = name and SIMBOARD.smarts_by_names[name]
         if se then
-            local lines, yours = { text("st_fotz_map_hint", { place = game.translate_string(lv) }) }, false
-            for i, f in ipairs(list) do
-                yours = yours or f.a == side or f.b == side
-                if i <= LINES then
-                    local a, b, na, nb = sides(f)
-                    lines[#lines + 1] = text("st_fotz_map_line",
-                        { a = P.faction_name(a), b = P.faction_name(b), na = na, nb = nb })
-                end
+            local lines = { fotz_tab.fight_line(fx, side) }
+            local foes = hostile_here(c, fx.level, side)
+            if #foes > 0 then
+                lines[#lines + 1] = text("st_fotz_map_hostile", { list = fotz_tab.names_list(foes, HOSTILE_NAMES) })
             end
-            if #list > LINES then
-                lines[#lines + 1] = text("st_fotz_map_more", { n = #list - LINES })
-            end
-            local a, b, na, nb = sides(list[1])
-            out[#out + 1] = { id = se.id, smart = name, level = lv, spot = yours and SPOT_YOURS or SPOT,
+            out[#out + 1] = { id = se.id, smart = name, level = fx.level, spot = fx.yours and SPOT_YOURS or SPOT,
                               -- the UI breaks a line at the two characters \n, as the game's own
                               -- map hints write it, not at a newline character
                               hint = table.concat(lines, "\\n"),
-                              label = text("st_fotz_map_label", { a = P.faction_name(a), b = P.faction_name(b),
-                                                                  na = na, nb = nb }) }
+                              label = text("st_fotz_map_label", { a = P.faction_name(a), b = P.faction_name(b) }) }
         end
     end
     return out

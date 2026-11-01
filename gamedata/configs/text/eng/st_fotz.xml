@@ -19,7 +19,7 @@
 		<text>Fronts on the PDA map</text>
 	</string>
 	<string id="ui_mcm_fotz_map_desc">
-		<text>A marker on each level with a front of 10 fighters or more and at least 3 a side, red where your side fights and amber elsewhere, with the biggest front named under it. Hover it for the level's fronts. The markers are never saved.</text>
+		<text>A marker on each level where hostile factions fight, 10 fighters or more and at least 3 a side: red when the fight is your side's, amber otherwise, with the two sides named under it. Hover it to see who is winning and which factions there are hostile to you. The markers are never saved.</text>
 	</string>
 	<string id="ui_mcm_fotz_news">
 		<text>News on the PDA</text>
@@ -182,13 +182,13 @@
 		<text>Relations are left to Fluid Relations.</text>
 	</string>
 	<string id="st_fotz_tab_standing">
-		<text>Standing</text>
+		<text>How the factions stand with you</text>
 	</string>
 	<string id="st_fotz_tab_band_war">
 		<text>At war</text>
 	</string>
 	<string id="st_fotz_tab_band_enemies">
-		<text>Enemies</text>
+		<text>Hostile</text>
 	</string>
 	<string id="st_fotz_tab_band_truce">
 		<text>Truce</text>
@@ -197,13 +197,16 @@
 		<text>Neutral</text>
 	</string>
 	<string id="st_fotz_tab_band_friends">
-		<text>Friends</text>
+		<text>Friendly</text>
 	</string>
 	<string id="st_fotz_tab_band_alliance">
 		<text>Allied</text>
 	</string>
-	<string id="st_fotz_tab_strength">
-		<text>holds {held} · {fighters} fighters</text>
+	<string id="st_fotz_tab_trend_up">
+		<text>getting better</text>
+	</string>
+	<string id="st_fotz_tab_trend_down">
+		<text>getting worse</text>
 	</string>
 	<string id="st_fotz_tab_war_since">
 		<text>at war since {date}</text>
@@ -214,32 +217,35 @@
 	<string id="st_fotz_tab_alliance_since">
 		<text>allied since {date}</text>
 	</string>
-	<string id="st_fotz_tab_fixed">
-		<text>never changes</text>
+	<string id="st_fotz_tab_fixed_enemies">
+		<text>Permanent enemies: {list}.</text>
 	</string>
-	<string id="st_fotz_tab_change">
-		<text>{n} since the start</text>
+	<string id="st_fotz_tab_fixed_neutral">
+		<text>Always neutral: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_fixed_friends">
+		<text>Permanent friends: {list}.</text>
 	</string>
 	<string id="st_fotz_tab_log">
 		<text>War log</text>
 	</string>
 	<string id="st_fotz_tab_log_war">
-		<text>War: {a} and {b}</text>
+		<text>{a} and {b} went to war</text>
 	</string>
 	<string id="st_fotz_tab_log_war_over">
-		<text>War ends: {a} and {b}</text>
+		<text>{a} and {b} stopped fighting</text>
 	</string>
 	<string id="st_fotz_tab_log_truce">
-		<text>Truce: {a} and {b}</text>
+		<text>{a} and {b} made a truce</text>
 	</string>
 	<string id="st_fotz_tab_log_truce_over">
-		<text>Truce over: {a} and {b}</text>
+		<text>The truce between {a} and {b} ended</text>
 	</string>
 	<string id="st_fotz_tab_log_alliance">
-		<text>Alliance: {a} and {b}</text>
+		<text>{a} and {b} became allies</text>
 	</string>
 	<string id="st_fotz_tab_log_alliance_over">
-		<text>Alliance over: {a} and {b}</text>
+		<text>{a} and {b} are allies no more</text>
 	</string>
 	<string id="st_fotz_tab_log_restored">
 		<text>Relations restored to their start</text>
@@ -247,29 +253,41 @@
 	<string id="st_fotz_tab_log_none">
 		<text>Nothing yet: wars, truces and alliances show here.</text>
 	</string>
-	<string id="st_fotz_tab_fronts">
-		<text>Fronts: fighters on each side</text>
+	<string id="st_fotz_tab_fighting">
+		<text>Where the fighting is</text>
 	</string>
-	<string id="st_fotz_tab_front">
-		<text>{place}: {a} {na}, {b} {nb}</text>
-	</string>
-	<string id="st_fotz_tab_fronts_wait">
+	<string id="st_fotz_tab_fighting_wait">
 		<text>Not counted yet: the census comes shortly after a load.</text>
 	</string>
-	<string id="st_fotz_tab_fronts_none">
-		<text>None: no two factions at war share a level.</text>
+	<string id="st_fotz_tab_fighting_none">
+		<text>No fighting: no two hostile factions share a level.</text>
 	</string>
-	<string id="st_fotz_map_hint">
-		<text>Fronts in {place}:</text>
+	<string id="st_fotz_fight_control">
+		<text>{place}: {w} in control, {l} nearly gone</text>
 	</string>
-	<string id="st_fotz_map_line">
-		<text>{a} {na}, {b} {nb}</text>
+	<string id="st_fotz_fight_winning">
+		<text>{place}: {w} winning, {l} losing</text>
 	</string>
-	<string id="st_fotz_map_more">
-		<text>and {n} more</text>
+	<string id="st_fotz_fight_ahead">
+		<text>{place}: {w} ahead, {l} holding on</text>
+	</string>
+	<string id="st_fotz_fight_even">
+		<text>{place}: {w} and {l} evenly matched</text>
+	</string>
+	<string id="st_fotz_your">
+		<text>your {name}</text>
+	</string>
+	<string id="st_fotz_and">
+		<text>and</text>
+	</string>
+	<string id="st_fotz_more">
+		<text>{n} more</text>
 	</string>
 	<string id="st_fotz_map_label">
-		<text>{a} {na} : {nb} {b}</text>
+		<text>{a} vs {b}</text>
+	</string>
+	<string id="st_fotz_map_hostile">
+		<text>Hostile to you here: {list}</text>
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Members</text>
@@ -297,6 +315,9 @@
 	</string>
 	<string id="st_fotz_tab_restored">
 		<text>Relations restored</text>
+	</string>
+	<string id="st_fotz_tab_numbers">
+		<text>Relation numbers</text>
 	</string>
 	<string id="st_fotz_tab_leader_dead">
 		<text>{name} (dead)</text>
