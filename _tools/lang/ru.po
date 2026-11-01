@@ -627,8 +627,8 @@ msgid "{name}, sworn for life ({camp})"
 msgstr "{name}, присяга навсегда ({camp})"
 
 msgctxt "st_fotz_tab_member_between"
-msgid "{name}, sworn for life, between camps"
-msgstr "{name}, присяга навсегда, между лагерями"
+msgid "{name}, sworn for life, waiting for a camp"
+msgstr "{name}, присяга навсегда, ждёт лагерь"
 
 msgctxt "st_fotz_tab_resident"
 msgid "{name}, resident, loyalty {loyalty} ({camp})"
@@ -637,3 +637,23 @@ msgstr "{name}, житель, преданность {loyalty} ({camp})"
 msgctxt "st_fotz_loyalty_camp"
 msgid "your camp"
 msgstr "ваш лагерь"
+
+msgctxt "st_fotz_news_heading"
+msgid "{who} is heading for a new camp: {camp}."
+msgstr "{who} идёт в новый лагерь: {camp}."
+
+msgctxt "st_fotz_news_arrived"
+msgid "{who} has moved into {camp}."
+msgstr "{who} обосновывается в новом лагере: {camp}."
+
+msgctxt "st_fotz_news_fell_left"
+msgid "{who} has left {name} after {camp} fell, and rejoined {to}."
+msgstr "{who} покидает группировку «{name}» после падения лагеря ({camp}) и возвращается в «{to}»."
+
+msgctxt "st_fotz_tab_member_heading"
+msgid "{name}, loyalty {loyalty} (to {camp})"
+msgstr "{name}, преданность {loyalty} (в {camp})"
+
+msgctxt "st_fotz_tab_member_sworn_heading"
+msgid "{name}, sworn for life (to {camp})"
+msgstr "{name}, присяга навсегда (в {camp})"

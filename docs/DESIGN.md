@@ -468,7 +468,7 @@ credit. The points below are about 0.0.5j.
 Homestead, CtZ and Factions would all move squads; only one should steer a given squad, and a
 squad another mod pinned is never steered.
 
-## 7. Settler loyalty (0.5.0, first part)
+## 7. Settler loyalty (0.5.0)
 
 `fotz_loyalty.script`, tuned by the `[loyalty]` section of `configs/plugins/fotz_politics.ltx`.
 With Homestead only, while you lead a faction, unless MCM's "Residents can join" is off.
@@ -500,11 +500,18 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
 - **Re-created settlers** (`restore_missing_settler`, the Invincible respawn) come back under a new
   id with the same record, sometimes another section. An entry whose id is gone is linked to a
   record of the same camp with the same name, and the membership follows (`fotz_faction.relink`).
-- **A camp that falls** (its hub gone from `active_camps`): sworn members stay members, between
-  camps; other members go back to their own faction; residents are forgotten.
-- **Second part:** members who stay head to another of your camps with room (Homestead's
-  `recruit_npc_to_camp` on arrival), with a roll at their loyalty for those not sworn, and the
-  sworn wait for a camp with room.
+- **A camp that falls** (its hub gone from `active_camps`; Homestead frees its residents with a
+  squad each): residents are forgotten; sworn members stay; other members stay at a roll of their
+  loyalty out of 100. A member who stays heads for a camp of yours with room, from Homestead's own
+  `get_recruitable_camps` for our faction, with its territory and campmate checks: their squad
+  gets as its scripted target, which the territory steer leaves alone, the smart nearest that
+  camp's flag with no enemy of ours there (a mutant squad, or a faction at war with ours) up to
+  300 m away, else the nearest. In run 20 a camp at a Renegade post had both members heading
+  there shot on arrival. Online and within 25 m of the flag or 50 m of that smart, they move
+  in through `recruit_npc_to_camp`, with no roll and no fee, and the squad is let go. A camp
+  that turns them away, or falls meanwhile, is crossed off for the next. With none left, a
+  sworn member waits in the Zone, still a member, and looks again each day; the others go back
+  to their own faction.
 
 ## The save
 
@@ -629,8 +636,8 @@ From the Homestead thread on Discord (June to October 2026), asks that land on F
    relations moved by the politics engine like any other. The Factions tab comes with it: your
    faction's roster, every faction's relations, the war log, your standing.
 4. **0.4.0, territory.** The light steer, fronts in the news and on the map.
-5. **0.5.0, settler loyalty** (section 7; first part built): loyalty, join requests, sworn members;
-   then members moving to another of your camps when theirs falls.
+5. **0.5.0, settler loyalty** (section 7, built): loyalty, join requests, sworn members, and
+   members moving to another of your camps when theirs falls.
 6. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
 7. **1.0.0.**
 

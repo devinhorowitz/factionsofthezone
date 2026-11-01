@@ -321,10 +321,16 @@ local function member_lines(P, F)
         end
         local s = settlers[it.id]
         if s and not it.m.dead then
-            -- only the sworn are between camps: the others went back to their own when it fell
-            local form = not s.sworn and "st_fotz_tab_member_settler"
-                or (s.camp and "st_fotz_tab_member_sworn" or "st_fotz_tab_member_between")
-            out[#out + 1] = text(form, { name = it.m.name, camp = s.camp or "", loyalty = s.v })
+            -- on their way to a camp, living in one, or (only the sworn) waiting for one with room
+            local form
+            if s.heading then
+                form = s.sworn and "st_fotz_tab_member_sworn_heading" or "st_fotz_tab_member_heading"
+            elseif s.sworn then
+                form = s.camp and "st_fotz_tab_member_sworn" or "st_fotz_tab_member_between"
+            else
+                form = "st_fotz_tab_member_settler"
+            end
+            out[#out + 1] = text(form, { name = it.m.name, camp = s.heading or s.camp or "", loyalty = s.v })
         else
             local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")
             out[#out + 1] = text("st_fotz_tab_member_" .. state, { name = it.m.name,

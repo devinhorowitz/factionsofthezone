@@ -43,12 +43,11 @@ art is a placeholder, there to be replaced: your own image makes the faction you
 camps grow loyal to it: a home, work, a comfortable camp, promotions, raids beaten off. At 70 one
 asks to join, and you accept or decline on the Factions page. Let a member's loyalty fall under 30
 and they go back to their own faction. A Master who holds full loyalty for two weeks as a member
-is sworn for life, and lifts everyone in their camp.
+is sworn for life, and lifts everyone in their camp. When a camp falls, its sworn members and the
+loyal among the rest head for another of your camps.
 
 ### Coming next
 
-- **Settlers between camps** (0.5.0, second part): when a camp falls, members loyal enough head to
-  another of your camps, and the sworn wait for one with room.
 - **Invasions:** factions pushing into each other's ground, not only leaning toward it.
 - **Other custom factions**, beside your own.
 
@@ -86,7 +85,7 @@ patch, the page and Wearable Devices' bracer, with a tool that makes the files f
 
 ![Asking Sidorovich](media/sidorovich.jpg)
 
-**Settlers who earn their place** (0.5.0, first part; with Homestead). While you lead a faction,
+**Settlers who earn their place** (0.5.0, with Homestead). While you lead a faction,
 each resident of your Homestead camps has a loyalty to it, 0 to 100. It starts at 30, plus 10 if
 they came from the faction you did and 10 if they were your companion, and 15 more or less if
 their faction is a friend or an enemy of yours. Once a game day it rises with living and working
@@ -98,8 +97,12 @@ the residents nearest to asking show too. Decline costs them 10 and three days b
 again, and MCM can accept every request as it's made. A member fights for your faction, and
 under 30 goes back to their own and stays on as a resident. A Master at 100 after 14 days as a
 member is sworn for life: they never leave over loyalty, and each adds 1 a day to everyone else in
-their camp, up to 3. When a camp falls, its sworn members stay in your faction and the others go
-back to their own. Every number is in the `[loyalty]` section of `fotz_politics.ltx`.
+their camp, up to 3. When a camp falls, its sworn members stay in your faction, and each of the
+others stays at a roll of their loyalty: at 70, seven times in ten. Those who stay head for
+another of your camps with room, by way of a smart near it that no enemy of yours holds, and move
+in when they get there; a camp that turns them away sends them on to the next. With nowhere to
+go, the sworn wait in the Zone and look again each day, and the others go back to their own
+faction. Every number is in the `[loyalty]` section of `fotz_politics.ltx`.
 
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
 fighting, and a common enemy push each pair's relation. Once a game day the push moves it, within a
@@ -197,7 +200,7 @@ faction's patches out of the game (above).
   `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
   actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
   camps, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (305 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (327 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

@@ -363,7 +363,7 @@ function FactionsTab:Fill()
         local y = top + (i - 1) * LINE_STEP
         moved(w, w and w:GetWndPos().x or 0, y)
         local room = y + LINE_STEP <= FOOT_Y - 4
-        put(w, (p.members and room) and fit(p.members[i], 55) or "")
+        put(w, (p.members and room) and fit(p.members[i], 58) or "")
     end
     put(self.credit, p.credit)
     -- Back while the page came from MAC's tile; flat, or from its own tab, the way out is the PDA's.
