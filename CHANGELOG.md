@@ -1,16 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.5.0 — 2026-11-01
 
-- **Settlers who earn their place** (with Homestead). While you lead a
-  faction, the residents of your camps grow loyal to it, 0 to 100, with a home, work, a
-  comfortable camp, promotions and raids beaten off, and less with campmates lost and your wars
-  against their faction. At 70 one asks to join, and you accept or decline on the Factions page,
-  or MCM's "Accept join requests" takes every one. A member under 30 goes back to their own
-  faction. A Master who keeps full loyalty for two weeks as a member is sworn for life and lifts
-  their whole camp. When a camp falls, its sworn members and, at a roll of their loyalty, the
-  others head for another of your camps with room, by way of a smart near it that no enemy of
-  yours holds, and move in when they get there.
+Install it over 0.4.1; saves carry on as they are.
+
+- **Settlers who earn their place** (with Homestead). While you lead a faction, the residents of
+  your camps grow loyal to it, 0 to 100, with a home, work, a comfortable camp, promotions and
+  raids beaten off, and less with campmates lost and your wars against their faction. At 70 one
+  asks to join, and you accept or decline on the Factions page, or MCM's "Accept join requests"
+  takes every one. A member under 30 goes back to their own faction. A Master who keeps full
+  loyalty for two weeks as a member is sworn for life and lifts their whole camp. When a camp
+  falls, its sworn members and, at a roll of their loyalty, the others head for another of your
+  camps with room, by way of a smart near it that no enemy of yours holds, and move in when they
+  get there.
 - **Outposts that give up** (with Homestead). Beat a rival outpost of a faction at war with you
   and its last fighters may come over to your faction and head for one of your camps, or
   surrender: a ceasefire of one to three game days before they're hostile again. The greener

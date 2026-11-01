@@ -12,7 +12,7 @@ the factions fight over the Zone around your story, not instead of it.
 
 ## Status
 
-0.4.1 is the latest release, and work goes on. The plan is in [docs/DESIGN.md](docs/DESIGN.md).
+0.5.0 is the latest release, and work goes on. The plan is in [docs/DESIGN.md](docs/DESIGN.md).
 
 ## How it plays
 

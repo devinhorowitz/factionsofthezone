@@ -18,7 +18,7 @@ ui_fotz_tab.script only lays it out. fights() is the map's too (fotz_map). Every
 id.
 --]]
 
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 TAB_CAPTION = "st_fotz_tab"
 KEY_PATH = "fotz/tab_key"
 LOG_LINES = 4
