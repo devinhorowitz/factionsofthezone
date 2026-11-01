@@ -9,8 +9,11 @@ by reinforcements, forgotten when you leave; the roll at the share of the top or
 one always, never before a loss, once a fight; the survivors' average rank; defection (each joins,
 leaves the garrison for a squad of their own and sets out at the defector's loyalty; one with no
 trip leaves again) and its fallbacks to surrender (no faction, loyalty off, no room); surrender (a
-ceasefire to a time from the draw, each one's attitude toward you and your companions, both ways,
-brought to 0, a pair not at war left alone, the old goodwill kept once); the ceasefire held, over
+ceasefire to a time from the draw, each one toward you and your companions, both ways, at the
+game's own neutral (personal goodwill and the community terms together 0, rank and reputation left;
+run 21b's numbers too), the same again changing nothing, a pair not at war left alone, the old
+goodwill kept once, and put back with the community terms force_set_goodwill takes off, looking you
+up as db.actor, live and offline); the ceasefire held, over
 at its time, broken by your hit and no one else's, gone with its outpost; the old goodwill back
 offline; the save keeping the old goodwill and the next update applying the ceasefire again; a
 save of another version set aside; switched off, every ceasefire ends; the strings exist.
@@ -65,15 +68,18 @@ MUTANTS = {
     "no_reassign": ("            sb.reassign_freed_settler_to_smart(id)\n", ""),
     "stray_kept": ('                fotz_faction.leave(id, "no camp to go to")\n', ""),
     "defector_loyalty_ignored": ("L.take_in(id, name, cfg.defector_loyalty)", "L.take_in(id, name, 30)"),
-    "hold_fire_any": ("    if g <= ENEMIES then\n        local old = a:goodwill(b)", "    if true then\n        local old = a:goodwill(b)"),
+    "hold_fire_any": ("    if a:general_goodwill(b) <= ENEMIES then\n        local old = a:goodwill(b)",
+                      "    if true then\n        local old = a:goodwill(b)"),
+    "neutral_by_attitude": ("        a:force_set_goodwill(0, b)", "        a:force_set_goodwill(old - a:general_goodwill(b), b)"),
+    "restore_raw": ("    v = v + relation_registry.community_goodwill(comm, b_id) + relation_registry.community_relation(comm, b_comm)\n", ""),
+    "actor_by_lookup": ("    local b = b_id == 0 and db.actor or level.object_by_id(b_id)", "    local b = level.object_by_id(b_id)"),
     "no_companions": ("            for _, c in ipairs(comps) do", "            for _, c in ipairs({}) do"),
     "one_way": ("local them, us = hold_fire(npc, c), hold_fire(c, npc)", "local them, us = hold_fire(npc, c), nil"),
     "pairs_always": ("                if p[1] ~= nil or p[2] ~= nil then\n                    t.pairs[k] = p\n                end",
                      "                t.pairs[k] = p"),
     "restore_unchanged": ("        if olds[1] ~= nil then\n            set_back(a, b, olds[1])\n        end",
                           "        set_back(a, b, olds[1] or 0)"),
-    "old_overwritten": ("            if old == false then\n                t.npcs[id] = npc:goodwill(actor)\n            end",
-                        "            t.npcs[id] = npc:goodwill(actor)"),
+    "old_overwritten": ("            if old == false and was then", "            if was then"),
     "truce_endless": ("        elseif now >= t.ends then", "        elseif false then"),
     "hours_fixed": ("math.random(cfg.truce_days_min * 24, cfg.truce_days_max * 24)", "cfg.truce_days_min * 24"),
     "gone_kept": ('        if type(camp) ~= "table" or camp.status or camp.faction ~= t.faction then',
@@ -84,7 +90,7 @@ MUTANTS = {
     "not_again": ("    again = true\n    m_data.fotz_outposts = T", "    m_data.fotz_outposts = T"),
     "load_any_version": ('    if type(d) == "table" and d.v == SAVE_VERSION then', '    if type(d) == "table" then'),
     "off_keeps_truces": ("    elseif next(T.truces) then", "    elseif false then"),
-    "offline_not_restored": ("    if se and se.force_set_goodwill and se:alive() then", "    if false then"),
+    "offline_not_restored": ("    elseif a_se and a_se.force_set_goodwill and a_se:alive() then", "    elseif false then"),
 }
 
 WORLD = r"""
@@ -143,10 +149,15 @@ math.random = function(a, b)
     return RANDOM
 end
 
--- relations: a faction toward a community; goodwill: personal ("a>b", by ids) and the rest of the
--- attitude (community terms, rank, reputation), which general_goodwill adds
-REL, GW, ATT, DEAD = {}, {}, {}, {}
-relation_registry = { community_relation = function(a, b) return REL[a .. ">" .. b] or 0 end }
+-- the attitude, as the engine sums it: personal goodwill ("a>b", by ids), the faction's goodwill
+-- toward the character ("comm>id"), the community relation ("comm>comm") and rank and reputation
+-- ("a>b"); force_set_goodwill takes the two community terms off what it's given
+REL, GW, CG, RR, DEAD = {}, {}, {}, {}, {}
+relation_registry = { community_relation = function(a, b) return REL[a .. ">" .. b] or 0 end,
+                      community_goodwill = function(comm, id) return CG[comm .. ">" .. id] or 0 end }
+function terms(comm, who_id, who_comm) return (CG[comm .. ">" .. who_id] or 0) + (REL[comm .. ">" .. tostring(who_comm)] or 0) end
+function comm_of(id) return id == 0 and ACTOR_COMM or SE[id]:community() end
+function att(a, b) return (GW[a .. ">" .. b] or 0) + terms(comm_of(a), b, comm_of(b)) + (RR[a .. ">" .. b] or 0) end
 local function pos(x, y, z)
     return { x = x, y = y, z = z, distance_to = function(self, o)
         return math.sqrt((self.x - o.x) ^ 2 + (self.y - o.y) ^ 2 + (self.z - o.z) ^ 2) end }
@@ -162,25 +173,27 @@ function obj(id, comm)
         character_community = function() return comm end,
         position = function() return ME end,
         goodwill = function(self, who) return GW[id .. ">" .. who:id()] or 0 end,
-        general_goodwill = function(self, who)
-            local k = id .. ">" .. who:id()
-            return (GW[k] or 0) + (ATT[k] or 0)
+        general_goodwill = function(self, who) return att(id, who:id()) end,
+        force_set_goodwill = function(self, v, who)
+            GW[id .. ">" .. who:id()] = v - terms(comm, who:id(), who:character_community())
         end,
-        force_set_goodwill = function(self, v, who) GW[id .. ">" .. who:id()] = v end,
     }
 end
 db = { actor = obj(0, "actor_stalker") }
 db.actor.character_community = function() return ACTOR_COMM end
 LEVEL = "l01_escape"
 ONLINE = {}
-level = { name = function() return LEVEL end,
-          object_by_id = function(id) if id == 0 then return db.actor end return ONLINE[id] end }
+-- the engine may not give you by id 0: the script asks for db.actor
+level = { name = function() return LEVEL end, object_by_id = function(id) return ONLINE[id] end }
 
 -- the alife: NPCs' server objects (rank, goodwill offline) and squads
 SE, SQUADS = {}, {}
-function se_npc(id, rank)
+function se_npc(id, rank, comm)
     SE[id] = { id = id, rank = rank, alive = function() return not DEAD[id] end,
-               force_set_goodwill = function(self, v, who_id) GW[id .. ">" .. who_id] = v end }
+               community = function() return comm end,
+               force_set_goodwill = function(self, v, who_id)
+                   GW[id .. ">" .. who_id] = v - terms(comm, who_id, comm_of(who_id))
+               end }
     return SE[id]
 end
 ranks = { get_se_obj_rank_name = function(se) return se.rank end }
@@ -223,9 +236,8 @@ function garrison(key, faction, x, z, list, lvl)
     for _, r in ipairs(list) do
         local id = NEXT_ID
         NEXT_ID = NEXT_ID + 1
-        se_npc(id, r)
+        se_npc(id, r, faction)
         ONLINE[id] = obj(id, faction)
-        ATT[id .. ">0"] = REL[faction .. ">" .. ACTOR_COMM] or 0
         ids[#ids + 1] = id
     end
     local sq = NEXT_ID
@@ -240,7 +252,7 @@ function reinforce(key, rank)
     local camp = stalker_camp_builder.rival_camps[key]
     local id = NEXT_ID
     NEXT_ID = NEXT_ID + 1
-    se_npc(id, rank)
+    se_npc(id, rank, camp.faction)
     ONLINE[id] = obj(id, camp.faction)
     table.insert(SQUADS[camp.squad_id].members, id)
     return id
@@ -272,10 +284,10 @@ fotz_loyalty = {
     end,
 }
 axr_companions = { companion_squads = {} }
--- a companion following you, at war with the garrison both ways (ATT set by the test)
+-- a companion following you, a Loner (the test sets how Loners and the garrison stand)
 function companion(id)
     ONLINE[id] = obj(id, "stalker")
-    se_npc(id, "veteran")
+    se_npc(id, "veteran", "stalker")
     squad(id + 1, { id }, "stalker")
     axr_companions.companion_squads[id + 1] = true
 end
@@ -342,7 +354,7 @@ class World:
 
     def att(self, a, b):
         """a's whole attitude toward b, as general_goodwill gives it"""
-        return self.ev("(GW['%s>%s'] or 0) + (ATT['%s>%s'] or 0)" % (a, b, a, b))
+        return self.ev("att(%s, %s)" % (a, b))
 
 
 def fresh(src, *setup):
@@ -449,9 +461,7 @@ def beaten_two(w, draw, comp=False):
     w.run("RANDOM = %s" % draw)
     g = ids(w, 'garrison("A", "bandit", 100, 0, { "novice", "novice", "novice", "novice", "novice" })')
     if comp:
-        w.run("companion(900)")
-        for i in g:
-            w.run("ATT['900>%d'] = -3000; ATT['%d>900'] = -3000" % (i, i))
+        w.run("companion(900); REL['stalker>bandit'] = -3000; REL['bandit>stalker'] = -3000")
     w.look()
     w.run("kill(%d); kill(%d); kill(%d)" % (g[0], g[1], g[2]))
     w.look()
@@ -496,6 +506,14 @@ def surrender(src):
         check(w.att(i, 900) == 0 and w.att(900, i) == 0 and list(t.pairs["%d>900" % i].values()) == [0, 0],
               "%d and your companion: %s, %s" % (i, w.att(i, 900), w.att(900, i)))
     check(w.news() == ["F:bandit at O:A have surrendered. They'll hold their fire, for now."], "the news: %s" % w.news())
+    # run 21b's numbers: the Bandits at -2000 toward you and -412 of their goodwill, -2412 in all;
+    # the game's neutral is personal goodwill 2412 and an attitude of 0, and a second look keeps it
+    w2 = fresh(src, "CG['bandit>0'] = -412")
+    c, d = beaten_two(w2, 0.4)
+    for _ in range(2):
+        check(w2.ev("GW['%d>0']" % c) == 2412 and w2.att(c, 0) == 0,
+              "run 21b's: goodwill %s, attitude %s" % (w2.ev("GW['%d>0']" % c), w2.att(c, 0)))
+        w2.look()
     # an outpost under a truce has no fight
     w.run("kill(%d)" % a)
     w.look()
@@ -505,7 +523,7 @@ def surrender(src):
     w = fresh(src)
     w.run("companion(900)")
     a, b = beaten_two(w, 0.4)
-    w.run("ATT['900>%d'] = -999; ATT['900>%d'] = -1000; GW['%d>900'] = 300" % (a, b, b))
+    w.run("CG['stalker>%d'] = -999; CG['stalker>%d'] = -1000; GW['%d>900'] = 300" % (a, b, b))
     w.look()
     check(w.att(900, a) == -999 and w.att(900, b) == 0, "-999 and -1000: %s, %s" % (w.att(900, a), w.att(900, b)))
     t = w.truce()
@@ -519,9 +537,10 @@ def surrender(src):
 def truce_time(src):
     w = fresh(src)
     a, b = beaten_two(w, 0.4)
-    # something sets their goodwill back meanwhile: the next look holds them again, old kept
-    w.run("GW['%d>0'] = 0" % a)
-    check(w.att(a, 0) == -2000, "the reset didn't take")
+    # something sets their goodwill to 500 meanwhile, still at war: the next look holds them again,
+    # and the old goodwill kept is the first one, 0
+    w.run("GW['%d>0'] = 500" % a)
+    check(w.att(a, 0) == -1500, "the reset didn't take")
     w.run('NOW = "2026-11-03 06:59"')
     w.look()
     check(w.att(a, 0) == 0 and w.truce() and w.truce().npcs[a] == 0, "held again: %s, old %s" % (w.att(a, 0), w.truce().npcs[a]))

@@ -540,10 +540,14 @@ likely only a ceasefire until they turn hostile again.
   in your camp holds on and an idle one drifts back. With no one left in the garrison, Homestead
   counts the outpost lost, and a hostile faction's retaliation camp follows, as when you wipe
   it.
-- **Surrender** is a ceasefire, not a peace. Each survivor's personal goodwill toward you is set
-  so that their whole attitude (`general_goodwill`: personal, reputation, rank and both community
-  terms) comes to 0, neutral; the same between them and the companions following you, both ways.
-  It lasts 1 to 3 game days, then each goodwill goes back and they're hostile again. Hitting one
+- **Surrender** is a ceasefire, not a peace. Each survivor at war with you is set to the game's own
+  neutral, as `sim_squad_scripted:set_squad_relation("neutral")` does: `force_set_goodwill(0)`,
+  which takes the two community terms (their faction's goodwill toward you and its relation with
+  yours) off the value it's given, so their personal goodwill and those terms come to 0 and only
+  rank and reputation are left; the same between them and the companions following you, both ways.
+  Run 21b set `old - attitude` instead, which counted the community terms twice and made a fighter
+  a friend (+2412). It lasts 1 to 3 game days, then each personal goodwill goes back (given to
+  `force_set_goodwill` with the community terms added) and they're hostile again. Hitting one
   of them ends it at once for the outpost. Like Factions' other relation changes it lives only
   while you play: the truces are in `m_data.fotz_outposts` (by outpost key, each NPC's old
   goodwill, and the pairs with your companions), every save gets the old goodwill back, and the

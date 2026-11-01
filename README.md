@@ -217,7 +217,7 @@ faction's patches out of the game (above).
   `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
   actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
   camps, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (369 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (372 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

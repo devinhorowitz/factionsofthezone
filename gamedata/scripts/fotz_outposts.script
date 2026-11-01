@@ -20,9 +20,9 @@ of their own (Homestead's release_npc_from_squad_and_smart and reassign_freed_se
 and starts the trip members take between camps (fotz_loyalty.take_in). With no one left in the
 garrison, Homestead counts the outpost lost, as when you wipe it.
 
-Surrender is a ceasefire, not a peace: each survivor's personal goodwill toward you is set so that
-their whole attitude (general_goodwill: personal, reputation, rank and both community terms) comes
-to 0, neutral, and the same between them and the companions following you, both ways. It lasts
+Surrender is a ceasefire, not a peace: each survivor toward you is set to the game's own neutral
+(force_set_goodwill(0): their personal goodwill and both community terms together 0, leaving rank
+and reputation), and the same between them and the companions following you, both ways. It lasts
 cfg.truce_days_min to cfg.truce_days_max game days; then each goodwill goes back and they're
 hostile again. Hitting one ends it at once. Like Factions' other relation changes it lives only
 while you play: the truces (by outpost, each NPC's old goodwill and their pairs with your
@@ -148,28 +148,31 @@ local function companions()
     return out
 end
 
--- a's attitude toward b brought to 0 by a's personal goodwill, if a is at war with b: the old
--- personal goodwill, or nil when it was left alone
+-- a's attitude toward b brought to the game's own neutral, if a is at war with b: the personal
+-- goodwill and the two community terms together set to 0, as sim_squad_scripted's "neutral" does,
+-- leaving rank and reputation. force_set_goodwill takes the community terms off the value it's
+-- given, so 0 is all it needs, and setting it again changes nothing (run 21b's "old - attitude"
+-- counted the community terms twice and made a fighter a friend). The old personal goodwill, or nil
+-- when a isn't at war with b
 local function hold_fire(a, b)
-    local g = a:general_goodwill(b)
-    if g <= ENEMIES then
+    if a:general_goodwill(b) <= ENEMIES then
         local old = a:goodwill(b)
-        a:force_set_goodwill(old - g, b)
+        a:force_set_goodwill(0, b)
         return old
     end
 end
 
 -- the ceasefire, on each of its NPCs online: toward you, and with your companions both ways; each
--- goodwill's old value kept the first time it's changed, and only the ones it changed
+-- goodwill's old value kept the first time it's changed, and only the ones changed
 local function apply(t)
     local actor, comps = db.actor, companions()
     for id, old in pairs(t.npcs) do
         local npc = level.object_by_id(id)
         if npc and npc:alive() then
-            if old == false then
-                t.npcs[id] = npc:goodwill(actor)
+            local was = hold_fire(npc, actor)
+            if old == false and was then
+                t.npcs[id] = was
             end
-            hold_fire(npc, actor)
             for _, c in ipairs(comps) do
                 local k = id .. ">" .. c:id()
                 local p = t.pairs[k] or {}
@@ -188,16 +191,24 @@ local function apply(t)
     end
 end
 
--- each goodwill the ceasefire changed, back as it was: live, or through the server object offline
+-- a's personal goodwill toward b back to v: force_set_goodwill takes the two community terms (a's
+-- faction's goodwill toward b, and its relation with b's) off what it's given, so they go on first.
+-- Live, or through the server object offline; you're b_id 0
 local function set_back(a_id, b_id, v)
-    local a, b = level.object_by_id(a_id), level.object_by_id(b_id)
-    if a and b then
-        a:force_set_goodwill(v, b)
+    local sim = alife()
+    local a = level.object_by_id(a_id)
+    local b = b_id == 0 and db.actor or level.object_by_id(b_id)
+    local a_se, b_se = sim:object(a_id), sim:object(b_id)
+    local comm = a and a:character_community() or (a_se and a_se.community and a_se:community())
+    local b_comm = b and b:character_community() or (b_se and b_se.community and b_se:community())
+    if not (comm and b_comm) then
         return
     end
-    local se = alife():object(a_id)
-    if se and se.force_set_goodwill and se:alive() then
-        se:force_set_goodwill(v, b_id)
+    v = v + relation_registry.community_goodwill(comm, b_id) + relation_registry.community_relation(comm, b_comm)
+    if a and b then
+        a:force_set_goodwill(v, b)
+    elseif a_se and a_se.force_set_goodwill and a_se:alive() then
+        a_se:force_set_goodwill(v, b_id)
     end
 end
 
