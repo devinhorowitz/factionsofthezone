@@ -304,6 +304,17 @@ local function record_faction(id)
     return old_faction()
 end
 
+-- the faction another mod saves for NPC id in place of ours (Homestead's faction provider): a
+-- member's old one, or for you, your own; any other faction as it is
+function saved_faction(comm, id)
+    if comm == OWN then
+        return record_faction(tonumber(id))
+    elseif comm == ACTOR_OWN then
+        return home()
+    end
+    return comm
+end
+
 -- replace our faction's names in a table, keys and values, inside tables keyed by NPC id
 local function scrub(t, id, seen)
     if seen[t] then

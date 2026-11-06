@@ -86,6 +86,10 @@ MUTANTS = {
     "same_uid": ('uid = string.format("%s/%s", tostring(os.time()), tostring(time_global())) }', 'uid = "same" }'),
     "join_by_default": ('return ui_mcm ~= nil and ui_mcm.get("fotz/faction_join") == true',
                         'return not (ui_mcm and ui_mcm.get("fotz/faction_join") == false)'),
+    # Homestead's faction provider (0.5.1)
+    "saved_as_ours": ("        return record_faction(tonumber(id))\n", "        return comm\n"),
+    "saved_id_string": ("        return record_faction(tonumber(id))\n", "        return record_faction(id)\n"),
+    "saved_actor_ours": ("    elseif comm == ACTOR_OWN then\n        return home()\n", "    elseif comm == ACTOR_OWN then\n        return comm\n"),
 }
 
 WORLD = r"""
@@ -519,6 +523,11 @@ server(902, "fotz_own")
     kills = w.eval("fair_autocomplete_kill_tracker._player_kills")
     check(kills[503]["faction"] == "stalker" and kills[998]["faction"] == "bandit",
           "Fair Autocomplete's kills: %s, %s" % (kills[503]["faction"], kills[998]["faction"]))
+    # Homestead's faction provider asks what to save in place of ours: a member's old faction (by
+    # an id Homestead may give as a string), the old faction for anyone else, yours for you
+    sf = w.env.saved_faction
+    got = (sf("fotz_own", "503"), sf("fotz_own", None), sf("actor_fotz_own", None), sf("dolg", 802))
+    check(got == ("stalker", "ecolog", "actor_ecolog", "dolg"), "saved_faction: %s" % (got,))
 
     # Homestead caches it again between the last update and the save
     w.run(CAMP + '.survivors[802].pending_community = "fotz_own"')

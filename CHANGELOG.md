@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Your faction's name, not "Your faction"** (asked in the Discord thread). While you lead a
+  faction, its name stands in wherever the game names a faction from a script: the inventory's
+  card, and other pages that show a faction.
+- **Your members' kills are yours to loot** (asked in the thread). G.A.M.M.A.'s NPC Loot Claim kept
+  you from looting what a member killed unless they followed you; now a member's kill is yours, as
+  a companion's is.
+- **Homestead 1.3.4 and later.** Factions hands Homestead your faction through its new faction
+  provider: raids on your settlements come from your faction's enemies, and Homestead saves a
+  member's old faction, never yours. A member never moves on from your camp when Homestead's
+  "settlers move on" is on. With an older Homestead nothing changes.
+
 ## 0.5.0 — 2026-11-01
 
 Install it over 0.4.1; saves carry on as they are.
