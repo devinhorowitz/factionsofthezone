@@ -28,7 +28,8 @@ it; help a side win a front and its squads lean toward that front.
 
 **Found your own faction.** Name it in MCM. It starts with your old faction's friends and enemies,
 your companions join it, and from then on it goes to war, makes truces and finds allies in its own
-name, moved by your kills and your members'.
+name, moved by your kills and your members'. What never changes for your old faction never changes
+for yours: found it from the Loners and the Bandits and the Military stay what they were to you.
 
 ![Your faction on the Factions page](media/your-faction.jpg)
 
@@ -226,7 +227,7 @@ faction's patches out of the game (above).
   camps, `test_bridges.py` runs your faction's name, members' kills and Homestead's hooks against
   stand-ins for the string table, the loot claim and Homestead, and `test_text.py` checks the
   Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (391 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (396 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

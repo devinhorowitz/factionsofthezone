@@ -37,6 +37,7 @@ cfg = nil          -- the tuning, from CONFIG
 PAIRS = {}         -- the pairs whose relation can change: the config's in name order, then yours
 local PAIR = {}    -- "a/b" (either order) -> pair
 local BASE_PAIRS = {} -- the config's pairs
+local FIXED_FACTIONS, FIXED_PAIRS = {}, {} -- the config's: factions never changed, pairs ("a/b", both orders)
 SIDES = {}         -- the factions whose relations change, yours too while you lead one
 local built_for    -- the faction PAIRS were built for, this session (false: none)
 S = nil            -- the saved state
@@ -128,6 +129,14 @@ function load_config(ini)
     end
     MANAGED = managed
     BASE_PAIRS, SIDES, built_for = PAIRS, managed, nil
+    FIXED_FACTIONS, FIXED_PAIRS = fixed, fixed_pair
+end
+
+-- whether your faction's relation with f is fixed: your old faction's with f never changes (a lore
+-- pair, or your old faction is one that never changes), so yours stays where founding put it
+function fixed_for_own(mother, f)
+    mother = string.gsub(mother or "", "^actor_", "")
+    return FIXED_FACTIONS[mother] == true or FIXED_PAIRS[mother .. "/" .. f] == true
 end
 
 function pair_of(x, y)
@@ -193,14 +202,25 @@ function sync_own()
     SIDES[#SIDES + 1] = OWN
     local cap = cfg.caps[OWN] or cfg.caps.default or { -3000, 2500 }
     for _, f in ipairs(MANAGED) do
-        local a, b = f, OWN
-        if b < a then
-            a, b = b, a
+        if not fixed_for_own(F.mother, f) then
+            local a, b = f, OWN
+            if b < a then
+                a, b = b, a
+            end
+            local p = { a = a, b = b, key = a .. "/" .. b, own = true, lo = cap[1] or -3000, hi = cap[2] or 2500,
+                        cells = { { OWN, f }, { f, OWN }, { ACTOR_OWN, f }, { f, ACTOR_OWN } } }
+            PAIRS[#PAIRS + 1] = p
+            PAIR[a .. "/" .. b], PAIR[b .. "/" .. a] = p, p
         end
-        local p = { a = a, b = b, key = a .. "/" .. b, own = true, lo = cap[1] or -3000, hi = cap[2] or 2500,
-                    cells = { { OWN, f }, { f, OWN }, { ACTOR_OWN, f }, { f, ACTOR_OWN } } }
-        PAIRS[#PAIRS + 1] = p
-        PAIR[a .. "/" .. b], PAIR[b .. "/" .. a] = p, p
+    end
+    -- what a save kept for a pair of yours that's fixed now (0.5.0 moved them all) goes: the pair
+    -- is back where founding put it at the next load
+    for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend" }) do
+        for k in pairs(st[name]) do
+            if string.find(k, OWN, 1, true) and not PAIR[k] then
+                st[name][k] = nil
+            end
+        end
     end
 end
 

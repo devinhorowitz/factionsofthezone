@@ -103,6 +103,14 @@ MUTANTS = {
                             "st.drift, st.pending, st.kills, st.hurt, st.recent, st.events = {}, {}, {}, {}, {}, {}"),
     "no_trend": ("    st.trend[k] = after ~= before and after - before or nil\n", ""),
     "truce_trend": ("        st.trend[k] = cfg.truce_relation - before\n", ""),
+    # your old faction's fixed relations (0.5.1)
+    "own_not_fixed": ("        if not fixed_for_own(F.mother, f) then", "        if true then"),
+    "own_fixed_faction_moves": ("return FIXED_FACTIONS[mother] == true or FIXED_PAIRS", "return FIXED_PAIRS"),
+    "own_mother_prefixed": ('    mother = string.gsub(mother or "", "^actor_", "")\n', ""),
+    "own_stale_kept": ("            if string.find(k, OWN, 1, true) and not PAIR[k] then\n                st[name][k] = nil",
+                       "            if false then\n                st[name][k] = nil"),
+    "own_stale_all": ("            if string.find(k, OWN, 1, true) and not PAIR[k] then\n                st[name][k] = nil",
+                      "            if string.find(k, OWN, 1, true) then\n                st[name][k] = nil"),
 }
 
 TEST_CONFIG = """
@@ -627,9 +635,9 @@ OWN_BASE = {"fotz_own>killer": -200, "killer>fotz_own": -250, "actor_fotz_own>ki
 OWN_CELLS = ["fotz_own>killer", "killer>fotz_own", "actor_fotz_own>killer", "killer>actor_fotz_own"]
 
 
-def led_lua(uid="u1"):
-    return ('fotz_faction = { F = { name = "Wolves", mother = "dolg", founded = "2012-05-01", uid = %s, base = { %s } } }'
-            % (lua_str(uid), ", ".join("[%s] = %d" % (lua_str(k), v) for k, v in OWN_BASE.items())))
+def led_lua(uid="u1", mother="dolg"):
+    return ('fotz_faction = { F = { name = "Wolves", mother = %s, founded = "2012-05-01", uid = %s, base = { %s } } }'
+            % (lua_str(mother), lua_str(uid), ", ".join("[%s] = %d" % (lua_str(k), v) for k, v in OWN_BASE.items())))
 
 
 def your_faction(src):
@@ -637,7 +645,9 @@ def your_faction(src):
     got = {c: w.rel(c) for c in OWN_CELLS}
     check(got == {c: OWN_BASE[c] for c in OWN_CELLS}, "your faction's cells at load: %s" % got)
     own = [w.env.PAIRS[i].key for i in range(1, len(w.env.PAIRS) + 1) if w.env.PAIRS[i].own]
-    check(len(own) == 8 and "fotz_own/killer" in own and "dolg/fotz_own" in own, "your faction's pairs: %s" % own)
+    # every side but Freedom: Duty's lore pair with Freedom never changes, so neither does yours
+    check(len(own) == 7 and "fotz_own/killer" in own and "dolg/fotz_own" in own and "fotz_own/freedom" not in own,
+          "your faction's pairs: %s" % own)
 
     # its members' kills and yours count for it, not for Duty
     w.run('day("2012-05-01")')
@@ -688,6 +698,32 @@ def your_faction(src):
           "after disbanding: %s" % left)
     w2.run('kill("killer", "actor", "novice", 1)')
     check(w2.env.S.kills["dolg/killer"] == 0.5, "after disbanding, your kill counted %s for Duty" % w2.env.S.kills["dolg/killer"])
+
+
+def old_fixed(src):
+    """Your old faction's fixed relations stay fixed for yours: no pair with a faction your old one
+    has a lore pair with, none at all from a faction that never changes. What a 0.5.0 save kept for
+    such a pair (a truce with Freedom) goes at the load, and its cells stay at the founding values;
+    the rest is kept."""
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua())
+    check(w.env.pair_of("fotz_own", "freedom") is None and w.env.pair_of("fotz_own", "killer") is not None,
+          "pairs with Freedom and the Mercenaries: %s, %s" % (w.env.pair_of("fotz_own", "freedom"), w.env.pair_of("fotz_own", "killer")))
+    check(w.env.fixed_for_own("actor_dolg", "freedom") is True and w.env.fixed_for_own("dolg", "killer") is False,
+          "fixed_for_own: %s, %s" % (w.env.fixed_for_own("actor_dolg", "freedom"), w.env.fixed_for_own("dolg", "killer")))
+    w2 = World(src, anchors=DK_ANCHORS, pre=led_lua(mother="monolith"))
+    own = [p.key for p in w2.env.PAIRS.values() if p.own]
+    check(not own, "a faction founded from the Monolith moves: %s" % own)
+    # a 0.5.0 save: its pair with Freedom in a truce, its pair with the Mercenaries moved
+    saved = ('{ fotz = { v = 1, own = "u1", drift = { ["fotz_own/freedom"] = -900, ["fotz_own/killer"] = -100 }, '
+             'pending = { ["fotz_own/freedom"] = 50 }, kills = { ["fotz_own/freedom"] = 3 }, hurt = {}, recent = {}, '
+             'last_fight = { ["fotz_own/freedom"] = "2012-05-01" }, history = {}, trend = { ["fotz_own/freedom"] = 300 }, '
+             'events = { ["fotz_own/freedom"] = { kind = "truce", since = "2012-05-02", a = "fotz_own", b = "freedom" } } } }')
+    w3 = World(src, anchors=DK_ANCHORS, pre=led_lua(), m_data=saved)
+    left = [(t, k) for t in ("drift", "pending", "kills", "last_fight", "events", "trend") for k in w3.env.S[t].keys() if "freedom" in k]
+    check(not left, "what the save kept for the fixed pair: %s" % left)
+    check(w3.drift("fotz_own/killer") == -100, "the Mercenaries' drift: %s" % w3.drift("fotz_own/killer"))
+    check(not any(c in list(w3.g.WRITES.values()) for c in ("fotz_own>freedom", "freedom>fotz_own", "freedom>actor_fotz_own")),
+          "Freedom's cells written")
 
 
 def restore(src):
@@ -758,12 +794,13 @@ def run(src):
     save_and_load(src, w)
     kills(src)
     your_faction(src)
+    old_fixed(src)
     restore(src)
     caps(src)
     real_config(src)
     other_scripts(src)
     calendar(src)
-    return "12 scenarios, 16 pairs from the shipped config"
+    return "13 scenarios, 16 pairs from the shipped config"
 
 
 def main():
