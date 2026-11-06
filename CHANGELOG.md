@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.5.1 — 2026-11-06
+
+Install it over 0.5.0; saves carry on as they are.
 
 - **Your faction's name, not "Your faction"** (asked in the Discord thread). While you lead a
   faction, its name stands in wherever the game names a faction from a script: the inventory's
