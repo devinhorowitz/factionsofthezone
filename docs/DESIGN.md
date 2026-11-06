@@ -422,9 +422,22 @@ its player twin `actor_fotz_own`, team 37).
   as this mod's, from the same conversation. They should be one faction, not two (two declared
   player factions would fight over team ids, the player's faction and save safety): Factions
   keeps the declaration, the relations, the members and the save safety; Homestead keeps the
-  flag, the emblem and the settlement, and reads the faction through a hook. Until then its
-  Settlement Flag shows a Loner flag for a Factions leader (no
-  `homestead_settlement_flag_fotz_own` section; it falls back).
+  flag, the emblem and the settlement, and reads the faction through a hook. Built that way:
+  Homestead's #389 (1.3.4) is a `faction_provider` it asks for the player's faction
+  (`get_player_faction`) and for the faction to keep in its save (`save_safe_faction`), and from
+  1.4.0 its Settlement Flag shows your faction's patch art (`fotz_own_patch`'s
+  `wd_bracer_patch`) while `fotz_faction.F` is set.
+- **Bridges** (`fotz_bridges.script`, 0.5.1). Homestead's provider is set on the first update:
+  your faction (`fotz_own`) while you lead one, so its raids pick your faction's enemies, and
+  `fotz_faction.saved_faction` for its saves (a member's old faction; yours for you). Its #391
+  callbacks: `homestead_on_before_settler_leave` keeps a member from moving on (`flags.keep`);
+  registered only when Homestead has `send_settler_callback`, since registering a callback that
+  doesn't exist logs an error. G.A.M.M.A.'s NPC Loot Claim (`grok_loot_claim`) claims a body an
+  NPC killed unless a companion or a zombie did; a member's claim is dropped on the next update,
+  after theirs is made, from the table as it is then (load and level changes replace it). Your
+  faction's name stands in for the `fotz_own` and `actor_fotz_own` strings through a wrapper on
+  `game.translate_string`, so every Lua page that names a community shows it
+  (`ui_inventory.script` sets the card's faction that way); the engine's own pages don't.
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.

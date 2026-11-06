@@ -162,6 +162,13 @@ news (off, wars and truces, or everything), the census log, removing your factio
 (before you remove the mod), the Factions page key, and, with Mod App Creator, the page's own PDA
 tab.
 
+**Your faction's name, your members' kills, and Homestead.** While you lead a faction, its name
+stands in for "Your faction" wherever the game names a faction from a script, the inventory's card
+among them. With G.A.M.M.A.'s NPC Loot Claim, a member's kill is yours to loot, as a companion's
+is. With Homestead 1.3.4 or later, Homestead takes your faction for yours: raids on your
+settlements come from its enemies, Homestead saves a member's old faction and never yours, and a
+member never moves on from your camp.
+
 **What it saves, and removing it.** Two keys in your save: each pair's change from where the game
 started it, and your faction's roster, with your residents' loyalty. No character in a save is ever in your faction: just before
 each save, everyone is put back in their old faction in the save itself, and gets your faction
@@ -216,8 +223,10 @@ faction's patches out of the game (above).
   scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots,
   `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
   actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
-  camps, and `test_text.py` checks the Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (372 so far); every
+  camps, `test_bridges.py` runs your faction's name, members' kills and Homestead's hooks against
+  stand-ins for the string table, the loot claim and Homestead, and `test_text.py` checks the
+  Russian tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (391 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

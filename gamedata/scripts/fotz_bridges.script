@@ -1,0 +1,125 @@
+--[[
+Factions of the Zone: bridges to the game and to other mods.
+
+Your faction's name. The game names a faction by its community's string, and ours, fotz_own and
+its player twin actor_fotz_own, say "Your faction". While you lead one, game.translate_string gives
+the name you chose for those two, so the inventory's card and every other page that names a
+community from Lua show it. The engine's own pages keep the string.
+
+Loot. G.A.M.M.A.'s NPC Loot Claim (grok_loot_claim) won't let you loot a body an NPC killed unless
+a companion killed it. A member's kill is yours to loot too: their claim is dropped on the next
+update, once it's made, from the claim table as it is then (a load or a level change replaces it).
+
+Homestead, 1.3.4 and later. Its faction provider (issue #379) names your faction as the player's
+while you lead one, so raids come from your faction's enemies, and gets a member's old faction for
+anything Homestead saves (fotz_faction.saved_faction), so its save never holds ours. A member
+never moves on from a camp (homestead_on_before_settler_leave, issue #380): their faction is yours
+now. An older Homestead has neither, and nothing changes there.
+--]]
+
+local OWN_IDS = { fotz_own = true, actor_fotz_own = true }
+local original_translate = nil
+local registered = false
+
+local function log(fmt, ...)
+    printf("[fotz-bridges] " .. fmt, ...)
+end
+
+local function F()
+    return fotz_faction and fotz_faction.F
+end
+
+-- your faction's name ------------------------------------------------------------------------------
+
+-- the name in place of a community's string, or nil
+function name_for(id)
+    local f = F()
+    if f and OWN_IDS[id] and type(f.name) == "string" and f.name ~= "" then
+        return f.name
+    end
+end
+
+local function translate(id, ...)
+    local name = id ~= nil and name_for(id)
+    if name then
+        return name
+    end
+    return original_translate(id, ...)
+end
+
+function hook_names()
+    if original_translate or not (game and game.translate_string) then
+        return
+    end
+    original_translate = game.translate_string
+    game.translate_string = translate
+end
+
+-- loot ---------------------------------------------------------------------------------------------
+
+-- the claim on a body killed by killer_id, dropped if it's still theirs
+function free_kill(victim_id, killer_id)
+    local m = grok_loot_claim
+    local claimed = type(m) == "table" and m.claimed
+    if type(claimed) == "table" and claimed[victim_id] == killer_id then
+        claimed[victim_id] = nil
+        return true
+    end
+    return false
+end
+
+local function on_death(victim, killer)
+    local f = F()
+    local kid = f and victim and killer and killer:id()
+    if not (kid and f.members[kid]) then
+        return
+    end
+    local vid = victim:id()
+    CreateTimeEvent("fotz_bridges", "loot_" .. vid, 0, function()
+        if free_kill(vid, kid) then
+            log("%s, killed by member %s: yours to loot", vid, kid)
+        end
+        return true
+    end)
+end
+
+-- Homestead ----------------------------------------------------------------------------------------
+
+provider = {
+    get_player_faction = function()
+        return F() and fotz_faction.OWN or nil
+    end,
+    save_safe_faction = function(comm, npc_id)
+        return fotz_faction.saved_faction(comm, npc_id)
+    end,
+}
+
+-- a member stays when Homestead would have them move on
+function before_leave(npc_id, survivor, flags)
+    local f, id = F(), tonumber(npc_id)
+    if f and id and f.members[id] and type(flags) == "table" then
+        flags.keep = true
+        log("%s stays in your camp: a member of %s", id, f.name)
+    end
+end
+
+-- on the first update, when every script has loaded: Homestead's callbacks exist only by then,
+-- and only from the version that sends them
+function hook_homestead()
+    local hs = stalker_camp_builder
+    if type(hs) ~= "table" then
+        return
+    end
+    hs.faction_provider = provider
+    if not registered and type(hs.send_settler_callback) == "function" then
+        RegisterScriptCallback("homestead_on_before_settler_leave", before_leave)
+        registered = true
+    end
+end
+
+function on_game_start()
+    hook_names()
+    RegisterScriptCallback("npc_on_death_callback", on_death)
+    RegisterScriptCallback("monster_on_death_callback", on_death)
+    RegisterScriptCallback("actor_on_first_update", hook_homestead)
+end
