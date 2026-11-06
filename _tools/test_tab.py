@@ -310,10 +310,12 @@ NEAR = { [501] = {} }
     r = rows(p)
     check(p.leading is True and p.side == "fotz_own" and p.title == "Wolves", "side %s, title %s" % (p.side, p.title))
     check(p.subtitle == "Your faction · founded 01.05 · came from: Duty · members: 2", "subtitle %r" % p.subtitle)
-    # every faction politics manages can change with yours; the four that never change, in a line
-    check(p.icon == "fotz_your_faction" and sorted(r) == sorted(["stalker", "bandit", "csky", "dolg", "freedom", "killer",
+    # every faction politics manages can change with yours but Freedom (Duty's lore pair stays fixed
+    # for the faction founded from it); those that never change, in a line a standing
+    check(p.icon == "fotz_your_faction" and sorted(r) == sorted(["stalker", "bandit", "csky", "dolg", "killer",
                                                                   "army", "ecolog"]), "icon %s, rows %s" % (p.icon, sorted(r)))
-    check(lines(p.fixed) == ["Permanent enemies: Monolith, Renegades, Sin and UNISG."], "fixed %s" % lines(p.fixed))
+    check(lines(p.fixed) == ["Permanent enemies: Monolith, Renegades, Sin and UNISG.", "Always neutral: Freedom."],
+          "fixed %s" % lines(p.fixed))
     check(r["killer"].standing == "Neutral", "killer: %s" % r["killer"].standing)
     check(r["dolg"].detail == "Voronin" and r["stalker"].detail == "Sidorovich" and r["army"].detail == "Kuznetsov (dead)",
           "leaders %r %r %r" % (r["dolg"].detail, r["stalker"].detail, r["army"].detail))

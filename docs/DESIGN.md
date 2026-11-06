@@ -188,6 +188,12 @@ its player twin `actor_fotz_own`, team 37).
     game's dynamic relations.
   - The base game's 12 fixed lore pairs stay fixed, among them Duty–Freedom, Army–Loners and
     Bandits–Duty.
+  - Your faction keeps your old faction's fixed relations (0.5.1, `fotz_politics.fixed_for_own`):
+    no pair of its own with a faction your old one has a fixed pair with, and none at all when your
+    old faction is one that never changes. Before, a Loner's faction had a pair with the Bandits,
+    and two days without fighting ended their war in a truce at -600; with "You join it" on, the
+    Bandits then held fire at you (Blazko, Discord, 2026-11-02). What a 0.5.0 save kept for such a
+    pair is dropped at the load, so it's back at its founding value.
   - Every other pair moves at most -3000 to +2500 from its start; a pair can have its own caps.
   - Story characters and quest factions are left alone: nothing here touches a character.
   - **Open: hubs.** A war with a hub's faction (the Loners at the Skadovsk, Duty at the Bar) brings

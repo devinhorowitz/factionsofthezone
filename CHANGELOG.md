@@ -13,6 +13,13 @@
   member's old faction, never yours. A member never moves on from your camp when Homestead's
   "settlers move on" is on. With an older Homestead nothing changes.
 
+### Changed
+
+- **Your faction keeps your old faction's lore.** What never changes for the faction you came from
+  never changes for yours: founded from the Loners, the Bandits and the Military stay your
+  enemies. Before, a quiet spell could end a war with them in a truce, and with "You join it" on,
+  they stopped shooting at you. Such a truce in an existing save ends at the next load.
+
 ## 0.5.0 — 2026-11-01
 
 Install it over 0.4.1; saves carry on as they are.
