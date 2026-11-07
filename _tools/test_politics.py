@@ -94,6 +94,11 @@ MUTANTS = {
     "any_version": ('if type(d) == "table" and d.v == SAVE_VERSION then', 'if type(d) == "table" then'),
     "news_level": ('if lv == "off" or (level == "all" and lv ~= "all") then', 'if lv == "off" then'),
     "news_cap": ("if shown < 3 and say(", "if say("),
+    # a place's name, never its raw id (STALKER's report on 1.0.0, 2026-11-07)
+    "place_raw_kept": ('name ~= "" and name ~= smart then', 'name ~= "" then'),
+    "place_no_warfare_name": ('    local key = "st_" .. smart .. "_name"\n', "    local key = smart\n"),
+    "place_no_level": ("        return s ~= lv and s or nil\n", "        return nil\n"),
+    "place_level_raw": ("        return s ~= lv and s or nil\n", "        return lv\n"),
     "pending_cap": ("clamp((st.pending[k] or 0) + g.delta * own_amp(p), -cfg.pending_max, cfg.pending_max)",
                     "(st.pending[k] or 0) + g.delta * own_amp(p)"),
     "lo_cap": ("d = clamp(d + move, p.lo, p.hi)", "d = d + move"),
@@ -187,7 +192,9 @@ news_manager = { send_tip = function(actor, text, timeout, sender, showtime) NEW
 NAMES = { dolg = "Duty", freedom = "Freedom", killer = "Mercenary", csky = "Clear Sky", stalker = "Free stalkers",
           bandit = "Bandit", army = "Military", ecolog = "Ecologist" }
 STR = {}
-game = { translate_string = function(id) return NAMES[id] or STR[id] or id end }
+-- the names of places: G.A.M.M.A.'s st_<smart>_name (the Warfare convention) and the levels'
+PLACES = { st_s2_name = "Cordon - Rookie Village", l01_escape = "Cordon" }
+game = { translate_string = function(id) return NAMES[id] or STR[id] or PLACES[id] or id end }
 db = { actor = {} }
 AC_ID = 0
 function IsStalker(o) return o ~= nil and o.stalker == true end
@@ -204,8 +211,17 @@ DATE = "2012-05-01"
 LISTENERS = {}
 fotz_census = { game_date = function() return DATE .. " 08:00" end,
                 listen = function(fn) LISTENERS[#LISTENERS + 1] = fn end }
-SIMBOARD = { smarts_by_names = setmetatable({}, { __index = function(_, k) return k end }) }
-smart_terrain = { get_smart_terrain_name = function(se) return "Place " .. se end }
+-- a smart's server object, every one on Cordon
+SIMBOARD = { smarts_by_names = setmetatable({}, { __index = function(_, k)
+    return { name = function() return k end, m_game_vertex_id = 7 }
+end }) }
+-- like the base game's: smart_names.ltx names a few (here s1, s6 and s7), else the raw id
+SMART_NAMES = { s1 = true, s6 = true, s7 = true }
+smart_terrain = { get_smart_terrain_name = function(se)
+    return SMART_NAMES[se:name()] and ("Place " .. se:name()) or se:name()
+end }
+function alife() return { level_name = function(_, lid) return lid == 3 and "l01_escape" or "?" end } end
+function game_graph() return { vertex = function(_, gv) return { level_id = function() return gv == 7 and 3 or 0 end } end } end
 CALLBACKS = {}
 function RegisterScriptCallback(name, fn) CALLBACKS[name] = fn end
 function ini_file(path)
@@ -433,9 +449,10 @@ def ground_and_news(src):
     check(w.drift("freedom/killer") == -400 and w.pending("freedom/killer") == -430,
           "day 2: drift %s, pending %s" % (w.drift("freedom/killer"), w.pending("freedom/killer")))
     check(w.drift("dolg/freedom") is None, "a fixed pair moved")
+    # a place by smart_names.ltx's name, else G.A.M.M.A.'s st_<smart>_name, else its level's: never the raw id
     check(w.news() == ["killer|Mercenaries: We took Place s1 from Freedom.",
-                       "killer|Mercenaries: We took Place s2 from Freedom.",
-                       "killer|Mercenaries: We took Place s3 from Freedom."], "ground news %s" % w.news())
+                       "killer|Mercenaries: We took Cordon - Rookie Village from Freedom.",
+                       "killer|Mercenaries: We took Cordon from Freedom."], "ground news %s" % w.news())
     w.run('day("2012-05-03", { s1 = "killer", s2 = "killer", s3 = "killer", s4 = "killer", s5 = "killer", s6 = "freedom" },'
           ' { ["freedom/killer"] = { n = 5, at = "s7" } })')
     w.run('day("2012-05-04", { s1 = "killer", s2 = "killer", s3 = "killer", s4 = "killer", s5 = "killer", s6 = "killer" },'
