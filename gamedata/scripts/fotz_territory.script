@@ -18,6 +18,25 @@ down for Warfare mode, which runs the squads itself, and with its MCM switch. On
 wrapper, put in place as the game starts (after every script has loaded, so it wraps the version
 G.A.M.M.A. Economy put there), and unwound when the switch goes off if it is still the one in
 place. It saves nothing.
+
+Your faction's footprint, the counterweight to its perks (fotz_perks): where your members are,
+the factions hostile to them are drawn, like an immune response. A squad of faction E weighs every
+smart on a level where E has fighters, or next to one (cfg.reach: nearness, about a level over),
+by 1 + cap x share(draw), draw being the steps of your members hostile to E (all of them if E is
+at war with your faction, else those who came from a faction E is at war with), each by how near
+their level is (fotz_perks' ranks, nearness and curve), the cap MCM's slider. So Duty men in your
+ranks bring Freedom's squads, from that level and the ones next to it; the curve makes a big
+faction draw far more than a small one, which slips by; and a mix of members spreads the draw
+over many factions, where twenty from one focus one enemy's. Rebuilt every FOOT_MS and
+at each census; the same squads are left alone as by the steer.
+
+Consequences, on ground other factions hold (a faction's share of a level's smarts, from the
+census): your members settled there strain your faction's relation with it, a push on the pair in
+politics each day up to cfg.encroach at a full settlement's worth of them where it holds all the
+ground (members who came from that faction don't count, and an ally doesn't mind); and a stalker
+you kill there costs you up to cfg.instigate of its goodwill, unless it's at war with the victim's
+faction (or is the victim's own: the game already counts that). Both while you lead a faction;
+MCM's sliders set them.
 --]]
 
 VERSION = "0.5.1"
@@ -26,11 +45,19 @@ ENEMIES = -1000           -- the game's line: a faction at or below it toward an
 
 cfg = nil
 STEER = {}                -- faction -> smart id -> multiplier
-STATS = { calls = 0, raised = 0, lowered = 0 }
+STATS = { calls = 0, raised = 0, lowered = 0, drawn = 0 }
 local orig, wrapper       -- the scoring we wrapped, and ours
 local on = false          -- steering now
 local exempt = {}         -- squad id -> whether the steer leaves it alone, until the next census
 local garrison = {}       -- Homestead's outpost garrisons, by squad id
+FOOT_MS = 30000           -- your faction's footprint is worked out again this often
+FOOT = {}                 -- faction -> level -> multiplier: your footprint's pull on its squads
+local last_census = nil
+local next_foot = 0
+local smart_level = {}    -- target id -> its level, or false for a target that isn't a smart
+INFLUENCE = {}            -- level -> faction -> its share of the level's smarts, at the last census
+local FRIENDS = 1000
+local is_faction = nil    -- the census's factions, as a set
 
 local function log(fmt, ...)
     printf("[fotz-territory] " .. fmt, ...)
@@ -41,7 +68,8 @@ function load_config(ini)
     local function num(k, d)
         return ini:r_float_ex("territory", k) or d
     end
-    cfg = { k = num("k", 0.5), lo = num("lo", 0.6), hi = num("hi", 1.5) }
+    cfg = { k = num("k", 0.5), lo = num("lo", 0.6), hi = num("hi", 1.5), footprint = num("footprint", 0.5),
+            encroach = num("encroach", 40), instigate = num("instigate", 15), reach = num("footprint_reach", 0.4) }
 end
 
 -- the multiplier for a front where one side has `mine` fighters on the level and the other `theirs`
@@ -243,7 +271,110 @@ local function take_fronts(c)
     upper = now
 end
 
--- the wrapper: two table reads for a squad the steer has nothing for
+-- your faction's footprint --------------------------------------------------------------------
+
+-- the most your footprint raises a score: MCM's slider (percent), else the config's
+function footprint_cap()
+    local v = ui_mcm and tonumber(ui_mcm.get("fotz/footprint_max"))
+    if v then
+        return math.max(0, v / 100)
+    end
+    return cfg.footprint
+end
+
+-- the pull, from a census's levels and your members now; returns how many levels draw someone
+function footprint(c)
+    FOOT = {}
+    local F = fotz_faction and fotz_faction.F
+    local P = fotz_perks
+    local cap = footprint_cap()
+    if not (F and c and type(c.factions) == "table" and P and P.member_level and cap > 0) then
+        return 0
+    end
+    local list = {}
+    for id, m in pairs(F.members) do
+        if not m.dead then
+            list[#list + 1] = { lv = P.member_level(id), w = P.weight_of(id),
+                                mother = type(m.mother) == "string" and string.gsub(m.mother, "^actor_", "") or nil }
+        end
+    end
+    if #list == 0 then
+        return 0
+    end
+    local own = fotz_politics and fotz_politics.OWN or "fotz_own"
+    local rel = relation_registry.community_relation
+    -- every level the census knows
+    local levels = {}
+    for lv in pairs(c.levels or {}) do
+        levels[lv] = true
+    end
+    for _, fe in pairs(c.factions) do
+        for lv in pairs(type(fe) == "table" and fe.levels or {}) do
+            levels[lv] = true
+        end
+    end
+    local n = 0
+    for _, e in ipairs(fotz_census.FACTIONS) do
+        local fe = c.factions[e]
+        local present = {}
+        for lv, l in pairs(fe and fe.levels or {}) do
+            if (l.fighters or 0) > 0 then
+                present[#present + 1] = lv
+            end
+        end
+        local hates_you = rel(e, own) <= ENEMIES
+        for lv in pairs(#present > 0 and levels or {}) do
+            -- its squads there, or next door
+            local reach = false
+            for _, at in ipairs(present) do
+                if at == lv or P.nearness(at, lv) >= cfg.reach then
+                    reach = true
+                    break
+                end
+            end
+            local draw = 0
+            for _, m in ipairs(reach and list or {}) do
+                if hates_you or (m.mother and rel(e, m.mother) <= ENEMIES) then
+                    draw = draw + m.w * P.nearness(m.lv, lv)
+                end
+            end
+            if draw > 0 then
+                FOOT[e] = FOOT[e] or {}
+                FOOT[e][lv] = 1 + cap * P.share(draw)
+                n = n + 1
+            end
+        end
+    end
+    return n
+end
+
+-- the factions your footprint draws to the level you're on, the strongest first
+function drawn_here()
+    local out = {}
+    if not on then
+        return out
+    end
+    local here = level.name()
+    for e, t in pairs(FOOT) do
+        if t[here] and t[here] >= 1.005 then
+            out[#out + 1] = { f = e, m = t[here] }
+        end
+    end
+    table.sort(out, function(a, b) return a.m > b.m end)
+    return out
+end
+
+-- a target's level, if it's a smart
+local function level_of_target(target)
+    local lv = smart_level[target.id]
+    if lv == nil then
+        lv = SIMBOARD and SIMBOARD.smarts and SIMBOARD.smarts[target.id] and fotz_census.level_of(target) or false
+        smart_level[target.id] = lv
+    end
+    return lv
+end
+
+-- the wrapper: three table reads for a squad the steer and the footprint have nothing for
 local function steered(target, squad, ...)
     local prior = orig(target, squad, ...)
     if not on then
@@ -252,15 +383,20 @@ local function steered(target, squad, ...)
     STATS.calls = STATS.calls + 1
     local t = STEER[squad.player_id]
     local m = t and t[target.id]
-    if m == nil or left_alone(squad) then
+    local ft = FOOT[squad.player_id]
+    local fm = ft and ft[level_of_target(target)]
+    if (m == nil and fm == nil) or left_alone(squad) then
         return prior
     end
-    if m > 1 then
+    if m and m > 1 then
         STATS.raised = STATS.raised + 1
-    else
+    elseif m then
         STATS.lowered = STATS.lowered + 1
     end
-    return prior * m
+    if fm then
+        STATS.drawn = STATS.drawn + 1
+    end
+    return prior * (m or 1) * (fm or 1)
 end
 
 function install()
@@ -328,9 +464,184 @@ local function on_census(c)
     for _ in pairs(STEER) do
         factions = factions + 1
     end
-    log("%s: %s fronts; %s smarts weighed for %s factions (%s); since the last census %s scores, %s raised, %s lowered",
-        tostring(c and c.date), #FRONTS, n, factions, on and "steering" or "off", STATS.calls, STATS.raised, STATS.lowered)
-    STATS.calls, STATS.raised, STATS.lowered = 0, 0, 0
+    last_census = c
+    INFLUENCE = influence(c)
+    local ok2, drawn = pcall(footprint, c)
+    if not ok2 then
+        log("! the footprint: %s", tostring(drawn))
+        drawn = 0
+    end
+    log("%s: %s fronts; %s smarts weighed for %s factions (%s); your footprint draws on %s levels; since the last census %s scores, %s raised, %s lowered, %s drawn",
+        tostring(c and c.date), #FRONTS, n, factions, on and "steering" or "off", drawn, STATS.calls, STATS.raised,
+        STATS.lowered, STATS.drawn)
+    STATS.calls, STATS.raised, STATS.lowered, STATS.drawn = 0, 0, 0, 0
+end
+
+-- consequences ---------------------------------------------------------------------------------
+
+local function strip(comm)
+    return type(comm) == "string" and (string.gsub(comm, "^actor_", "")) or nil
+end
+
+-- an MCM slider's value, else the config's
+local function slider(id, default)
+    local v = ui_mcm and tonumber(ui_mcm.get("fotz/" .. id))
+    return v and math.max(0, v) or default
+end
+
+-- each level's ground: level -> faction -> its share of the level's smarts
+function influence(c)
+    if not is_faction then
+        is_faction = {}
+        for _, f in ipairs(fotz_census.FACTIONS) do
+            is_faction[f] = true
+        end
+    end
+    local out = {}
+    for lv, l in pairs(c and c.levels or {}) do
+        local n = l.smarts or 0
+        for f, k in pairs(n > 0 and l.held or {}) do
+            if is_faction[f] then
+                out[lv] = out[lv] or {}
+                out[lv][f] = k / n
+            end
+        end
+    end
+    return out
+end
+
+-- your members on each level, with their steps and the faction they came from
+local function members_by_level()
+    local F, P = fotz_faction and fotz_faction.F, fotz_perks
+    if not (F and P and P.member_level) then
+        return nil
+    end
+    local out = {}
+    for id, m in pairs(F.members) do
+        local lv = not m.dead and P.member_level(id)
+        if lv then
+            out[lv] = out[lv] or {}
+            table.insert(out[lv], { w = P.weight_of(id), mother = strip(m.mother) })
+        end
+    end
+    return out
+end
+
+-- the steps of your members on a level who didn't come from f
+local function outsiders(list, f)
+    local n = 0
+    for _, m in ipairs(list or {}) do
+        if m.mother ~= f then
+            n = n + m.w
+        end
+    end
+    return n
+end
+
+-- the day's strain of your members settled on other factions' ground: faction -> the push on your
+-- faction's pair with it (below 0), at most the cap
+function encroachment(c)
+    local out = {}
+    local cap = slider("encroach_max", cfg.encroach)
+    local by_level = cap > 0 and members_by_level()
+    if not by_level then
+        return out
+    end
+    local own = fotz_politics and fotz_politics.OWN or "fotz_own"
+    local rel = relation_registry.community_relation
+    for lv, shares in pairs(influence(c)) do
+        for f, s in pairs(shares) do
+            local n = by_level[lv] and outsiders(by_level[lv], f) or 0
+            if n > 0 and rel(f, own) < FRIENDS then
+                out[f] = (out[f] or 0) - cap * fotz_perks.share(n) * s
+            end
+        end
+    end
+    for f, v in pairs(out) do
+        out[f] = math.max(-cap, v)
+    end
+    return out
+end
+
+-- the factions your members strain where you are, from the last census
+function strained_here()
+    local out = {}
+    local here = level.name()
+    local by_level = members_by_level()
+    local own = fotz_politics and fotz_politics.OWN or "fotz_own"
+    if not (by_level and by_level[here] and slider("encroach_max", cfg.encroach) > 0) then
+        return out
+    end
+    for f, s in pairs(INFLUENCE[here] or {}) do
+        if outsiders(by_level[here], f) > 0 and relation_registry.community_relation(f, own) < FRIENDS then
+            out[#out + 1] = { f = f, s = s }
+        end
+    end
+    table.sort(out, function(a, b) return a.s > b.s end)
+    return out
+end
+
+-- a stalker you kill on a faction's ground costs you some of its goodwill, unless it's at war with
+-- the victim's faction, or it's the victim's own
+function instigated(victim_comm, lv)
+    local F = fotz_faction and fotz_faction.F
+    local per = slider("instigate_max", cfg.instigate)
+    if not (F and per > 0) then
+        return 0
+    end
+    local v, n = strip(victim_comm), 0
+    local rel = relation_registry.community_relation
+    for f, s in pairs(INFLUENCE[lv] or {}) do
+        if f ~= v and rel(f, v) > ENEMIES then
+            local loss = math.floor(per * s + 0.5)
+            if loss > 0 then
+                relation_registry.change_community_goodwill(f, AC_ID, -loss)
+                log("you killed a %s on %s's ground (%s): %s goodwill", v, f, lv, -loss)
+                n = n + 1
+            end
+        end
+    end
+    return n
+end
+
+local function npc_on_death_callback(victim, killer)
+    if not (victim and killer and IsStalker(victim)) then
+        return
+    end
+    local yours = killer:id() == AC_ID
+    if not yours and not IsStalker(killer) then
+        local owner = killer.parent and killer:parent()
+        yours = owner ~= nil and owner:id() == AC_ID
+    end
+    if yours then
+        local ok, err = pcall(instigated, victim:character_community(), level.name())
+        if not ok then
+            log("! a kill's consequence: %s", tostring(err))
+        end
+    end
+end
+
+-- the footprint again now, from the last census: members came, went or moved
+function update_footprint()
+    if not last_census then
+        return 0
+    end
+    local ok, n = pcall(footprint, last_census)
+    if not ok then
+        log("! the footprint: %s", tostring(n))
+        return 0
+    end
+    return n
+end
+
+-- and every FOOT_MS, as members join, leave and move between censuses
+local function actor_on_update()
+    local now = time_global()
+    if now < next_foot or not last_census then
+        return
+    end
+    next_foot = now + FOOT_MS
+    update_footprint()
 end
 
 function on_game_start()
@@ -338,4 +649,6 @@ function on_game_start()
     refresh()
     fotz_census.listen(on_census)
     RegisterScriptCallback("on_option_change", refresh)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("npc_on_death_callback", npc_on_death_callback)
 end

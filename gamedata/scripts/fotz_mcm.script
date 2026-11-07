@@ -21,9 +21,22 @@ function on_mcm_load()
             { id = "loyalty_accept", type = "check", val = 1, def = false },
             -- with Homestead: a rival outpost you beat may surrender or come over (fotz_outposts)
             { id = "outposts", type = "check", val = 1, def = true },
+            -- a member from a faction brings a small perk of its own (fotz_perks)
+            { id = "perks", type = "check", val = 1, def = true },
+            -- the perks' caps, in percent or points out of 100 (the [perks] *_max defaults)
+            { id = "perks_trade_max", type = "track", val = 2, min = 0, max = 25, step = 1, def = 15 },
+            { id = "perks_airlift_max", type = "track", val = 2, min = 0, max = 40, step = 1, def = 30 },
+            { id = "perks_merc_max", type = "track", val = 2, min = 0, max = 100, step = 5, def = 100 },
+            { id = "perks_outpost_max", type = "track", val = 2, min = 0, max = 25, step = 1, def = 15 },
+            { id = "perks_relations_max", type = "track", val = 2, min = 0, max = 200, step = 10, def = 100 },
             { id = "line1", type = "line" },
             { id = "politics", type = "check", val = 1, def = true },
             { id = "territory", type = "check", val = 1, def = true },
+            -- your faction's footprint draws squads hostile to your members (fotz_territory), in percent
+            { id = "footprint_max", type = "track", val = 2, min = 0, max = 100, step = 5, def = 50 },
+            -- consequences on other factions' ground (fotz_territory): a day's strain, a kill's goodwill
+            { id = "encroach_max", type = "track", val = 2, min = 0, max = 100, step = 5, def = 40 },
+            { id = "instigate_max", type = "track", val = 2, min = 0, max = 50, step = 1, def = 15 },
             { id = "map", type = "check", val = 1, def = true },
             { id = "news", type = "list", val = 0, def = "events", content = {
                 { "off", "fotz_news_off" },

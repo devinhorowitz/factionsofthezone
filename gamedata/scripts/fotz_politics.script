@@ -20,7 +20,9 @@ writes the starts back and stops. Its state is m_data.fotz, keyed by faction and
 
 The faction you lead (fotz_faction) is a side like any other: it and every faction whose relations
 change make a pair, starting from the relations it was founded with. Its members' kills count for
-it, and so do yours while you lead it. A new faction, or none, drops what was kept for the last.
+it, and so do yours while you lead it; the day's pressure on its pair with a faction grows with
+the members who came from that faction (fotz_perks.amp). A new faction, or none, drops what was
+kept for the last.
 --]]
 
 VERSION = "0.5.1"
@@ -669,6 +671,21 @@ local function grievances(c, prev, day)
             st.last_fight[p.key] = day
         end
     end
+    -- your members settled on ground other factions hold strain your faction's pair with each
+    -- (fotz_territory)
+    local T = fotz_territory
+    if T and T.encroachment then
+        local ok, enc = pcall(T.encroachment, c)
+        if not ok then
+            log("! encroachment: %s", tostring(enc))
+        end
+        for f, push in pairs(ok and enc or {}) do
+            local p = pair_of(OWN, f)
+            if p and push < 0 then
+                note(t, p, "ground", push)
+            end
+        end
+    end
     for _, p in ipairs(PAIRS) do
         if not at_war(p.a, p.b) then
             for _, f in ipairs(SIDES) do
@@ -706,12 +723,20 @@ local function remember_grievances(k, g)
     st.recent[k] = r
 end
 
+-- how much more a pair of your faction's moves: members from the other faction make it, wherever
+-- they are (fotz_perks; the pair is the whole faction's, not a place's)
+local function own_amp(p)
+    local other = (p.a == OWN and p.b) or (p.b == OWN and p.a)
+    local M = fotz_perks
+    return other and M and M.amp_all and M.amp_all(other) or 1
+end
+
 -- one pair's day: pressure in, recovery, the budget, the events
 local function step(p, g, day)
     local st = state()
     local k = p.key
     if g then
-        st.pending[k] = clamp((st.pending[k] or 0) + g.delta, -cfg.pending_max, cfg.pending_max)
+        st.pending[k] = clamp((st.pending[k] or 0) + g.delta * own_amp(p), -cfg.pending_max, cfg.pending_max)
     end
     remember_grievances(k, g)
 
