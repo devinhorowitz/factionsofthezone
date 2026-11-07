@@ -6,9 +6,10 @@ kept in the faction's own record (fotz_faction.F.loyalty), so disbanding drops i
 from where they came from: the faction you came from too, your companion before, their faction a
 friend or an enemy of yours. Once a game day, on the census's daily tick, life in the camp moves
 it: living there, working, the camp's comfort, your faction's relation with theirs (felt more the
-higher their tier), your wars, and the sworn members living with them. Events move it when
-Factions next looks: a promotion, a weapon bought with their savings, a raid on their camp beaten
-off, a campmate killed, an expedition back. The numbers are the config's [loyalty] section
+higher their tier), your wars, and the sworn members living with them. Events move it: a
+promotion, a raid on their camp beaten off and an expedition back as Homestead (1.3.4 and later)
+sends them, or when Factions next looks; a weapon bought with their savings when it looks; a
+campmate killed as they die. The numbers are the config's [loyalty] section
 (plugins\fotz_politics.ltx).
 
 At the ask threshold a resident asks to join, once a day at most, and you answer on the Factions
@@ -233,6 +234,17 @@ local function events(e, rec)
     e.away = rec.on_expedition and true or nil
 end
 
+-- a raid beaten off: the camp's residents gain, its guards more, the sworn as they are
+local function beaten(hub, camp, res)
+    for id, e in pairs(res) do
+        local rec = camp.survivors[id]
+        if e.hub == hub and rec and not e.sworn then
+            e.v = clamp(e.v + (rec.job == "guard" and cfg.raid_guard or cfg.raid_beaten))
+        end
+    end
+    log("the raid on %s was beaten off", camp_name(camp))
+end
+
 -- a raid on a camp: watched while it's on; it was beaten off when its squad is gone or empty
 -- (Homestead's own test), not when you left the level and Homestead dropped it
 local function raid_watch(hub, camp, res)
@@ -252,13 +264,7 @@ local function raid_watch(hub, camp, res)
         log("the raid on %s ended with its raiders alive: not beaten off", camp_name(camp))
         return
     end
-    for id, e in pairs(res) do
-        local rec = camp.survivors[id]
-        if e.hub == hub and rec and not e.sworn then
-            e.v = clamp(e.v + (rec.job == "guard" and cfg.raid_guard or cfg.raid_beaten))
-        end
-    end
-    log("the raid on %s was beaten off", camp_name(camp))
+    beaten(hub, camp, res)
 end
 
 -- an entry whose id is gone, linked to a record of the same camp under the same name that no
@@ -797,9 +803,97 @@ local function npc_on_death_callback(victim)
     log("%s killed: campmates %s", e.name, cfg.campmate_killed)
 end
 
+-- Homestead's own callbacks (1.3.4 and later): a promotion, an expedition back and a raid beaten off
+-- count the moment Homestead sends them. The look still compares the records, so whatever a
+-- callback missed (an older Homestead, a settler it couldn't name) counts there, never twice: each
+-- callback brings the entry up to the record.
+
+-- the entry a callback names: by its NPC id, else by Homestead's record (a promotion away from the
+-- job loop can come with no id)
+function entry_for(npc_id, survivor)
+    local b, m = book(), homestead()
+    if not (b and m) then
+        return nil
+    end
+    local id = tonumber(npc_id)
+    if id and b.res[id] then
+        return b.res[id]
+    end
+    if type(survivor) ~= "table" then
+        return nil
+    end
+    for _, camp in pairs(m.active_camps) do
+        if type(camp) == "table" and type(camp.survivors) == "table" then
+            for rid, rec in pairs(camp.survivors) do
+                if rec == survivor then
+                    return b.res[rid]
+                end
+            end
+        end
+    end
+    return nil
+end
+
+function on_promoted(npc_id, survivor, new_tier)
+    local e = enabled() and entry_for(npc_id, survivor)
+    local tier = tonumber(new_tier)
+    if not (e and tier and tier > e.tier) then
+        return
+    end
+    if not e.sworn then
+        e.v = clamp(e.v + cfg.promotion * (tier - e.tier))
+    end
+    e.tier = tier
+    log("%s promoted: loyalty %s", e.name, e.v)
+end
+
+function on_expedition_back(npc_id, survivor)
+    local e = enabled() and entry_for(npc_id, survivor)
+    if not e then
+        return
+    end
+    if not e.sworn then
+        e.v = clamp(e.v + cfg.expedition_back)
+    end
+    e.away = nil
+    log("%s back from an expedition: loyalty %s", e.name, e.v)
+end
+
+function on_raid_defended(hub_id)
+    local b, m = enabled() and book(), homestead()
+    local hub = tonumber(hub_id) or hub_id
+    local camp = b and m and m.active_camps[hub]
+    if not (camp and type(camp.survivors) == "table") then
+        return
+    end
+    -- the look's watch of this raid ends here
+    raids[hub] = nil
+    beaten(hub, camp, b.res)
+end
+
+local HOOKS = {
+    homestead_on_settler_promoted = function(...) guarded("promoted", on_promoted, ...) end,
+    homestead_on_expedition_returned = function(...) guarded("expedition", on_expedition_back, ...) end,
+    homestead_on_raid_defended = function(...) guarded("raid", on_raid_defended, ...) end,
+}
+local hooked = false
+
+-- only a Homestead that sends them has them: naming an unknown callback is an error in axr_main
+function hook_homestead()
+    local m = stalker_camp_builder
+    if hooked or type(m) ~= "table" or type(m.send_settler_callback) ~= "function" then
+        return
+    end
+    for name, fn in pairs(HOOKS) do
+        RegisterScriptCallback(name, fn)
+    end
+    hooked = true
+end
+
 function on_game_start()
     load_config()
     fotz_census.listen(function(c) guarded("day", on_census, c) end)
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("npc_on_death_callback", npc_on_death_callback)
+    RegisterScriptCallback("actor_on_first_update", hook_homestead)
 end

@@ -509,6 +509,14 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
   expedition back; -4 a campmate killed. A raid beaten off is +6, +10 for its guards, when the
   raid's squad is gone or empty. Homestead also drops a raid, raiders alive, when you leave the
   level: that one doesn't count.
+- **Homestead's callbacks** (#391, 1.3.4 and later): `homestead_on_settler_promoted`,
+  `homestead_on_expedition_returned` and `homestead_on_raid_defended` count as Homestead sends
+  them, so a raid begun and beaten between two looks counts too. Each brings the entry up to the
+  record (the tier, the expedition, the look's raid watch), so the look counts nothing twice and
+  still catches what a callback missed. A promotion can come with no NPC id (Homestead's lookup
+  holds only settlers online): the entry is found by its record. Registered on the first update,
+  only when Homestead has `send_settler_callback`. A death needs no callback: the game's own
+  `npc_on_death_callback` has it.
 - **Requests:** at 70 a resident asks (news), and the request waits; it's withdrawn under 60.
   Accept joins them (`fotz_faction.join_settler`: live, or offline by their saved faction).
   Decline costs 10 and three days. "Accept join requests" accepts each as it's made.

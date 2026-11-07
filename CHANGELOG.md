@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Loyalty hears Homestead directly** (Homestead 1.3.4 and later). A promotion, an expedition
+  back and a raid beaten off move your residents' loyalty the moment Homestead reports them, so a
+  raid fought between Factions' checks counts too. With an older Homestead, Factions still finds
+  them by looking.
+
 ## 0.5.1 — 2026-11-06
 
 Install it over 0.5.0; saves carry on as they are.

@@ -227,7 +227,7 @@ faction's patches out of the game (above).
   camps, `test_bridges.py` runs your faction's name, members' kills and Homestead's hooks against
   stand-ins for the string table, the loot claim and Homestead, and `test_text.py` checks the
   Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (396 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (404 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.
