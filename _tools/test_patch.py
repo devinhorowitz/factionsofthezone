@@ -53,6 +53,13 @@ MUTANTS = {
     "no_game_ignored": ('ui_mcm.get("fotz/remove_patches") == true and alife()) then', 'ui_mcm.get("fotz/remove_patches") == true) then'),
     "menu_switch_lost": ('    RegisterScriptCallback("actor_on_first_update", removal)\n', ""),
     "item_news_count": ('        news_manager.relocate_item(db.actor, "in", SECTION, n)', '        news_manager.relocate_item(db.actor, "in", SECTION, 1)'),
+    # the 2026-11-07 sweep (M6): a fallen member's body searched after a save
+    "no_search_wrap": ("    wrap_search()\n", ""),
+    "body_old_patch": ("return create(section == old and SECTION or section, ...)", "return create(section, ...)"),
+    "body_not_forgotten": ("        fotz_faction.searched(id)\n", ""),
+    "maker_kept": ("        _G.alife_create_item = create\n        if not ok then", "        if not ok then"),
+    "maker_kept_on_error": ("        local ok, err = pcall(orig, npc, ...)", "        local ok, err = true, orig(npc, ...)"),
+    "error_swallowed": ("        if not ok then\n            error(err, 0)\n        end\n", ""),
 }
 
 WORLD = r"""
@@ -120,6 +127,9 @@ class World:
 
     def run(self, code):
         return self.lua.execute(code)
+
+    def eval(self, code):
+        return self.lua.eval(code)
 
     def items(self):
         return list(self.g.ITEMS.values())
@@ -275,6 +285,45 @@ def item():
         check((w, h) == (size, size) and (levels > 1) == mips, "%s: %dx%d, %d levels" % (keys[key], w, h, levels))
 
 
+#: death_manager as far as the search reads it: a body's patch, then an item, through the game's
+#: alife_create_item; and fotz_faction's fallen members (id -> the faction they came from)
+BODIES = """
+FALLEN = { [300] = "dolg", [302] = "stalker" }
+fotz_faction.fallen_mother = function(id) return FALLEN[id] end
+fotz_faction.searched = function(id) FALLEN[id] = nil end
+MAKER = alife_create_item
+death_manager = { create_release_item = function(npc)
+    alife_create_item(npc.comm .. "_patch", npc)
+    if npc.raise then error("boom") end
+    alife_create_item("medkit", npc)
+end }
+function body(id, comm, raise) return { id = function() return id end, comm = comm, raise = raise } end
+function search(id, comm) ITEMS = {}; death_manager.create_release_item(body(id, comm)); return ITEMS end
+"""
+
+
+def fallen_body(srcs):
+    """M6: a fallen member's body, searched once a save has put it in their old faction, drops your
+    patch and everything else as it would; once (it's forgotten); anyone else's body drops their own;
+    the game's item maker is the game's again after, also when the search raises."""
+    w = World(srcs)
+    w.run(BODIES)
+    w.env.on_game_start()
+    got = list(w.eval('search(300, "dolg")').values())
+    check(got == ["fotz_own_patch", "medkit"], "a fallen member's body dropped %s" % got)
+    check(w.eval("FALLEN[300]") is None, "the body wasn't forgotten")
+    check(w.eval("alife_create_item == MAKER"), "the item maker wasn't put back")
+    got = list(w.eval('search(301, "dolg")').values())
+    check(got == ["dolg_patch", "medkit"], "another body dropped %s" % got)
+    got = list(w.eval('search(300, "dolg")').values())
+    check(got == ["dolg_patch", "medkit"], "a fallen member's body searched again dropped %s" % got)
+    ok = w.eval('(pcall(death_manager.create_release_item, body(302, "stalker", true)))')
+    check(ok is False, "the search's error was swallowed")
+    check(w.eval("alife_create_item == MAKER"), "an error left the item maker swapped")
+    got = list(w.eval('search(303, "stalker")').values())
+    check(got == ["stalker_patch", "medkit"], "after an error, a body dropped %s" % got)
+
+
 def strings(srcs):
     import re
     root = ET.fromstring(open(ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
@@ -293,7 +342,8 @@ def run(srcs):
     words(srcs)
     removal(srcs)
     dialog(srcs)
-    return "5 scenarios"
+    fallen_body(srcs)
+    return "6 scenarios"
 
 
 def main():

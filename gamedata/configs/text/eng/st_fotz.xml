@@ -54,6 +54,9 @@
 	<string id="st_fotz_news_war_front">
 		<text>We have fought {b} at {place} for days. From today we are at war with them.</text>
 	</string>
+	<string id="st_fotz_news_war_settled">
+		<text>{b} settled on our ground and stayed. From today we are at war with them.</text>
+	</string>
 	<string id="st_fotz_news_truce">
 		<text>The line with {b} has gone quiet. We hold our fire, for now.</text>
 	</string>
@@ -182,7 +185,7 @@
 		<text>Relations are left to Fluid Relations.</text>
 	</string>
 	<string id="st_fotz_tab_standing">
-		<text>How the factions stand with you</text>
+		<text>Relations</text>
 	</string>
 	<string id="st_fotz_tab_band_war">
 		<text>At war</text>
@@ -254,7 +257,7 @@
 		<text>Nothing yet: wars, truces and alliances show here.</text>
 	</string>
 	<string id="st_fotz_tab_fighting">
-		<text>Where the fighting is</text>
+		<text>Fighting</text>
 	</string>
 	<string id="st_fotz_tab_fighting_wait">
 		<text>Not counted yet: the census comes shortly after a load.</text>
@@ -280,9 +283,6 @@
 	<string id="st_fotz_and">
 		<text>and</text>
 	</string>
-	<string id="st_fotz_more">
-		<text>{n} more</text>
-	</string>
 	<string id="st_fotz_map_label">
 		<text>{a} vs {b}</text>
 	</string>
@@ -291,6 +291,9 @@
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Members</text>
+	</string>
+	<string id="st_fotz_tab_members_asking">
+		<text>Members ({n} asking)</text>
 	</string>
 	<string id="st_fotz_tab_member_near">
 		<text>{name} ({from}), with you</text>
@@ -304,23 +307,17 @@
 	<string id="st_fotz_tab_members_none">
 		<text>No members yet: your companions join.</text>
 	</string>
-	<string id="st_fotz_tab_members_more">
-		<text>and {n} more</text>
+	<string id="ui_mcm_fotz_reset_relations">
+		<text>Reset relations to a new game's</text>
 	</string>
-	<string id="st_fotz_tab_restore">
-		<text>Reset relations</text>
+	<string id="ui_mcm_fotz_reset_relations_desc">
+		<text>Once, in a loaded game: every faction's relations go back to a new game's, your faction's to its founding, and every war, truce and alliance ends. The switch then sets itself back. Set from the main menu, it's cleared at the next load without resetting anything.</text>
 	</string>
-	<string id="st_fotz_tab_restore_confirm">
-		<text>Click again to reset</text>
+	<string id="ui_mcm_fotz_reset_relations_warn">
+		<text>Warning: the switch below puts every faction's relations back to a new game's (your faction's to its founding) and ends every war, truce and alliance. It can't be undone.</text>
 	</string>
-	<string id="st_fotz_tab_restored">
-		<text>Relations reset</text>
-	</string>
-	<string id="st_fotz_tab_restore_note">
-		<text>Reset puts every relation back where it was before the fighting moved it, and ends all wars, truces and alliances.</text>
-	</string>
-	<string id="st_fotz_tab_restore_warn">
-		<text>A second click puts every relation back and ends all wars, truces and alliances. It can't be undone.</text>
+	<string id="st_fotz_relations_reset">
+		<text>Relations are back to a new game's, and every war, truce and alliance has ended.</text>
 	</string>
 	<string id="st_fotz_tab_numbers">
 		<text>Relation numbers</text>
@@ -488,6 +485,9 @@
 	<string id="st_fotz_news_fell_left">
 		<text>{who} has left {name} after {camp} fell, and rejoined {to}.</text>
 	</string>
+	<string id="st_fotz_news_nowhere_left">
+		<text>{who} has left {name} with no camp of yours to take them in, and rejoined {to}.</text>
+	</string>
 	<string id="st_fotz_tab_member_heading">
 		<text>{name}, loyalty {loyalty} (to {camp})</text>
 	</string>
@@ -555,7 +555,7 @@
 		<text>Settling on others' ground strains relations, up to (a day)</text>
 	</string>
 	<string id="ui_mcm_fotz_encroach_max_desc">
-		<text>While you lead a faction, your members settled where another faction holds the ground strain your faction's relation with it each day: more the more of the ground it holds and the more members you have there. Members who came from that faction don't count, and an ally doesn't mind.</text>
+		<text>While you lead a faction, your members settled where another faction holds the ground strain your faction's relation with it each day: more the more of the ground it holds and the more members you have there. Your companions and the members who came from that faction don't count; an ally doesn't mind, and nor does a faction whose relation with yours is permanent.</text>
 	</string>
 	<string id="ui_mcm_fotz_instigate_max">
 		<text>A kill on another faction's ground costs goodwill, up to</text>
@@ -576,13 +576,13 @@
 		<text>{pct}% off medicine ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_freedom">
-		<text>{pct}% off mutant parts ({faction})</text>
+		<text>{pct}% off mutant meat ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_dolg">
 		<text>{pct}% off repair kits and tools ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_csky">
-		<text>{pct}% off weapon and armor parts ({faction})</text>
+		<text>{pct}% off detectors and devices ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_army">
 		<text>{pct}% off airlifts ({faction})</text>

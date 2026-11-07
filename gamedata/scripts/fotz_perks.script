@@ -3,13 +3,15 @@ Factions of the Zone: faction perks (0.6.0).
 
 A member who came from another faction brings a small perk of that faction's, while your faction
 isn't at war with it (a war politics declared; a faction whose relation with yours never changes
-is never at war in that sense). The perk grows with each living member from that faction, by the
-member's rank (cfg.rank_weights: a novice half a step, a legend two), with positive returns: its
-size is its cap times (steps / full) ^ cfg.curve, full being a settlement's worth (Homestead's cap
-on a player camp's residents, 15 unless its MCM says otherwise; else cfg.full_steps). So the first
-member brings a little, each one after brings more, and a full settlement of a faction's members
-reaches the cap; recruiting more of a faction, and better fighters, pays more than one of each. It
-goes when the last of them dies or leaves, or the war starts.
+is never at war in that sense, and no war counts while politics stands down). The perk grows with
+each living member from that faction (one whose server object is gone or dead counts for nothing),
+by the member's rank (cfg.rank_weights: a novice half a step, a legend two), with positive
+returns: its size is its cap times (steps / full) ^ cfg.curve, full being a settlement's worth
+(Homestead's cap on a player camp's residents, 15 unless its MCM says otherwise; else
+cfg.full_steps). So the first member brings a little, each one after brings more, and a full
+settlement of a faction's members reaches the cap; recruiting more of a faction, and better
+fighters, pays more than one of each. It goes when the last of them dies or leaves, or the war
+starts.
 
 Where you are counts: a member's steps count in full on your level and less the farther away they
 are, 1 / (1 + d / cfg.near_half), d the distance between the two levels' centers on the PDA's
@@ -25,7 +27,9 @@ loot, repair or companion loop is touched.
 - Loners, Ecologists, Freedom, Duty, Clear Sky: up to the trade cap off one kind of goods, when you
   buy from that faction's traders. The game's own on_get_item_cost callback, while a trade window
   is open: the price other mods made is multiplied, never set, and only when you buy (profile.mode
-  2). The goods are the [perks] goods_* lists: item kinds, or section prefixes ending in *.
+  2). The goods are the [perks] goods_* lists: item kinds, or section prefixes ending in *; each
+  is goods its traders stock at every supplies level in G.A.M.M.A. (Freedom's cooked mutant meat,
+  Clear Sky's detectors and devices), and no two lists share an item.
 - Military: up to the airlift cap off its airlifts (Fair Fast Travel's fares from the Cordon and
   Agroprom army traders; the price list and the payment both read the fare).
 - Mercenaries: a merc squad of advanced or veteran fighters that the game's own roll turned down
@@ -45,7 +49,8 @@ followed by more of the same, up to the relations cap, on the same curve and nea
 cfg.goodwill_jump (a story setting it) is left alone. Politics' daily pressure on your faction's
 pair with it grows the same way, by all its members wherever they are (fotz_politics, amp_all).
 
-The caps are MCM sliders (in percent, or points out of 100), the config's *_max their defaults.
+The caps are MCM's sliders (in percent, or points out of 100). With MCM installed they always win:
+a slider never moved answers with its own default, so the config's *_max are read only without MCM.
 
 Each hook is guarded: without the mod it needs, there's just no such perk.
 --]]
@@ -57,7 +62,7 @@ RADIO_AFTER_MS = 40000  -- Dialogues Expanded starts its radio about 27.5 s afte
 
 -- the faction a member came from -> its perk
 PERKS = {
-    stalker = "food", ecolog = "medicine", freedom = "mutant", dolg = "tools", csky = "parts",
+    stalker = "food", ecolog = "medicine", freedom = "meat", dolg = "tools", csky = "devices",
     army = "airlift", killer = "mercs", bandit = "map", renegade = "outposts",
     monolith = "radio", greh = "radio", isg = "radio",
 }
@@ -84,9 +89,9 @@ DEFAULTS = {
     rank_weights = "0.5, 0.6, 0.75, 1, 1.25, 1.5, 1.75, 2",
     goods_food = "i_food, i_drink",
     goods_medicine = "i_medical",
-    goods_mutant = "i_mutant_part, i_mutant_raw",
+    goods_meat = "i_mutant_cooked",
     goods_tools = "i_repair, i_kit, gun_oil*, toolkit_*",
-    goods_parts = "i_part",
+    goods_devices = "i_device",
 }
 
 cfg = nil
@@ -164,12 +169,26 @@ function enabled()
     return not (ui_mcm and ui_mcm.get("fotz/perks") == false)
 end
 
--- whether politics has your faction at war with f
+-- whether politics has your faction at war with f; never while politics stands down (its old
+-- wars stay in its events, but the relations are the game's again)
 function at_war(f)
     local P = fotz_politics
+    if P and P.standing_down and P.standing_down() then
+        return false
+    end
     local p = P and P.pair_of and P.pair_of(P.OWN, f)
     local ev = p and P.S and P.S.events and P.S.events[p.key]
     return ev ~= nil and ev.kind == "war"
+end
+
+-- whether a member still counts: their server object is there and alive (a death the faction
+-- hasn't marked yet, or an id that's gone, counts for nothing)
+function living(id)
+    local ok, yes = pcall(function()
+        local se = alife():object(id)
+        return se ~= nil and se:alive()
+    end)
+    return ok and yes == true
 end
 
 -- a member's rank name: the live NPC's, else their server object's; nil if it can't be read
@@ -246,7 +265,7 @@ function active()
         local here = level.name()
         for id, m in pairs(F.members) do
             local f = type(m.mother) == "string" and string.gsub(m.mother, "^actor_", "") or nil
-            if f and PERKS[f] and not m.dead then
+            if f and PERKS[f] and not m.dead and living(id) then
                 local w = weight_of(id)
                 local near = w * nearness(member_level(id), here)
                 all[f] = (all[f] or 0) + near
@@ -303,7 +322,8 @@ function near_weight(f)
     return p and p.near or 0
 end
 
--- a cap: MCM's slider, else the config's
+-- a cap: MCM's slider (with MCM installed, always: a slider never moved gives its own default),
+-- else the config's
 function cap(kind, default)
     local s = SLIDERS[kind]
     local v = s and ui_mcm and tonumber(ui_mcm.get("fotz/" .. s[1]))

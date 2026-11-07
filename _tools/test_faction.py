@@ -12,6 +12,10 @@ ever changes a dead NPC's faction; a save of another version is set aside; the s
 Others: anyone another mod put in the faction is saved in the old one (live NPC untouched), also
 after disbanding; Homestead's records (settlers, trader, keyed timers) get the old faction on each
 update, at the save and at load; a game without a faction never looks through every object.
+The 2026-11-07 sweep: after a load the members' server objects are back in the faction on the first
+update (M1); a death is marked however it came (offline, no killer, no callback) (M2); an id names a
+member by profile and name, a rename is taken up, a dead member's id is skipped (M5); your members
+treat you as at founding after the game's own faction change (M4); a parked faction's id (M7).
 
     python test_faction.py            the real script
     python test_faction.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -40,13 +44,13 @@ MUTANTS = {
     "no_back_after_save": ("    if saved then\n        back_after_save()\n    end\n", ""),
     "offset": ("    p:r_s32()\n    p:r_stringZ()\n    local at", "    p:r_s32()\n    local at"),
     "dead_set": ("    if o and o:alive() then\n        o:set_character_community(m.mother", "    if o then\n        o:set_character_community(m.mother"),
-    "identity": ("return se ~= nil and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile",
+    "identity": ("return se ~= nil and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile and se:character_name() == m.name",
                  "return se ~= nil"),
-    "no_defer": ("    if same_member(id, m) then\n        pending[id] = true",
-                 "    if same_member(id, m) then\n        npc:set_character_community(OWN, npc:squad(), npc:group())"),
+    "no_defer": ("    elseif same_member(id, m) then\n        pending[id] = true",
+                 "    elseif same_member(id, m) then\n        npc:set_character_community(OWN, npc:squad(), npc:group())"),
     "actor_save": ('    if db.actor:character_community() == ACTOR_OWN then\n        db.actor:set_character_community(home(), 0, 0)\n    end\n    log("save: %s members',
                    '    log("save: %s members'),
-    "keep_dead": ("            if m.dead then\n                F.members[id] = nil\n            end\n", ""),
+    "keep_dead": ("            if m.dead then\n                F.members[id] = nil\n", "            if m.dead then\n"),
     "always_join": ("    if you_join() then", "    if true then"),
     "keep_dismissed": ('if m.via == "companion" and not m.dead and not comp[id] then', "if false then"),
     "squad_zero": ("npc:set_character_community(OWN, npc:squad(), npc:group())", "npc:set_character_community(OWN, 0, 0)"),
@@ -90,6 +94,37 @@ MUTANTS = {
     "saved_as_ours": ("        return record_faction(tonumber(id))\n", "        return comm\n"),
     "saved_id_string": ("        return record_faction(tonumber(id))\n", "        return record_faction(id)\n"),
     "saved_actor_ours": ("    elseif comm == ACTOR_OWN then\n        return home()\n", "    elseif comm == ACTOR_OWN then\n        return comm\n"),
+    # the 2026-11-07 sweep: M1, members back in the faction after a load
+    "load_not_back": ("    saved = true\n    tick()\nend", "    tick()\nend"),
+    "back_before_look": ("    for id, m in pairs(F.members) do\n        look(id, m)\n    end\n    if saved then\n        back_after_save()\n    end\n",
+                         "    if saved then\n        back_after_save()\n    end\n    for id, m in pairs(F.members) do\n        look(id, m)\n    end\n"),
+    # M2, every death marked
+    "no_squad_death": ('    RegisterScriptCallback("squad_on_npc_death", squad_on_npc_death)\n', ""),
+    "no_found_dead": ('        died(id, m, ", found dead")\n', ""),
+    "server_alive_only": ("    elseif not (o or se):alive() then", "    elseif not se:alive() then"),
+    "save_no_look": ("            look(id, m)\n            local se = alife():object(id)\n", "            local se = alife():object(id)\n"),
+    # M5, an id names a member by profile and name; the dead are skipped
+    "name_unchecked": (" and se:profile_name() == m.profile and se:character_name() == m.name", " and se:profile_name() == m.profile"),
+    "no_rename": ("        m.name = se:character_name()\n", ""),
+    "leave_no_look": ("    look(id, m)\n    F.members[id] = nil\n", "    F.members[id] = nil\n"),
+    "lost_forgotten": ("        lost[m] = true\n", ""),
+    "spawn_dead_kept": ("    if m.dead then\n        return\n    elseif same_member(id, m) then", "    if same_member(id, m) then"),
+    "load_pends_dead": ("        if not m.dead then\n            pending[id] = true\n        end\n", "        pending[id] = true\n"),
+    "relink_old_name": ("name_of(new) or m.name, nil", "m.name, nil"),
+    "relink_keeps_lost": ("    lost[m] = nil\n", ""),
+    # M4, your members' relation to you after the game's faction change
+    "you_row_off": ("    if row ~= am then\n        set_cell(OWN, row,", "    if false then\n        set_cell(OWN, row,"),
+    "you_row_left": ('    if you_at and you_at ~= am then\n        set_cell(OWN, you_at, F.base[OWN .. ">" .. you_at])\n'
+                     '        set_cell(you_at, OWN, F.base[you_at .. ">" .. OWN])\n    end\n', ""),
+    "you_row_one_way": ('        set_cell(row, OWN, F.base[am .. ">" .. OWN])\n', ""),
+    # M6, a fallen member's body, for the patch it drops
+    "fallen_not_kept": ("                    F.fallen[id] = { mother = m.mother, profile = m.profile, name = m.name }\n", ""),
+    "fallen_not_pruned": ("        if not same_member(id, b) then\n            F.fallen[id] = nil\n        end\n", ""),
+    "fallen_unchecked": ("return b and same_member(id, b) and b.mother or nil", "return b and b.mother or nil"),
+    "searched_kept": ("    if F and F.fallen then\n        F.fallen[id] = nil\n    end\n", ""),
+    # M7, politics asks for a parked faction's id
+    "parked_uid_nil": ("    return parked and (parked.uid or", "    return nil and (parked.uid or"),
+    "parked_uid_no_fallback": ('(parked.uid or (tostring(parked.founded) .. "/" .. tostring(parked.mother)))', "parked.uid"),
 }
 
 WORLD = r"""
@@ -137,7 +172,7 @@ function Server:community() return NAMES[self.comm] end
 function Server:profile_name() return self.profile end
 function Server:clsid() return CLS_STALKER end
 function Server:alive() return not self.dead end
-function Server:character_name() return "Stalker " .. self.id end
+function Server:character_name() return self.name or ("Stalker " .. self.id) end
 function Server:STATE_Write(p)
     p:w_u32(self.money); p:w_stringZ(self.spec); p:w_s32(self.flags); p:w_stringZ(self.profile)
     p:w_s32(self.comm); p:w_s32(self.rank)
@@ -319,6 +354,11 @@ def not_declared(src):
     w = World(src, setup='MCM["fotz/faction"] = true; COMMS = "actor, 0, stalker, 1, ecolog, 2, actor_ecolog, 3"; names()'
               + SETUP, m_data=saved)
     check(w.env.F is None and w.g.SET["fotz/faction"] is False, "an undeclared faction was restored: %s" % w.env.F)
+    # politics asks for its id (a save from before ids: worked out as politics does)
+    check(w.env.parked_uid() == "2012-05-01/ecolog", "parked_uid: %s" % w.env.parked_uid())
+    w_uid = World(src, setup='COMMS = "actor, 0, stalker, 1, ecolog, 2, actor_ecolog, 3"; names()' + SETUP,
+                  m_data=saved.replace('mother = "ecolog", ', 'mother = "ecolog", uid = "77/88", ', 1))
+    check(w_uid.env.parked_uid() == "77/88", "parked_uid with an id: %s" % w_uid.env.parked_uid())
     w.run("tick()")
     w.cb["on_option_change"]()
     check(len(w.calls()) == 0 and w.g.ACTOR.comm == "actor_ecolog", "the undeclared faction was named: %s" % w.calls())
@@ -394,6 +434,7 @@ server(0, "actor_ecolog", "actor")
     m2 = saved.replace('["members"] = { ', '["members"] = { [504] = { ["mother"] = "dolg", ["name"] = "Old", ["profile"] = "p504" }, ', 1)
     w2 = World(src, setup=setup2, m_data=m2)
     check(w2.g.SET["fotz/faction"] is True and w2.g.SET["fotz/faction_name"] == "Wolves", "MCM wasn't synced from the save")
+    check(w2.env.parked_uid() is None, "a faction this install declares counts as parked: %s" % w2.env.parked_uid())
     check(w2.g.REL["fotz_own>bandit"] == -1500 and w2.g.REL["fotz_own>actor_fotz_own"] == 2000, "relations weren't reapplied")
     check(w2.g.ACTOR.comm == "actor_fotz_own", "you weren't put back in your faction at load")
     w2.run('online(503, "stalker", 5, 6)')
@@ -619,8 +660,8 @@ def settlers(src):
     w.run('server(704, "ecolog", "p704")')
     check(w.env.relink(702, 704) is True and w.env.F.members[702] is None, "relink didn't move the membership")
     m = w.env.F.members[704]
-    check(m and m.mother == "ecolog" and m.profile == "p704" and w.comm(704) == "fotz_own",
-          "the re-created member: %s, %s" % (m and (m.mother, m.profile), w.comm(704)))
+    check(m and m.mother == "ecolog" and m.profile == "p704" and m.name == "Stalker 704" and w.comm(704) == "fotz_own",
+          "the re-created member: %s, %s" % (m and (m.mother, m.profile, m.name), w.comm(704)))
     check(w.env.relink(702, 705) is False, "relinked a membership that isn't there")
     # companions 501 and 503 dismissed; 503 lives in your camp
     w.run('RESIDENTS = { [503] = true }; fotz_loyalty = { enabled = function() return true end, '
@@ -655,6 +696,174 @@ def faction_change(src):
     check(w.env.F is None and w.g.ACTOR.comm == "actor_dolg", "disbanding put you in %s" % w.g.ACTOR.comm)
 
 
+def after_load(src):
+    """M1: after a load, the members' server objects are back in the faction on the first update,
+    as after a save (the save's packet edit leaves them in their old ones), and the next save takes
+    them out again. A member an older build saved though dead is found dead first, and left as is."""
+    w = World(src, setup=SETUP)
+    w.env.found("Wolves")
+    w.run('server(702, "ecolog")')
+    w.env.join_settler(702)
+    m = w.eval("{}")
+    w.cb["save_state"](m)
+    check(w.comm(702) == "ecolog", "the save left 702 in %s" % w.comm(702))
+    saved = w.eval("dump")(m)
+    # the next game: 702 offline as saved; 705 dead, in the save as a member
+    setup2 = SETUP + 'server(702, "ecolog")\nserver(705, "dolg").dead = true\n'
+    m2 = saved.replace('["members"] = { ', '["members"] = { [705] = { ["mother"] = "dolg", ["name"] = "Stalker 705", '
+                       '["profile"] = "p705" }, ', 1)
+    w2 = World(src, setup=setup2, m_data=m2)
+    check(w2.comm(702) == "fotz_own", "after the load, the offline member's server object stayed %s" % w2.comm(702))
+    check(w2.g.SE[702].reads == 1, "702's packet read %s times" % w2.g.SE[702].reads)
+    check(w2.env.F.members[705].dead is True, "a dead member from the save wasn't found dead")
+    check(w2.comm(705) == "dolg" and w2.g.SE[705].reads is None, "a dead member's body was edited: %s" % w2.comm(705))
+    w2.run("tick()")
+    check(w2.g.SE[702].reads == 1, "702 was edited again on the next update")
+    m3 = w2.eval("{}")
+    w2.cb["save_state"](m3)
+    check(w2.comm(702) == "ecolog" and m3.fotz_faction.members[702] is not None, "the next save: 702 in %s" % w2.comm(702))
+    check(m3.fotz_faction.members[705] is None, "the dead member was saved")
+
+
+def deaths(src):
+    """M2: a member is marked dead for every death the faction can learn of: offline (the server's
+    squad callback, all offline combat sends for most of its dead), online with no stalker or
+    monster killer (an anomaly: the live NPC is dead before its server object says so), a body no
+    callback told of, and one dying just before a save; the living stay, and the save drops the
+    dead. M6: it keeps their bodies (fallen_mother) until searched, gone or someone else's."""
+    w = World(src, setup=SETUP)
+    w.env.found("Wolves")
+    w.run('server(702, "ecolog"); server(706, "dolg"); server(707, "stalker")')
+    for i in (702, 706, 707):
+        w.env.join_settler(i)
+    F = w.env.F
+    w.cb["squad_on_npc_death"](w.eval("{}"), w.g.SE[702], w.g.SE[601])
+    check(F.members[702].dead is True, "an offline death wasn't marked")
+    w.run("ONLINE[503].live = false")
+    w.run("tick()")
+    check(F.members[503].dead is True, "an online death with no killer wasn't marked")
+    w.run("SE[706].dead = true")
+    w.run("tick()")
+    check(F.members[706].dead is True, "a body no callback told of wasn't marked")
+    check(F.members[501].dead is None and F.members[707].dead is None, "the living were marked dead")
+    check(sum(" died" in l for l in w.log()) == 3, "deaths logged: %s" % [l for l in w.log() if " died" in l])
+    w.run("SE[707].dead = true")
+    m = w.eval("{}")
+    w.cb["save_state"](m)
+    kept = sorted(k for k in m.fotz_faction.members.keys())
+    check(kept == [501], "the save kept %s" % kept)
+    check(all(w.comm(i) != "fotz_own" for i in (503, 702, 706, 707)), "a dead member was saved in the faction")
+    # M6: their bodies, kept in the save until searched or gone, for the patch they drop
+    fallen = m.fotz_faction.fallen
+    check(fallen is not None and sorted(fallen.keys()) == [503, 702, 706, 707] and fallen[707].mother == "stalker",
+          "the fallen in the save: %s" % (fallen and sorted(fallen.keys())))
+    fm = w.env.fallen_mother
+    check((fm(503), fm(706), fm(501), fm(999)) == ("stalker", "dolg", None, None),
+          "fallen_mother: %s" % ((fm(503), fm(706), fm(501), fm(999)),))
+    w.env.searched(706)
+    w.run('SE[702] = nil; SE[707] = nil; server(707, "bandit").name = "Other"')
+    check(fm(706) is None and fm(707) is None, "a searched body, or another at its id: %s %s" % (fm(706), fm(707)))
+    m2 = w.eval("{}")
+    w.cb["save_state"](m2)
+    check(sorted(m2.fotz_faction.fallen.keys()) == [503], "the next save kept %s" % sorted(m2.fotz_faction.fallen.keys()))
+
+
+def identity(src):
+    """M5: an id names a member only with their profile and their name. Homestead's rename of the
+    same NPC is taken up, also just before a save; an id seen naming no one, then given to another
+    of the same section, isn't the member; a dead member's id is skipped at net spawn and at load;
+    a member Homestead re-created is looked at under the new id."""
+    w = World(src, setup=SETUP)
+    w.env.found("Wolves")
+    w.run('server(702, "ecolog")')
+    w.env.join_settler(702)
+    w.run('SE[702].name = "Sasha"')
+    w.run("tick()")
+    check(w.env.F.members[702].name == "Sasha", "a rename wasn't taken up: %s" % w.env.F.members[702].name)
+    w.run('SE[702].name = "Sasha Grey"')
+    w.cb["save_state"](w.eval("{}"))
+    m = w.env.F.members[702]
+    check(m is not None and m.name == "Sasha Grey" and w.comm(702) == "ecolog",
+          "renamed just before a save: %s, saved in %s" % (m and m.name, w.comm(702)))
+    w.run("tick()")
+    # renamed just before leaving, offline: back in their own faction, not yours
+    w.run('server(712, "ecolog")')
+    w.env.join_settler(712)
+    w.run('SE[712].name = "Renamed"')
+    w.env.leave(712, "test")
+    check(w.comm(712) == "ecolog", "renamed, then left: saved in %s" % w.comm(712))
+    # 702 released, its id given to another of the same section, with another name
+    w.run("SE[702] = nil")
+    w.run("tick()")
+    w.run('server(702, "stalker", "p702")')
+    w.run("tick()")
+    check(w.env.F.members[702].name == "Sasha Grey", "the newcomer's name was taken up")
+    w.run('online(702, "stalker")')
+    w.cb["npc_on_net_spawn"](w.g.ONLINE[702])
+    w.run("tick()")
+    check(w.env.F.members[702] is None and w.live(702) == "stalker", "the newcomer at 702 joined: %s" % w.live(702))
+    # 708 dies; a living NPC of the same section and name comes online under the id
+    w.run('server(708, "dolg")')
+    w.env.join_settler(708)
+    w.cb["squad_on_npc_death"](w.eval("{}"), w.g.SE[708])
+    w.run('server(708, "dolg"); online(708, "dolg")')
+    w.cb["npc_on_net_spawn"](w.g.ONLINE[708])
+    w.run("tick()")
+    check(w.live(708) == "dolg", "a dead member's id gave the faction to %s" % w.live(708))
+    # re-created by Homestead after its id was seen empty: the new id is looked at
+    w.run('server(710, "ecolog")')
+    w.env.join_settler(710)
+    w.run("SE[710] = nil")
+    w.run("tick()")
+    w.run('server(711, "ecolog", "p710").name = "Stalker 710"')
+    check(w.env.relink(710, 711) is True, "relink failed")
+    w.run("SE[711].dead = true")
+    w.run("tick()")
+    check(w.env.F.members[711].dead is True, "a relinked member wasn't looked at")
+    # a save holding a dead member (an error at that save): no faction for whoever has the id at load
+    saved = '{ fotz_faction = { v = 1, name = "Wolves", founded = "2012-05-01", mother = "ecolog", base = {}, ' \
+            'members = { [709] = { name = "Stalker 709", mother = "dolg", profile = "p709", dead = true } } } }'
+    w2 = World(src, setup=SETUP + 'online(709, "dolg")', m_data=saved)
+    w2.run("tick()")
+    check(w2.live(709) == "dolg", "a dead member from the save got the faction at load")
+
+
+def you_after_faction_change(src):
+    """M4: after the game's own faction change, your members treat you as at founding (your old
+    faction's view of its own players) on the row you're on now, and you them; a row you left gets
+    its own back, the founding record is untouched, and a load sets the row again."""
+    setup = SETUP.replace(JOIN, "") + """
+REL["ecolog>actor_ecolog"] = 1500; REL["actor_ecolog>ecolog"] = 1400
+REL["ecolog>actor_dolg"] = -3000; REL["actor_dolg>ecolog"] = -2900
+REL["ecolog>actor_bandit"] = -2000; REL["actor_bandit>ecolog"] = -1900
+"""
+    w = World(src, setup=setup)
+    w.env.found("Wolves")
+    R = w.g.REL
+
+    def cells(row, R=R):
+        return R["fotz_own>" + row], R[row + ">fotz_own"]
+    check(cells("actor_ecolog") == (1500, 1400) and cells("actor_dolg") == (-3000, -2900), "founding: %s %s" %
+          (cells("actor_ecolog"), cells("actor_dolg")))
+    w.run('TRUE_COMM = "dolg"; ACTOR.comm = "actor_dolg"')
+    w.run("tick()")
+    check(cells("actor_dolg") == (1500, 1400), "after joining Duty: %s" % (cells("actor_dolg"),))
+    check(w.env.F.base["fotz_own>actor_dolg"] == -3000, "the founding record changed")
+    w.run('TRUE_COMM = "bandit"; ACTOR.comm = "actor_bandit"')
+    w.run("tick()")
+    check(cells("actor_bandit") == (1500, 1400) and cells("actor_dolg") == (-3000, -2900),
+          "after Duty, the Bandits: %s, Duty's row %s" % (cells("actor_bandit"), cells("actor_dolg")))
+    m = w.eval("{}")
+    w.cb["save_state"](m)
+    w2 = World(src, setup=setup + 'TRUE_COMM = "bandit"; ACTOR.comm = "actor_bandit"', m_data=w.eval("dump")(m))
+    R2 = w2.g.REL
+    check(cells("actor_bandit", R2) == (1500, 1400), "after a load: %s" % (cells("actor_bandit", R2),))
+    w2.run('TRUE_COMM = "ecolog"; ACTOR.comm = "actor_ecolog"')
+    w2.run("tick()")
+    check(cells("actor_bandit", R2) == (-2000, -1900) and cells("actor_ecolog", R2) == (1500, 1400),
+          "back in your old faction: %s %s" % (cells("actor_bandit", R2), cells("actor_ecolog", R2)))
+
+
 def run(src):
     strings(src)
     not_declared(src)
@@ -669,8 +878,12 @@ def run(src):
     other_version(src)
     settlers(src)
     faction_change(src)
-    return ("13 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub, "
-            "names, settlers, faction change")
+    after_load(src)
+    deaths(src)
+    identity(src)
+    you_after_faction_change(src)
+    return ("17 scenarios: found, save, load, disguise, leading, politics, dismiss, disband, others, load scrub, "
+            "names, settlers, faction change, after load, deaths, identity, your row")
 
 
 def main():

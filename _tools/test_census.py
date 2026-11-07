@@ -4,8 +4,8 @@ The world: eleven squads on two levels and six smarts, with relations that make 
 enemies. Checked: the counts per faction (squads, fighters, tiers, ranks, levels, story squads),
 which faction holds each smart and which are contested, the relations and goodwill read, the
 JSON (it parses, keys sorted, strings escaped), the daily schedule (the wait after a load, one
-census a day, the MCM switch), that an error stays inside the census, and that nothing is written
-to the world.
+census a day, the MCM switch), that an error stays inside the census, one level's ground counted on
+its own as the census counts it, and that nothing is written to the world.
 
     python test_census.py            the real script
     python test_census.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -50,6 +50,9 @@ MUTANTS = {
                                  "                f:write(to_json(c), \"\\n\")\n                f:close()\n            end)\n",
                                  "            local f = assert(io.open(path(), \"a\"))\n            f:write(to_json(c), \"\\n\")\n"
                                  "            f:close()\n            local ok2, err2 = true, nil\n"),
+    # one level's ground on its own (the 2026-11-07 sweep, C5)
+    "level_ground_all_smarts": ("        if level_of(s.smrt) == lv then", "        if true then"),
+    "level_ground_all_squads": ("        if sq and sq.smart_id and here[sq.smart_id] then", "        if sq and sq.smart_id then"),
 }
 
 WORLD = r"""
@@ -303,6 +306,16 @@ def run(src):
         for d in (a, b):
             d.pop("real"), d.pop("ms")
         check(a == b, "two censuses of one world differ")
+
+        # one level's ground counted on its own, for a look before the first census after a load:
+        # the census's own count for that level; nothing on a level with no smarts
+        for lv in ("l05_bar", "l01_escape"):
+            got = env.level_ground(lv)
+            want = c["levels"][lv]
+            check(got.smarts == want["smarts"] and dict(got.held.items()) == want["held"],
+                  "%s's ground on its own: %s smarts, %s; the census's %s" % (lv, got.smarts, dict(got.held.items()), want))
+        none = env.level_ground("l03_agroprom")
+        check(none.smarts == 0 and not list(none.held.keys()), "ground on a level with no smarts")
 
         # with the log off, a listener still gets each census, and nothing is written
         lua.execute("GOT = {}")

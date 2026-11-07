@@ -16,7 +16,12 @@ goodwill kept once, and put back with the community terms force_set_goodwill tak
 up as db.actor, live and offline); the ceasefire held, over
 at its time, broken by your hit and no one else's, gone with its outpost; the old goodwill back
 offline; the save keeping the old goodwill and the next update applying the ceasefire again; a
-save of another version set aside; switched off, every ceasefire ends; the strings exist.
+save of another version set aside; switched off, every ceasefire ends; the strings exist. From the
+2026-11-07 sweep: a hit by a weapon you hold ends it, one someone else holds doesn't; an NPC of a
+truce who died, or whose id someone else holds now (another name or profile), dropped from it, a
+look first or a hit, never held or given the old goodwill; a pair with your companions dropped when
+either side is gone, the other side's goodwill put back; the old goodwill put back by the server
+objects' communities after the save's packet edit (live and saved differ for a companion member).
 
     python test_outposts.py            the real script
     python test_outposts.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -79,8 +84,8 @@ MUTANTS = {
     "actor_by_lookup": ("    local b = b_id == 0 and db.actor or level.object_by_id(b_id)", "    local b = level.object_by_id(b_id)"),
     "no_companions": ("            for _, c in ipairs(comps) do", "            for _, c in ipairs({}) do"),
     "one_way": ("local them, us = hold_fire(npc, c), hold_fire(c, npc)", "local them, us = hold_fire(npc, c), nil"),
-    "pairs_always": ("                if p[1] ~= nil or p[2] ~= nil then\n                    t.pairs[k] = p\n                end",
-                     "                t.pairs[k] = p"),
+    "pairs_always": ("                if p[1] ~= nil or p[2] ~= nil then\n                    t.pairs[k] = p\n",
+                     "                t.pairs[k] = p\n                if p[1] ~= nil or p[2] ~= nil then\n"),
     "restore_unchanged": ("        if olds[1] ~= nil then\n            set_back(a, b, olds[1])\n        end",
                           "        set_back(a, b, olds[1] or 0)"),
     "old_overwritten": ("            if old == false and was then", "            if was then"),
@@ -88,7 +93,22 @@ MUTANTS = {
     "hours_fixed": ("math.random(cfg.truce_days_min * 24, cfg.truce_days_max * 24)", "cfg.truce_days_min * 24"),
     "gone_kept": ('        if type(camp) ~= "table" or camp.status or camp.faction ~= t.faction then',
                   '        if type(camp) ~= "table" then'),
-    "hit_by_anyone": ("    if not (who and who:id() == 0) then", "    if not who then"),
+    "hit_by_anyone": ("    if hitter:id() == 0 then\n        return true", "    if true then\n        return true"),
+    # 2026-11-07 sweep. S8: a weapon you hold (a knife's silent kill names the knife)
+    "knife_ignored": ("    return p ~= nil and p:id() == 0", "    return false"),
+    # S2: a truce's NPC who died, or whose id someone else holds now, is dropped; pairs likewise
+    "truce_dead_kept": ("    if se and se.alive and se:alive() and se.profile_name then", "    if se and se.profile_name then"),
+    "truce_stranger_kept": ("(t.who == nil or t.who[id] == nil or t.who[id] == now)", "true"),
+    "apply_unpruned": ("local function apply(t)\n    prune(t)\n", "local function apply(t)\n"),
+    "restore_unpruned": ("local function restore(t)\n    prune(t)\n", "local function restore(t)\n"),
+    "pair_stranger_kept": ("        if has_a and has_c then", "        if has_a then"),
+    "gone_pair_side_kept": ("            if has_c and olds[2] ~= nil then\n                set_back(c, a, olds[2])\n            end\n", ""),
+    "gone_pair_other_kept": ("            if has_a and olds[1] ~= nil then\n                set_back(a, c, olds[1])\n            end\n", ""),
+    # S9: put back by the server objects' communities, which force_set_goodwill reads
+    "live_terms_a": ("    local comm = a_se and a_se.community and a_se:community() or (a and a:character_community())",
+                     "    local comm = a and a:character_community() or (a_se and a_se.community and a_se:community())"),
+    "live_terms_b": ("    local b_comm = b_se and b_se.community and b_se:community() or (b and b:character_community())",
+                     "    local b_comm = b and b:character_community() or (b_se and b_se.community and b_se:community())"),
     "save_keeps_truce": ('    for _, t in pairs(T.truces) do\n        guarded("restore", restore, t)\n    end\n    again = true',
                          "    again = true"),
     "not_again": ("    again = true\n    m_data.fotz_outposts = T", "    m_data.fotz_outposts = T"),
@@ -155,13 +175,16 @@ end
 
 -- the attitude, as the engine sums it: personal goodwill ("a>b", by ids), the faction's goodwill
 -- toward the character ("comm>id"), the community relation ("comm>comm") and rank and reputation
--- ("a>b"); force_set_goodwill takes the two community terms off what it's given
-REL, GW, CG, RR, DEAD = {}, {}, {}, {}, {}
+-- ("a>b"), by the live objects' communities; force_set_goodwill takes the two community terms off
+-- what it's given by the server objects' (RELATION_REGISTRY::ForceSetGoodwill). LIVE[id] is a live
+-- community apart from the server one (a companion member after the save's packet edit)
+REL, GW, CG, RR, DEAD, LIVE = {}, {}, {}, {}, {}, {}
 relation_registry = { community_relation = function(a, b) return REL[a .. ">" .. b] or 0 end,
                       community_goodwill = function(comm, id) return CG[comm .. ">" .. id] or 0 end }
 function terms(comm, who_id, who_comm) return (CG[comm .. ">" .. who_id] or 0) + (REL[comm .. ">" .. tostring(who_comm)] or 0) end
 function comm_of(id) return id == 0 and ACTOR_COMM or SE[id]:community() end
-function att(a, b) return (GW[a .. ">" .. b] or 0) + terms(comm_of(a), b, comm_of(b)) + (RR[a .. ">" .. b] or 0) end
+function live_of(id) return id == 0 and ACTOR_COMM or LIVE[id] or SE[id]:community() end
+function att(a, b) return (GW[a .. ">" .. b] or 0) + terms(live_of(a), b, live_of(b)) + (RR[a .. ">" .. b] or 0) end
 local function pos(x, y, z)
     return { x = x, y = y, z = z, distance_to = function(self, o)
         return math.sqrt((self.x - o.x) ^ 2 + (self.y - o.y) ^ 2 + (self.z - o.z) ^ 2) end }
@@ -174,12 +197,12 @@ function obj(id, comm)
         id = function() return id end,
         alive = function() return not DEAD[id] end,
         character_name = function() return "n" .. id end,
-        character_community = function() return comm end,
+        character_community = function() return LIVE[id] or comm end,
         position = function() return ME end,
         goodwill = function(self, who) return GW[id .. ">" .. who:id()] or 0 end,
         general_goodwill = function(self, who) return att(id, who:id()) end,
         force_set_goodwill = function(self, v, who)
-            GW[id .. ">" .. who:id()] = v - terms(comm, who:id(), who:character_community())
+            GW[id .. ">" .. who:id()] = v - terms(comm_of(id), who:id(), comm_of(who:id()))
         end,
     }
 end
@@ -190,11 +213,13 @@ ONLINE = {}
 -- the engine may not give you by id 0: the script asks for db.actor
 level = { name = function() return LEVEL end, object_by_id = function(id) return ONLINE[id] end }
 
--- the alife: NPCs' server objects (rank, goodwill offline) and squads
+-- the alife: NPCs' server objects (rank, name and profile, goodwill offline) and squads
 SE, SQUADS = {}, {}
-function se_npc(id, rank, comm)
+function se_npc(id, rank, comm, name)
     SE[id] = { id = id, rank = rank, alive = function() return not DEAD[id] end,
                community = function() return comm end,
+               character_name = function() return name or ("n" .. id) end,
+               profile_name = function() return "sim_default_" .. tostring(comm) .. "_1" end,
                force_set_goodwill = function(self, v, who_id)
                    GW[id .. ">" .. who_id] = v - terms(comm, who_id, comm_of(who_id))
                end }
@@ -572,6 +597,88 @@ def truce_broken(src):
     check(w.news()[-1] == "You broke the ceasefire at O:A: F:bandit there are hostile again.", "the news: %s" % w.news())
 
 
+def knife(src):
+    """S8: a hit by a weapon you hold (a knife's silent kill) ends the ceasefire; one someone else
+    holds doesn't."""
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4)
+    w.run("KNIFE = { id = function() return 7000 end, parent = function() return db.actor end }; "
+          "THEIRS = { id = function() return 7001 end, parent = function() return ONLINE[%d] end }" % b)
+    w.ev("fotz_outposts.on_hit_hook(ONLINE[%d], 10, nil, THEIRS)" % a)
+    check(w.truce() is not None, "a weapon someone else holds ended it")
+    w.ev("fotz_outposts.on_hit_hook(ONLINE[%d], 10, nil, KNIFE)" % a)
+    check(w.truce() is None and w.att(a, 0) == -2000, "your knife's hit didn't end it: %s" % w.att(a, 0))
+
+
+STRANGER = ('se_npc(%(a)d, "novice", "killer", "Stranger"); ONLINE[%(a)d] = obj(%(a)d, "killer"); '
+            'REL["killer>actor_stalker"] = -2000; GW["%(a)d>0"] = 700')
+
+
+def truce_identity(src):
+    """S2: an NPC of a truce who died is dropped from it; an id someone else holds now is never
+    theirs (no ceasefire set, no old goodwill put back), a look first or a hit; a pair with your
+    companions goes when either side is gone, the other side's goodwill put back."""
+    # a dies and the look drops them; the id goes to someone of the same name and profile, at war
+    # with you: not held, and their goodwill not overwritten at the end
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4)
+    w.run("kill(%d)" % a)
+    w.look()
+    check(w.truce().npcs[a] is None, "a dead NPC kept in the truce")
+    w.run('DEAD[%d] = nil; GW["%d>0"] = 700' % (a, a))
+    w.look()
+    check(w.att(a, 0) == -1300, "the id's next holder held: %s" % w.att(a, 0))
+    w.run('NOW = "2026-11-04 12:00"')
+    w.look()
+    check(w.truce() is None and w.ev("GW['%d>0']" % a) == 700, "the next holder's goodwill: %s" % w.ev("GW['%d>0']" % a))
+    # a stranger (another name) takes the id: a look holds no one; a hit first puts nothing back
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4)
+    w.run(STRANGER % {"a": a})
+    w.look()
+    check(w.att(a, 0) == -1300 and w.truce().npcs[a] is None, "a stranger held: %s" % w.att(a, 0))
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4)
+    w.run(STRANGER % {"a": a})
+    w.ev("fotz_outposts.on_hit_hook(ONLINE[%d], 10, nil, db.actor)" % b)
+    check(w.truce() is None and w.ev("GW['%d>0']" % a) == 700, "put back on a stranger: %s" % w.ev("GW['%d>0']" % a))
+    # a garrison man dies: his pair goes, and your companion's goodwill toward his id is back at once
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4, comp=True)
+    w.run("kill(%d)" % a)
+    w.look()
+    check(w.truce().pairs["%d>900" % a] is None and w.ev("GW['900>%d']" % a) == 0,
+          "a dead man's pair: %s" % w.ev("GW['900>%d']" % a))
+    # your companion's id goes to a newcomer, at war with them too: the old pair goes (the
+    # garrison's goodwill toward the id put back), the newcomer's own is kept and comes back
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4, comp=True)
+    w.run('se_npc(900, "veteran", "stalker", "Newcomer"); GW["900>%d"] = 450' % a)
+    w.look()
+    w.ev("fotz_outposts.on_hit_hook(ONLINE[%d], 10, nil, db.actor)" % a)
+    check(w.ev("GW['900>%d']" % a) == 450 and w.ev("GW['%d>900']" % a) == 0,
+          "a newcomer at your companion's id: %s, %s" % (w.ev("GW['900>%d']" % a), w.ev("GW['%d>900']" % a)))
+
+
+def member_terms(src):
+    """S9: the old goodwill put back by the communities force_set_goodwill reads, the server
+    objects': after the save's packet edit a companion member's is their old faction, the live NPC
+    still yours."""
+    w = fresh(src)
+    a, b = beaten_two(w, 0.4)
+    w.run("companion(900); LIVE[900] = 'fotz_own'; SE[900].community = function() return 'fotz_own' end; "
+          "REL['fotz_own>bandit'] = -3000; REL['bandit>fotz_own'] = -3000; "
+          "REL['stalker>bandit'] = -500; REL['bandit>stalker'] = -800; GW['900>%d'] = 250" % a)
+    w.look()
+    p = w.truce().pairs["%d>900" % a]
+    check(p and list(p.values()) == [0, 250], "the pair: %s" % (p and list(p.values())))
+    # the save: fotz_faction's packet edit first (the order the two save callbacks run in isn't fixed)
+    w.run("SE[900].community = function() return 'stalker' end")
+    w.env.save_hook(w.ev("{}"))
+    got = (w.ev("GW['%d>900']" % a), w.ev("GW['900>%d']" % a))
+    check(got == (0, 250), "put back after the packet edit: %s" % (got,))
+
+
 def truce_gone(src):
     for change in ('stalker_camp_builder.rival_camps.A.status = "unoccupied"',
                    'stalker_camp_builder.rival_camps.A.faction = "dolg"',
@@ -629,10 +736,10 @@ def strings(src):
 
 
 def run(src):
-    for t in (config, chances, fight, ranks, defection, surrender, truce_time, truce_broken, truce_gone, save_load,
-              switched_off, strings):
+    for t in (config, chances, fight, ranks, defection, surrender, truce_time, truce_broken, knife, truce_identity,
+              member_terms, truce_gone, save_load, switched_off, strings):
         t(src)
-    return "12 scenarios"
+    return "15 scenarios"
 
 
 def expose(src):

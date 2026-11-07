@@ -8,8 +8,10 @@ of the faction you came from, and it and its members are your friends. Your comp
 
 No save ever holds it. Just before each save, every member's saved faction is set back to the one
 they came from, by an edit of the faction index in their state packet (the live NPC isn't touched),
-and you go back to your own faction until the save is written. Members get the faction again when
-they come online. Removing the mod needs nothing: a save loads with everyone in their old faction.
+and you go back to your own faction until the save is written. Right after the save, and on the
+first update after each load, their server objects are put back in it; the live NPCs get it on the
+update after they come online. Removing the mod needs nothing: a save loads with everyone in their
+old faction.
 
 Other mods can spread the faction: Homestead caches a settler's faction when it recruits them, and
 gives its camp traders the camp's. So anyone else in the faction is saved in your old one too, and
@@ -37,7 +39,9 @@ F = nil                -- the saved state, nil until a faction is founded
 local index_of         -- community name -> index, from [game_relations] communities
 local pending = {}     -- member ids to give the faction on the next update
 local parked = nil     -- a saved faction this install can't restore (no declaration): kept as saved
-local saved = false    -- a save just put the members' server objects in their old factions
+local saved = false    -- a save or a load just left the members' server objects in their old factions
+local lost = {}        -- member records whose id named no one, or someone else, at a look this session
+local you_at           -- the player row your members' relation to you was last set on, this session
 local next_check = 0
 local touched = false  -- a faction was led in this game, so others may hold its name
 local last_mother      -- the faction you came from, after a disband
@@ -72,6 +76,12 @@ end
 function declared()
     index_of = index_of or community_indexes()
     return index_of[OWN] ~= nil and index_of[ACTOR_OWN] ~= nil
+end
+
+-- the id of a faction kept aside as saved (this install doesn't declare it), or nil: politics
+-- keeps what it holds for that one (its id is worked out as politics does for an older save)
+function parked_uid()
+    return parked and (parked.uid or (tostring(parked.founded) .. "/" .. tostring(parked.mother))) or nil
 end
 
 -- set the faction a server object is saved with, by editing its state packet: after the 2-byte
@@ -180,10 +190,41 @@ local function profile_of(id)
     return se and se.profile_name and se:profile_name()
 end
 
--- whether an id still names the member it was recorded for (ids are reused after release)
+local function name_of(id)
+    local se = alife():object(id)
+    return se and se.character_name and se:character_name()
+end
+
+-- whether an id still names the member it was recorded for: ids are reused after release, and
+-- every NPC of a section shares a profile, so the name too
 local function same_member(id, m)
     local se = alife():object(id)
-    return se ~= nil and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile
+    return se ~= nil and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile and se:character_name() == m.name
+end
+
+local function died(id, m, how)
+    m.dead = true
+    pending[id] = nil
+    log("%s (%s) died%s", m.name, id, how)
+end
+
+-- a member's server object, looked at on each update and before each save. A death no death
+-- callback brought marks them dead (npc_on_death_callback needs a stalker or monster killer: not an
+-- anomaly, a fall or a blast). A new name on the same NPC (Homestead's rename) is taken up, unless
+-- the id named no one or someone else at an earlier look: then it was released and given to another
+local function look(id, m)
+    if m.dead or lost[m] then
+        return
+    end
+    local se, o = alife():object(id), level.object_by_id(id)
+    if not (se and IsStalker(nil, se:clsid()) and se:profile_name() == m.profile) then
+        lost[m] = true
+    elseif not (o or se):alive() then
+        died(id, m, ", found dead")
+    elseif se:character_name() ~= m.name then
+        log("%s (%s) is now called %s", m.name, id, se:character_name())
+        m.name = se:character_name()
+    end
 end
 
 function join(npc, via)
@@ -240,7 +281,8 @@ function relink(old, new)
     end
     F.members[old] = nil
     pending[old] = nil
-    m.profile, m.dead = profile_of(new), nil
+    m.profile, m.name, m.dead = profile_of(new), name_of(new) or m.name, nil
+    lost[m] = nil
     F.members[new] = m
     if level.object_by_id(new) then
         pending[new] = true
@@ -260,6 +302,7 @@ function leave(id, why)
     if not m then
         return
     end
+    look(id, m)
     F.members[id] = nil
     pending[id] = nil
     local o = level.object_by_id(id)
@@ -272,6 +315,20 @@ function leave(id, why)
         end
     end
     log("%s (%s) left: %s", m.name, id, why)
+end
+
+-- A fallen member's body, from the save that drops the member until it's searched or gone (in the
+-- saved state, read by no one else): that save puts it in their old faction, so the patch it drops
+-- would be that faction's. fotz_patch asks here at the search and drops yours
+function fallen_mother(id)
+    local b = F and F.fallen and F.fallen[id]
+    return b and same_member(id, b) and b.mother or nil
+end
+
+function searched(id)
+    if F and F.fallen then
+        F.fallen[id] = nil
+    end
 end
 
 -- others ---------------------------------------------------------------------------------------
@@ -424,17 +481,47 @@ local function you_join()
 end
 
 
--- after a save, the members' server objects back in the faction: the save's packet edit put
--- them in their old ones, and the game reads those (A-Life, offline combat, who killed whom) until
--- each spawns again
+-- your members' relation to you, and yours to them, as founding set it: your old faction's with its
+-- own players. The game's own faction change (Duty to Freedom) puts you on another player row,
+-- which founding filled with your old faction's view of that one's players, so your members would
+-- turn on you there: the row you're on gets the founding row's values, and a row you left gets its
+-- own back
+local function set_cell(a, b, v)
+    if v and index_of[a] and index_of[b] then
+        relation_registry.set_community_relation(a, b, v)
+    end
+end
+
+local function you_row()
+    local row, am = home(), "actor_" .. strip(old_faction())
+    if row == you_at then
+        return
+    end
+    if you_at and you_at ~= am then
+        set_cell(OWN, you_at, F.base[OWN .. ">" .. you_at])
+        set_cell(you_at, OWN, F.base[you_at .. ">" .. OWN])
+    end
+    if row ~= am then
+        set_cell(OWN, row, F.base[OWN .. ">" .. am])
+        set_cell(row, OWN, F.base[am .. ">" .. OWN])
+        log("you're on %s now: your members treat you as at founding", row)
+    end
+    you_at = row
+end
+
+-- after a save or a load, the members' server objects back in the faction: the save's packet edit
+-- put them in their old ones, and the game reads those (A-Life, offline combat, who killed whom)
+-- until each spawns again
 local function back_after_save()
     saved = false
+    local n = 0
     for id, m in pairs(F.members) do
         if not m.dead then
             local ok, err = pcall(function()
                 local se = alife():object(id)
                 if se and same_member(id, m) and se:community() ~= OWN then
                     set_saved_community(se, OWN)
+                    n = n + 1
                 end
             end)
             if not ok then
@@ -442,15 +529,22 @@ local function back_after_save()
             end
         end
     end
+    if n > 0 then
+        log("%s members' server objects back in the faction", n)
+    end
 end
 
 local function tick()
     if not F then
         return
     end
+    for id, m in pairs(F.members) do
+        look(id, m)
+    end
     if saved then
         back_after_save()
     end
+    you_row()
     -- you: in your faction whenever you're in your old one (a disguise puts you in another, and is
     -- left alone), or back in your old one if you don't join
     local yours = db.actor:character_community()
@@ -551,8 +645,14 @@ local function save_state(m_data)
         scrub_partners()
     end
     local reverted, failed = 0, 0
+    for id, b in pairs(F and F.fallen or {}) do
+        if not same_member(id, b) then
+            F.fallen[id] = nil
+        end
+    end
     for id, m in pairs(F and F.members or {}) do
         local ok, err = pcall(function()
+            look(id, m)
             local se = alife():object(id)
             if se and same_member(id, m) then
                 if se:community() == OWN then
@@ -564,6 +664,10 @@ local function save_state(m_data)
             end
             if m.dead then
                 F.members[id] = nil
+                if se and same_member(id, m) then
+                    F.fallen = F.fallen or {}
+                    F.fallen[id] = { mother = m.mother, profile = m.profile, name = m.name }
+                end
             end
         end)
         if not ok then
@@ -632,9 +736,13 @@ local function actor_on_first_update()
         for _ in pairs(F.members) do n = n + 1 end
         return n
     end)())
-    for id in pairs(F.members) do
-        pending[id] = true
+    for id, m in pairs(F.members) do
+        if not m.dead then
+            pending[id] = true
+        end
     end
+    -- the save left the members' server objects in their old factions: back in yours now
+    saved = true
     tick()
 end
 
@@ -655,7 +763,10 @@ local function npc_on_net_spawn(npc)
     if not m then
         return
     end
-    if same_member(id, m) then
+    look(id, m)
+    if m.dead then
+        return
+    elseif same_member(id, m) then
         pending[id] = true
     else
         F.members[id] = nil
@@ -665,10 +776,19 @@ end
 
 local function npc_on_death_callback(victim)
     local m = F and F.members[victim:id()]
-    if m then
-        m.dead = true
-        pending[victim:id()] = nil
-        log("%s (%s) died", m.name, victim:id())
+    if m and not m.dead then
+        died(victim:id(), m, "")
+    end
+end
+
+-- a squad member's death as the server sees it, online or off, whatever the killer: offline combat
+-- sends nothing else for most of its dead, and an anomaly, a fall or a blast no
+-- npc_on_death_callback (a member in no squad is found dead by the look)
+local function squad_on_npc_death(squad, se_npc)
+    local id = se_npc and se_npc.id
+    local m = F and id and F.members[id]
+    if m and not m.dead then
+        died(id, m, ", seen by the server")
     end
 end
 
@@ -695,5 +815,6 @@ function on_game_start()
     RegisterScriptCallback("actor_on_update", actor_on_update)
     RegisterScriptCallback("npc_on_net_spawn", npc_on_net_spawn)
     RegisterScriptCallback("npc_on_death_callback", npc_on_death_callback)
+    RegisterScriptCallback("squad_on_npc_death", squad_on_npc_death)
     RegisterScriptCallback("on_option_change", on_option_change)
 end

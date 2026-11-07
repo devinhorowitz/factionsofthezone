@@ -56,8 +56,8 @@ turn on you again. Veterans fight to the end.
 while you're not at war with it, growing faster with each member from that faction (more for higher
 ranks) until a full settlement of them reaches the cap, and strongest near them, so a Rostok
 settlement of Duty men sways Rostok's traders and settlements all over the Zone pay: a discount on
-one kind of goods at their traders (Loners' food, Ecologists' medicine, Freedom's mutant parts,
-Duty's repair kits, Clear Sky's parts), cheaper Military airlifts, mercs likelier to take your
+one kind of goods at their traders (Loners' food, Ecologists' medicine, Freedom's mutant meat,
+Duty's repair kits, Clear Sky's detectors), cheaper Military airlifts, mercs likelier to take your
 contract, outposts likelier to come over (Renegades), Bandit squads on your map, or Monolith, Sin
 and ISG radio chatter. Light on purpose: only when you buy, never when you sell, and nothing free;
 MCM's sliders set how far each can grow. Members from a faction also make your relations with it
@@ -70,8 +70,9 @@ bigger and nearer your faction. Stay small and light and you slip by; grow big i
 your enemies answer like an immune response. A mix of members spreads that attention; twenty men
 from Duty bring Freedom down on you. Spread out to keep the peace, or gather to start a war. And
 mind whose ground it is: settling your people where another faction holds the land strains your
-relation with it day by day (unless they came from that faction, or it's your ally), and a stalker
-you kill on a faction's ground costs you its goodwill, unless the dead were its enemies.
+relation with it day by day (unless they came from that faction, or it's your ally; only factions
+whose relations with yours can change, and your companions don't count), and a faction's stalker
+you kill on another faction's ground costs you its goodwill, unless the dead were its enemies.
 
 ### Coming next
 
@@ -124,7 +125,7 @@ the residents nearest to asking show too. Decline costs them 10 and three days b
 again, and MCM can accept every request as it's made. A member fights for your faction, and
 under 30 goes back to their own and stays on as a resident. A Master at 100 after 14 days as a
 member is sworn for life: they never leave over loyalty, and each adds 1 a day to everyone else in
-their camp, up to 3. When a camp falls, its sworn members stay in your faction, and each of the
+their camp, up to 3. When a camp falls, or an unhappy camp lets one go, its sworn members stay in your faction, and each of the
 others stays at a roll of their loyalty: at 70, seven times in ten. Those who stay head for
 another of your camps with room, by way of a smart near it that no enemy of yours holds, and move
 in when they get there; a camp that turns them away sends them on to the next. With nowhere to
@@ -139,7 +140,8 @@ legends), surrender (50 in 100 for novices, 7 less a rank, 1 for legends), or fi
 Defectors join you as settler members at loyalty 50 and head for a camp of yours with room, and
 the outpost is lost to their faction as if you'd wiped it out; with no faction of yours, or no
 room, they surrender instead. A surrender is a ceasefire with you and your companions for one
-to three game days, then they're hostile again; hitting one of them ends it at once. Every
+to three game days, then they're hostile again; hitting one of them, even with a silent knife,
+ends it at once. Every
 number is in the `[outposts]` section of `fotz_politics.ltx`.
 
 **Politics.** Kills between two factions, ground one takes from the other, fronts where both are
@@ -161,13 +163,17 @@ line; a side that takes the upper hand on a front says so on your PDA; and the P
 fight with its two sides' names, red where it's your side's, amber elsewhere. Hover a marker for
 who is winning there and which factions there are hostile to you.
 
-**The Factions page.** Your side (the faction you lead, or your own) and, in words, how each
-faction whose relation with it can change stands with you, what holds it there (a war, a truce, an
-alliance), whether it's getting better or worse, and its leader; the factions that never change,
-a line for each standing ("Permanent enemies: ..."); the war log; where the fighting is; your
-members; a button to the PDA's own Relations tab, which has the numbers; and Reset relations,
-which puts every relation back where it was before the fighting moved it and ends every war, truce
-and alliance (a second click does it).
+**The Factions page.** Four subpages, each listing everything and scrolling when it runs long.
+Relations: your side (the faction you lead, or your own) and, in words, how each faction whose
+relation with it can change stands with you, what holds it there (a war, a truce, an alliance),
+whether it's getting better or worse, and its leader; the factions that never change, a line for
+each standing ("Permanent enemies: ..."); and your perks, footprint and strain where you are.
+Fighting: every level where factions fight. Members (while you lead a faction): every member, and
+every resident asking to join, with Accept and Decline. War log: all of it. The footer has a
+button to the PDA's own Relations tab, which has the numbers.
+
+**Reset relations** is a one-time switch in MCM: every relation goes back to a new game's (your
+faction's to its founding), and every war, truce and alliance ends. It can't be undone.
 
 Open it your way: from a PDA tab of its own, from its tile in Mod App Creator's launcher, or with a
 key that opens it in a window of its own (sharper than the 3D PDA). Mod App Creator is optional:
@@ -250,7 +256,7 @@ faction's patches out of the game (above).
   `test_perks.py` runs the faction perks against stand-ins for the trade callback, Fair Fast Travel,
   the paid companions, Milspec PDA and the radio, and `test_text.py` checks the Russian tables'
   build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (506 so far); every
+- `_tools/mutants.py` runs each test against broken copies of what it tests (620 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

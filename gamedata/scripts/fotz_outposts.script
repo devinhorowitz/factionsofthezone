@@ -24,10 +24,12 @@ Surrender is a ceasefire, not a peace: each survivor toward you is set to the ga
 (force_set_goodwill(0): their personal goodwill and both community terms together 0, leaving rank
 and reputation), and the same between them and the companions following you, both ways. It lasts
 cfg.truce_days_min to cfg.truce_days_max game days; then each goodwill goes back and they're
-hostile again. Hitting one ends it at once. Like Factions' other relation changes it lives only
-while you play: the truces (by outpost, each NPC's old goodwill and their pairs with your
-companions) are m_data.fotz_outposts, every save gets the old goodwill back, and the next update
-applies the ceasefire again.
+hostile again. Hitting one (you, or a weapon you hold: a knife's silent kill names the knife) ends
+it at once. Like Factions' other relation changes it lives only while you play: the truces (by
+outpost, each NPC's old goodwill, who they are, and their pairs with your companions) are
+m_data.fotz_outposts, every save gets the old goodwill back, and the next update applies the
+ceasefire again. An NPC of a truce who died, or whose id someone else holds now (name and profile
+differ), is dropped from it, their pairs too: nothing is set or put back on whoever has the id next.
 --]]
 
 CONFIG = "plugins\\fotz_politics.ltx"
@@ -135,6 +137,21 @@ function chances(rank)
     return d, math.max(0, cfg.surrender_novice - cfg.surrender_step * rank)
 end
 
+-- who an NPC id holds now, by name and profile from their server object; nil when it's gone or dead
+local function who(id)
+    local se = alife():object(id)
+    if se and se.alive and se:alive() and se.profile_name then
+        return tostring(se:character_name()) .. "|" .. tostring(se:profile_name())
+    end
+end
+
+-- whether an id still holds the NPC a truce knew there (a truce from an older save knows no names:
+-- alive is enough)
+local function holds(t, id)
+    local now = who(id)
+    return now ~= nil and (t.who == nil or t.who[id] == nil or t.who[id] == now)
+end
+
 -- the companions following you, online
 local function companions()
     local out, sim = {}, alife()
@@ -166,9 +183,72 @@ local function hold_fire(a, b)
     end
 end
 
+-- a's personal goodwill toward b back to v: force_set_goodwill takes the two community terms (a's
+-- faction's goodwill toward b, and its relation with b's) off what it's given, so they go on first,
+-- by the communities it reads: the server objects' (RELATION_REGISTRY::ForceSetGoodwill). They
+-- differ from the live ones for a companion member after a save's packet edit (their old faction,
+-- the live NPC still ours). Live, or through the server object offline; you're b_id 0
+local function set_back(a_id, b_id, v)
+    local sim = alife()
+    local a = level.object_by_id(a_id)
+    local b = b_id == 0 and db.actor or level.object_by_id(b_id)
+    local a_se, b_se = sim:object(a_id), sim:object(b_id)
+    local comm = a_se and a_se.community and a_se:community() or (a and a:character_community())
+    local b_comm = b_se and b_se.community and b_se:community() or (b and b:character_community())
+    if not (comm and b_comm) then
+        return
+    end
+    v = v + relation_registry.community_goodwill(comm, b_id) + relation_registry.community_relation(comm, b_comm)
+    if a and b then
+        a:force_set_goodwill(v, b)
+    elseif a_se and a_se.force_set_goodwill and a_se:alive() then
+        a_se:force_set_goodwill(v, b_id)
+    end
+end
+
+-- a truce's NPCs who died or whose id someone else holds now are dropped, never set or put back on
+-- whoever holds the id next; so is a pair with your companions when either side is gone, the other
+-- side's goodwill (theirs still) put back first. (The engine clears a released NPC's own relations,
+-- not the others' toward their id)
+local function prune(t)
+    for id in pairs(t.npcs) do
+        if not holds(t, id) then
+            t.npcs[id] = nil
+            log("%s: %s dead or someone else now, out of the ceasefire", t.name, id)
+        end
+    end
+    local named = {}
+    for id in pairs(t.npcs) do
+        named[id] = true
+    end
+    for k, olds in pairs(t.pairs) do
+        local a, c = string.match(k, "^(%d+)>(%d+)$")
+        a, c = tonumber(a), tonumber(c)
+        local has_a, has_c = t.npcs[a] ~= nil, holds(t, c)
+        if has_a and has_c then
+            named[c] = true
+        else
+            if has_a and olds[1] ~= nil then
+                set_back(a, c, olds[1])
+            end
+            if has_c and olds[2] ~= nil then
+                set_back(c, a, olds[2])
+            end
+            t.pairs[k] = nil
+        end
+    end
+    for id in pairs(t.who or {}) do
+        if not named[id] then
+            t.who[id] = nil
+        end
+    end
+end
+
 -- the ceasefire, on each of its NPCs online: toward you, and with your companions both ways; each
--- goodwill's old value kept the first time it's changed, and only the ones changed
+-- goodwill's old value kept the first time it's changed, and only the ones changed (a companion's
+-- name kept with it)
 local function apply(t)
+    prune(t)
     local actor, comps = db.actor, companions()
     for id, old in pairs(t.npcs) do
         local npc = level.object_by_id(id)
@@ -189,34 +269,17 @@ local function apply(t)
                 end
                 if p[1] ~= nil or p[2] ~= nil then
                     t.pairs[k] = p
+                    if t.who and t.who[c:id()] == nil then
+                        t.who[c:id()] = who(c:id())
+                    end
                 end
             end
         end
     end
 end
 
--- a's personal goodwill toward b back to v: force_set_goodwill takes the two community terms (a's
--- faction's goodwill toward b, and its relation with b's) off what it's given, so they go on first.
--- Live, or through the server object offline; you're b_id 0
-local function set_back(a_id, b_id, v)
-    local sim = alife()
-    local a = level.object_by_id(a_id)
-    local b = b_id == 0 and db.actor or level.object_by_id(b_id)
-    local a_se, b_se = sim:object(a_id), sim:object(b_id)
-    local comm = a and a:character_community() or (a_se and a_se.community and a_se:community())
-    local b_comm = b and b:character_community() or (b_se and b_se.community and b_se:community())
-    if not (comm and b_comm) then
-        return
-    end
-    v = v + relation_registry.community_goodwill(comm, b_id) + relation_registry.community_relation(comm, b_comm)
-    if a and b then
-        a:force_set_goodwill(v, b)
-    elseif a_se and a_se.force_set_goodwill and a_se:alive() then
-        a_se:force_set_goodwill(v, b_id)
-    end
-end
-
 local function restore(t)
+    prune(t)
     for id, old in pairs(t.npcs) do
         if old ~= false then
             set_back(id, 0, old)
@@ -243,10 +306,11 @@ local function hours_on(hours)
 end
 
 local function surrender(key, camp, alive)
-    local t = { faction = camp.faction, name = camp.name or key, npcs = {}, pairs = {},
+    local t = { faction = camp.faction, name = camp.name or key, npcs = {}, pairs = {}, who = {},
                 ends = hours_on(math.random(cfg.truce_days_min * 24, cfg.truce_days_max * 24)) }
     for _, se in ipairs(alive) do
         t.npcs[se.id] = false
+        t.who[se.id] = who(se.id)
     end
     T.truces[key] = t
     apply(t)
@@ -391,9 +455,21 @@ local function actor_on_update()
     end
 end
 
+-- whether a hit is yours: you, or a weapon you hold (a knife's silent kill names the knife)
+local function yours(hitter)
+    if not hitter then
+        return false
+    end
+    if hitter:id() == 0 then
+        return true
+    end
+    local p = hitter.parent and hitter:parent()
+    return p ~= nil and p:id() == 0
+end
+
 -- you hit one of them: the ceasefire at that outpost is over
-local function npc_on_hit_callback(npc, amount, dir, who)
-    if not (who and who:id() == 0) then
+local function npc_on_hit_callback(npc, amount, dir, hitter)
+    if not yours(hitter) then
         return
     end
     local id = npc:id()

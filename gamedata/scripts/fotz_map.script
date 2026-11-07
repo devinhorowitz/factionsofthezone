@@ -5,7 +5,7 @@ One marker on each level where there's a fight (fotz_tab.fights, from territory'
 last census: FRONT_MIN fighters or more, at least SIDE_MIN a side, so a few stragglers by a big force
 aren't one): the game's attack-base ring, red when the fight is your side's, amber otherwise. Its
 label names the two sides of the fight, the stronger first ("Bandits vs Ecologists"); hovering it
-gives the page's sentence for the level (who is winning, in words) and the factions there that are
+gives the page's sentence for the level (who is winning, in words) and every faction there that is
 hostile to you. It sits at a smart where the fight meets: one either side holds with hostile squads
 at it, else one the side behind holds (where an attack would go), else one the side ahead holds. The
 markers are rebuilt at each census (fotz_territory calls update).
@@ -21,7 +21,6 @@ a marker another mod may have removed is ever touched.
 
 SPOT = "fotz_front"             -- amber, modxml_fotz_map
 SPOT_YOURS = "fotz_front_yours" -- red
-HOSTILE_NAMES = 4               -- names the hint's hostile line gives before "and N more"
 COLORS = { [SPOT] = { 238, 196, 112 }, [SPOT_YOURS] = { 230, 80, 70 } }
 
 local placed = {}               -- smart id -> the marker put there
@@ -118,7 +117,7 @@ function markers(fronts, c, side)
             local lines = { fotz_tab.fight_line(fx, side) }
             local foes = hostile_here(c, fx.level, side)
             if #foes > 0 then
-                lines[#lines + 1] = text("st_fotz_map_hostile", { list = fotz_tab.names_list(foes, HOSTILE_NAMES) })
+                lines[#lines + 1] = text("st_fotz_map_hostile", { list = fotz_tab.names_list(foes) })
             end
             out[#out + 1] = { id = se.id, smart = name, level = fx.level, spot = fx.yours and SPOT_YOURS or SPOT,
                               -- the UI breaks a line at the two characters \n, as the game's own

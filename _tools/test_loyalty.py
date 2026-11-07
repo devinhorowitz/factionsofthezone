@@ -20,7 +20,14 @@ falls meanwhile crossed off; with nowhere to go the sworn waiting and looking ag
 others going back, a companion staying a member; a defector taken in (an entry at their loyalty
 and a trip, not twice, none with no room); a re-created settler keeping their entry and
 membership; the first census only starting the book; nothing without a faction, Homestead or the
-MCM switch; the page's lists; the strings exist.
+MCM switch; the page's lists; the strings exist. From the 2026-11-07 sweep: a trip's squad let go
+however the trip ends (leaving on the way, the camp ahead fallen, turned away, disbanding at the
+next update or the save, the MCM switch, steered again after it), never of another mod's target;
+an entry away from any camp dropped when its member left, died or is someone else now; a death
+Homestead handles itself a death (felt once, the member marked dead), a traveller's death costing
+no other; a sworn deserter setting out for another camp, a banished one leaving; a re-created
+member a save dropped joining again (or losing the oath if they can't); a traveller recruited by hand; the news naming the camp that fell, or no camp; no wars
+counted while politics stands down.
 
     python test_loyalty.py            the real script
     python test_loyalty.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -82,7 +89,7 @@ MUTANTS = {
     "sworn_moves": ("    if e.sworn then\n        e.v = cfg.sworn_loyalty\n        return\n    end\n    local v = e.v + cfg.resident",
                     "    local v = e.v + cfg.resident"),
     "follower_leaves": ("        if fotz_faction.is_companion(id) then", "        if false then"),
-    "resident_kept": ("            stop_being_resident(id, e, \"no longer a resident\")\n            res[id] = nil\n", ""),
+    "resident_kept": ("                stop_being_resident(id, e, \"no longer a resident\")\n                drop(res, id)\n", ""),
     "sworn_falls_with_camp": ("    if not e.sworn and math.random() >= e.v / 100 then", "    if math.random() >= e.v / 100 then"),
     "sworn_nowhere_leave": ('    if e.sworn then\n        log("%s, sworn, waits for a camp with room", e.name)', '    if false then\n        log("%s, sworn, waits for a camp with room", e.name)'),
     # the trip's smart: none an enemy of yours holds (run 20)
@@ -95,8 +102,8 @@ MUTANTS = {
     "war_line_strict": ("a_faction(comm) and rel_with(comm) <= ENEMIES", "a_faction(comm) and rel_with(comm) < ENEMIES"),
     "zombied_unknown": ('    return comm == "zombied"\n', "    return false\n"),
     # a defector taken in (fotz_outposts)
-    "take_in_keeps_entry": ("    b.res[id] = nil\n    return false\nend\n\n-- the entries whose record is gone",
-                            "    return false\nend\n\n-- the entries whose record is gone"),
+    "take_in_keeps_entry": ("    b.res[id] = nil\n    return false\nend\n\n-- whether Homestead's unhappy-camp desertion",
+                            "    return false\nend\n\n-- whether Homestead's unhappy-camp desertion"),
     "has_room_always": ("    return enabled() and #camps_for({}) > 0", "    return enabled()"),
     "take_in_twice": ("    if not (b and cfg) or b.res[id] then", "    if not (b and cfg) then"),
     "defector_at_start": ("    local e = { name = name, v = clamp(v),", "    local e = { name = name, v = cfg.start,"),
@@ -104,7 +111,7 @@ MUTANTS = {
     "first_census_counts": ("    if b.day == nil then\n        look()\n        b.day = date\n        return\n    end\n", ""),
     "ignores_switch": ('return F() ~= nil and homestead() ~= nil and not (ui_mcm and ui_mcm.get("fotz/loyalty") == false)',
                        "return F() ~= nil and homestead() ~= nil"),
-    "dead_kept": ("        if e.dead then\n            res[id] = nil\n        else", "        if false then\n        else"),
+    "dead_kept": ("        if e.dead then\n            drop(res, id)\n        else", "        if false then\n        else"),
     # between camps (0.5.0, second part)
     "fell_no_roll": ("    if not e.sworn and math.random() >= e.v / 100 then", "    if false then"),
     "roll_inverted": ("math.random() >= e.v / 100", "math.random() < e.v / 100"),
@@ -115,12 +122,50 @@ MUTANTS = {
     "any_level_arrives": ("if not (npc and npc:alive() and p and level.name() == camp.level) then", "if not (npc and npc:alive() and p) then"),
     "tried_ignored": ("        if not (e.tried and e.tried[it.hub_id]) then", "        if true then"),
     "waiting_never_looks": ("            if e.sworn and not e.hub and not e.trip and member(id) then\n                e.tried = nil\n                set_out(id, e)\n            end\n", ""),
-    "lost_target_kept": ("            if not camp then\n                e.tried = e.tried or {}", "            if false then\n                e.tried = e.tried or {}"),
+    "lost_target_kept": ("                if not camp then\n                    local lost = e.trip.label", "                if false then\n                    local lost = e.trip.label"),
     "farthest_smart": ("            if d < d2 then", "            if d > d2 then"),
     "unsworn_waits": ('    if e.sworn then\n        log("%s, sworn, waits for a camp with room", e.name)', '    if true then\n        log("%s, sworn, waits for a camp with room", e.name)'),
-    "keeps_target": ("        steer(id, nil)\n        e.hub, e.trip, e.tried, e.label", "        e.hub, e.trip, e.tried, e.label"),
+    "keeps_target": ("        end_trip(id, e)\n        e.hub, e.tried, e.label, e.who = hub", "        e.trip = nil\n        e.hub, e.tried, e.label, e.who = hub"),
     "companion_travels": ('    if fotz_faction.is_companion(id) then\n        m.via = "companion"\n        return true\n    end\n    if not e.sworn and math.random()',
                           "    if not e.sworn and math.random()"),
+    # 2026-11-07 sweep. S1: a trip's squad let go however the trip ends, and only of our target
+    "let_go_any": ("    if sq and sq.scripted_target == smart then", "    if sq then"),
+    "no_way_keeps_target": ("    if was then\n        let_go(id, was.smart)\n    end\n", ""),
+    "leaver_keeps_target": ('            fotz_faction.leave(id, "loyalty " .. e.v)\n            -- on their way to a camp, they go nowhere now (the next look drops the entry)\n            end_trip(id, e)\n',
+                            '            fotz_faction.leave(id, "loyalty " .. e.v)\n'),
+    "dropped_keeps_target": ("    if e then\n        end_trip(id, e)\n    end\n    res[id] = nil", "    res[id] = nil"),
+    "disband_keeps_targets": ("    if held and held ~= b then\n        let_all_go(held)", "    if false then\n        let_all_go(held)"),
+    "off_keeps_targets": ("    if b and not enabled() then\n        let_all_go(b)", "    if false then\n        let_all_go(b)"),
+    "save_keeps_targets": ('local function save_state()\n    guarded("let go", let_go_idle)', "local function save_state()\n    return"),
+    # S3: an entry away from any camp whose member left, died or is someone else now
+    "camp_less_kept": ("            if e.dead or not (m and not m.dead and same(id, e)) then\n                log(",
+                       "            if false then\n                log("),
+    "traveller_dead_kept": ("    if se and se.alive and se:alive() and se.profile_name then", "    if se and se.profile_name then"),
+    "traveller_stranger_kept": ("    return now ~= nil and (e.who == nil or e.who == now)", "    return now ~= nil"),
+    # S4, S6: Homestead's own deaths; a traveller's death costs no other traveller
+    "killed_not_hooked": ('    homestead_on_settler_killed = function(...) guarded("killed", on_settler_killed, ...) end,\n', ""),
+    "killed_member_lives": ("    if m then\n        m.dead = true", "    if false then\n        m.dead = true"),
+    "death_twice": ("    local e = b and b.res[id]\n    if not e or e.dead then", "    local e = b and b.res[id]\n    if not e then"),
+    "travellers_campmates": ("e.hub ~= nil and o.hub == e.hub", "o.hub == e.hub"),
+    # S5: a sworn deserter sets out as after a fall; banishing still ends the oath
+    "deserter_leaves": ("            if e.sworn and m and not m.dead and deserted(b, e.hub, camp) then",
+                        "            if false then"),
+    "unsworn_deserter_stays": ("            if e.sworn and m and not m.dead and deserted(b, e.hub, camp) then",
+                               "            if m and not m.dead and deserted(b, e.hub, camp) then"),
+    "any_departure_deserts": ("and not m.dead and deserted(b, e.hub, camp) then", "and not m.dead and true then"),
+    "abandon_not_kept": ("    b.abandon = seen\n", ""),
+    "deserted_camp_again": ("skip and { [skip] = true } or nil", "nil"),
+    # S7: the news names the camp that fell, or says no camp took them
+    "nowhere_says_fell": ('    if from then\n        say("st_fotz_news_fell_left"', '    if true then\n        say("st_fotz_news_fell_left"'),
+    "lost_label_ignored": ("                    local lost = e.trip.label", "                    local lost = e.label"),
+    # S10: a traveller recruited by hand
+    "hand_recruit_travels": ("                    if e.trip then\n                        end_trip(id, e)", "                    if false then\n                        end_trip(id, e)"),
+    # M3: a member Homestead re-creates after a save dropped them joins again
+    "member_not_kept": ("                e.member = member(id) ~= nil or nil", "                e.member = nil"),
+    "no_rejoin": ("        elseif e.member then", "        elseif false then"),
+    "failed_rejoin_sworn": ("                e.member, e.sworn = nil, nil\n", ""),
+    # P3: politics standing down, its old wars don't count
+    "wars_while_standing_down": ("    if P and P.standing_down and P.standing_down() then\n        return 0", "    if false then\n        return 0"),
 }
 
 WORLD = r"""
@@ -235,6 +280,7 @@ function settler(hub, id, t)
     t.community = t.community or "stalker"
     t.job = t.job or "idle"
     CAMPS[hub].survivors[id] = t
+    if not NPCS[id] then npc(id) end
     return t
 end
 SQUADS = {}
@@ -294,10 +340,17 @@ function held(name, comm, behaviour)
 end
 function alife_object(id) return SQUADS[id] end
 is_squad_monster = { monster = true, monster_predatory_day = true }
-NPCS, SQUAD_OF, ONLINE = {}, {}, {}
+NPCS, SQUAD_OF, ONLINE, DEAD, NAMES = {}, {}, {}, {}, {}
 local object = SIM.object
 SIM.object = function(self, id) return NPCS[id] or object(self, id) end
-function npc(id) NPCS[id] = { id = id }; SQUAD_OF[id] = { id = 9000 + id } end
+-- an NPC's server object (its name and profile, alive until DEAD says not; NAMES gives the id to
+-- someone else) and its squad
+function npc(id)
+    NPCS[id] = { id = id, alive = function() return not DEAD[id] end,
+                 character_name = function() return NAMES[id] or ("n" .. id) end,
+                 profile_name = function() return "sim_default_stalker_1" end }
+    SQUAD_OF[id] = { id = 9000 + id }
+end
 function get_object_squad(se) return SQUAD_OF[se.id] end
 LEVEL = "l01_escape"
 level = { name = function() return LEVEL end, object_by_id = function(id) return ONLINE[id] end }
@@ -506,7 +559,8 @@ def raids(src):
     check(w.v(10) == 56, "a raid left behind counted: %s" % w.v(10))
 
 
-HOOKS = ("homestead_on_settler_promoted", "homestead_on_expedition_returned", "homestead_on_raid_defended")
+HOOKS = ("homestead_on_settler_promoted", "homestead_on_expedition_returned", "homestead_on_raid_defended",
+         "homestead_on_settler_killed")
 
 
 def callbacks(src):
@@ -817,6 +871,10 @@ def turned_away(src):
     check(set(w.g.RECRUITED.values()) == {"10>2", "11>2"}, "asked %s" % list(w.g.RECRUITED.values()))
     check(r[10] and r[10].trip is None and r[10].hub is None and w.members() == [10], "the sworn turned away: %s" % w.members())
     check(r[11] is None and 11 in list(w.g.LEFT.values()), "one not sworn, turned away, kept")
+    # both squads let go; the news says no camp took them in (no camp fell)
+    check(w.g.SQUAD_OF[10].scripted_target is None and w.g.SQUAD_OF[11].scripted_target is None,
+          "turned away, still steered: %s %s" % (w.g.SQUAD_OF[10].scripted_target, w.g.SQUAD_OF[11].scripted_target))
+    check(any(n.startswith("n11 has left Wolves with no camp of yours") for n in w.news()), "the news: %s" % w.news())
     w.env.look()
     check(r[10].trip is None, "set out again for the camp that turned them away")
     w.env.day("2026-11-02")
@@ -883,6 +941,206 @@ def take_in(src):
           "taken in with no room")
 
 
+def later(w):
+    """An update past the look's wait."""
+    w.run("T = T + 20000")
+    w.env.update_hook()
+
+
+def trip_ends(src):
+    """S1: however a trip ends, the squad is let go of the smart Factions set, and only of it."""
+    # loyalty under the leave line on the way: they leave, let go at once; the next look drops them
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    w.res()[11].v = 25
+    w.env.day("2026-11-02")
+    check(11 not in w.members() and w.g.SQUAD_OF[11].scripted_target is None,
+          "left on the way: member %s, target %s" % (11 in w.members(), w.g.SQUAD_OF[11].scripted_target))
+    w.env.look()
+    check(w.res()[11] is None, "the entry of one who left on the way kept")
+    # the camp ahead falls, none left: the sworn wait, the other goes back; both let go
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    w.run("ROOM = {}; CAMPS[2] = nil")
+    w.env.look()
+    check(11 in list(w.g.LEFT.values()) and w.g.SQUAD_OF[10].scripted_target is None
+          and w.g.SQUAD_OF[11].scripted_target is None,
+          "the camp ahead fell: %s %s" % (w.g.SQUAD_OF[10].scripted_target, w.g.SQUAD_OF[11].scripted_target))
+    # a target another mod set since is theirs
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    w.run('SQUAD_OF[11].scripted_target = "a_task_smart"; ROOM = {}; CAMPS[2] = nil')
+    w.env.look()
+    check(w.g.SQUAD_OF[11].scripted_target == "a_task_smart", "another mod's target lifted: %s" % w.g.SQUAD_OF[11].scripted_target)
+    # disbanding drops the book with the faction: the next update lets the squads go, or the save
+    # if it comes first (MCM, then save, no update between)
+    for how in ("update", "save"):
+        w = fresh(src, BETWEEN)
+        fallen(w)
+        w.run("fotz_faction.F = nil")
+        if how == "update":
+            later(w)
+        else:
+            w.env.save_hook(w.lua.table())
+        check(w.g.SQUAD_OF[10].scripted_target is None and w.g.SQUAD_OF[11].scripted_target is None,
+              "disbanded, then the %s: %s %s" % (how, w.g.SQUAD_OF[10].scripted_target, w.g.SQUAD_OF[11].scripted_target))
+    # loyalty switched off: let go, the trip kept; on again, steered again
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    w.run('MCM["fotz/loyalty"] = false')
+    later(w)
+    r = w.res()
+    check(w.g.SQUAD_OF[11].scripted_target is None and r[11].trip and r[11].trip.smart == "gar_near",
+          "switched off: target %s" % w.g.SQUAD_OF[11].scripted_target)
+    w.run('MCM["fotz/loyalty"] = nil')
+    later(w)
+    check(w.g.SQUAD_OF[11].scripted_target == "gar_near", "on again: target %s" % w.g.SQUAD_OF[11].scripted_target)
+
+
+def camp_less(src):
+    """S3: an entry away from any camp whose member left, died or is someone else now is dropped,
+    its squad let go; none asks to join."""
+    cases = (("fotz_faction.F.members[10] = nil", "no longer a member"),
+             ("fotz_faction.F.members[10].dead = true", "a member marked dead"),
+             ("DEAD[10] = true", "dead, not marked"),
+             ('NAMES[10] = "Someone Else"', "the id someone else's"))
+    for setup, what in cases:
+        # sworn and waiting, no camp with room
+        w = fresh(src, BETWEEN, "ROOM = {}")
+        fallen(w)
+        check(w.res()[10] is not None and w.res()[10].hub is None, "the sworn not waiting")
+        w.res()[10].v = 100
+        w.run(setup)
+        w.env.day("2026-11-02")
+        check(w.res()[10] is None and len(w.env.page_lists().requests) == 0, "%s: kept" % what)
+    # on the way
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    w.run("fotz_faction.F.members[11] = nil")
+    w.env.look()
+    check(w.res()[11] is None and w.g.SQUAD_OF[11].scripted_target is None,
+          "on the way, no longer a member: target %s" % w.g.SQUAD_OF[11].scripted_target)
+
+
+def homestead_deaths(src):
+    """S4, S6: a death Homestead handles itself is a death, not a leave, and is felt once; a
+    traveller's death costs no other traveller."""
+    w = fresh(src, 'camp(1, "A", 50)', 'camp(2, "B", 50)',
+              'R = settler(1, 10, { community = "dolg", name = "Petro" })', 'settler(1, 11, { community = "dolg" })',
+              'settler(2, 20, { community = "dolg" })', "function stalker_camp_builder.send_settler_callback() end")
+    w.env.hook_homestead()
+    members_of(w, (10,))
+    w.env.look()
+    for i in (10, 11, 20):
+        w.res()[i].v = 50
+    # a raider job gone wrong, Invincible off: Homestead sends the death, drops the record and
+    # releases the object; the engine sends nothing
+    w.run("if CALLBACKS.homestead_on_settler_killed then CALLBACKS.homestead_on_settler_killed(10, R, nil) end; "
+          "CAMPS[1].survivors[10] = nil; NPCS[10] = nil")
+    w.env.look()
+    check(len(w.g.LEFT) == 0 and len(w.news()) == 0, "a death read as leaving: left %s, %s" % (list(w.g.LEFT.values()), w.news()))
+    check((w.v(11), w.v(20)) == (46, 50), "the campmates: %s %s" % (w.v(11), w.v(20)))
+    check(w.g.fotz_faction.F.members[10].dead, "the member not marked dead")
+    w.env.npc_on_death_hook(w.lua.eval("victim(10)"))
+    check(w.v(11) == 46, "one death felt twice: %s" % w.v(11))
+    w.env.day("2026-11-02")
+    check(w.res()[10] is None, "the dead kept past the day")
+    # two on the way (A fell): one killed costs the other nothing, and is dropped
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    r = w.res()
+    r[10].sworn = None
+    v = r[10].v
+    w.env.npc_on_death_hook(w.lua.eval("victim(11)"))
+    check(r[10].v == v, "a traveller's death cost another: %s -> %s" % (v, r[10].v))
+    w.env.look()
+    check(r[11] is None and w.g.SQUAD_OF[11].scripted_target is None, "a dead traveller kept")
+
+
+def desertion(src):
+    """S5: a sworn member Homestead's unhappy camp lets go sets out for another camp (not that one),
+    as after a fall; banishing still ends the oath; a deserter not sworn leaves."""
+    w = fresh(src, BETWEEN, "ROOM[1] = true")
+    members_of(w, (10, 11, 12))
+    w.env.look()
+    r = w.res()
+    r[10].sworn, r[11].sworn, r[12].v = True, True, 100
+    # morale: Homestead drops 10's record and stamps the camp
+    w.run("CAMPS[1].survivors[10] = nil; CAMPS[1]._last_abandon_time = 5000")
+    w.env.look()
+    check(10 in w.members() and len(w.g.LEFT) == 0 and r[10] is not None and r[10].hub is None
+          and r[10].trip and r[10].trip.hub == 2,
+          "the sworn deserter: members %s, trip %s" % (w.members(), r[10] and r[10].trip and r[10].trip.hub))
+    # banished: no stamp; the oath ends
+    w.run("CAMPS[1].survivors[11] = nil")
+    w.env.look()
+    check(11 not in w.members() and r[11] is None, "the sworn banished stayed: %s" % w.members())
+    # a deserter not sworn leaves, whatever their loyalty
+    w.run("CAMPS[1].survivors[12] = nil; CAMPS[1]._last_abandon_time = 12000")
+    w.env.look()
+    check(12 not in w.members(), "a deserter not sworn stayed")
+
+
+def rejoining(src):
+    """M3: a member Homestead re-creates after a save dropped them joins again, sworn still; a
+    resident who wasn't one doesn't; one who can't join loses the oath too."""
+    for ok in (True, False):
+        w = fresh(src, 'camp(1, "A", 50)', 'settler(1, 10, { community = "dolg", name = "Petro" })',
+                  'settler(1, 11, { community = "dolg", name = "Ivan" })', "JOIN_OK = %s" % ("true" if ok else "false"))
+        members_of(w, (10,))
+        w.env.look()
+        w.res()[10].sworn = True
+        # Petro dies (Invincible on); a save drops him, his object gone; Homestead re-creates him
+        # under a new id, and Ivan too
+        w.env.npc_on_death_hook(w.lua.eval("victim(10)"))
+        w.run("fotz_faction.F.members[10] = nil; "
+              "local r = CAMPS[1].survivors[10]; CAMPS[1].survivors[10] = nil; CAMPS[1].survivors[40] = r; "
+              "local q = CAMPS[1].survivors[11]; CAMPS[1].survivors[11] = nil; CAMPS[1].survivors[41] = q")
+        w.env.look()
+        e = w.res()[40]
+        if ok:
+            check(w.members() == [40] and list(w.g.JOINED.values()) == [40] and e and e.sworn and not e.dead,
+                  "re-created: members %s, joined %s" % (w.members(), list(w.g.JOINED.values())))
+        else:
+            check(w.members() == [] and e and not e.sworn, "couldn't join: sworn %s" % (e and e.sworn))
+
+
+def hand_recruit(src):
+    """S10: a traveller recruited by hand into a camp of yours: the trip ends there, let go, and
+    they're never recruited again on arrival."""
+    w = fresh(src, BETWEEN)
+    fallen(w)
+    r = w.res()
+    w.run('CAMPS[2].survivors[11] = { name = "n11", community = "fotz_own", job = "guard", tier = 2 }; '
+          'LEVEL = "l02_garbage"; online(11, 158, 100); ACCEPT[2] = true')
+    w.env.look()
+    w.env.look()
+    check(len(w.g.RECRUITED) == 0 and r[11].hub == 2 and r[11].trip is None and w.g.SQUAD_OF[11].scripted_target is None,
+          "recruited by hand: again %s, hub %s, target %s" % (list(w.g.RECRUITED.values()), r[11].hub,
+                                                              w.g.SQUAD_OF[11].scripted_target))
+
+
+def labels(src):
+    """S7: a defector whose camp ahead falls with nowhere left: the news names that camp."""
+    w = fresh(src, BETWEEN, "npc(20)")
+    w.run('fotz_faction.F.members[20] = { mother = "bandit", name = "Def", via = "settler", joined = DATE }')
+    check(w.env.take_in(20, "Def", 50), "not taken in")
+    w.run("ROOM = {}; CAMPS[2] = nil")
+    w.env.look()
+    check(20 in list(w.g.LEFT.values()) and w.news()[-1] == "Def has left Wolves after B fell, and rejoined F:bandit.",
+          "the defector's news: %s" % w.news()[-1])
+
+
+def standing_down(src):
+    """P3: while politics stands down, its wars don't count against loyalty."""
+    w = fresh(src, 'camp(1, "A", 50)', 'settler(1, 10, { community = "dolg" })', "WARS = 2; sync_wars()",
+              'function fotz_politics.standing_down() return "turned off in MCM", "off" end')
+    w.env.look()
+    w.res()[10].v = 50
+    w.env.day("2026-11-02")
+    check(w.v(10) == 55, "wars counted while politics stands down: %s" % w.v(10))
+
+
 def strings(src):
     root = ET.fromstring(open(ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
     have = {s.get("id") for s in root.iter("string")}
@@ -893,14 +1151,17 @@ def strings(src):
 def run(src):
     for t in (config, start, daily, sworn_near, events, raids, callbacks, deaths, requests, leaving, swearing,
               residency, relinking, census_flow, switched_off, near_list, between, turned_away, nowhere_to_go,
-              enemy_smart, take_in, strings):
+              enemy_smart, take_in, trip_ends, camp_less, homestead_deaths, desertion, rejoining, hand_recruit,
+              labels, standing_down, strings):
         t(src)
-    return "22 scenarios"
+    return "30 scenarios"
 
 
 def expose(src):
-    """The script's local callbacks, reachable for the test: the census listener and the death."""
-    return src + "\nnpc_on_death_hook = npc_on_death_callback\non_census_hook = on_census\n"
+    """The script's local callbacks, reachable for the test: the census listener, the death, the
+    update and the save."""
+    return src + ("\nnpc_on_death_hook = npc_on_death_callback\non_census_hook = on_census\n"
+                  "update_hook = actor_on_update\nsave_hook = save_state\n")
 
 
 def main():
