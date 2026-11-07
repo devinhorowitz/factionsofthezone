@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **News names every place.** "We took {place}" and a war over ground or a front named most places
+  by their raw ids ("We took ds2_lager_st from Loners"): the game's own names cover only 54. They
+  now use the name the PDA map gives ("Darkscape - Cliffside Camp"), else the level's.
+
 ## 1.0.0 — 2026-11-07
 
 The first full release: everything 0.1 to 0.6 built, checked over in a deep bug check,

@@ -546,10 +546,24 @@ function faction_name(f)
     return s
 end
 
+-- a place's name as the PDA map gives it ("Cordon - Rookie Village"): smart_names.ltx's, which
+-- names only 54, else G.A.M.M.A.'s st_<smart>_name (the Warfare convention, 525 of them), else its
+-- level's. The raw id only for a smart the game no longer has, which a census never holds.
 local function place_name(smart)
-    local ok, name = pcall(function()
-        local se = SIMBOARD.smarts_by_names[smart]
-        return se and smart_terrain.get_smart_terrain_name(se)
+    local se = SIMBOARD and SIMBOARD.smarts_by_names[smart]
+    local ok, name = pcall(function() return smart_terrain.get_smart_terrain_name(se) end)
+    if ok and type(name) == "string" and name ~= "" and name ~= smart then
+        return name
+    end
+    local key = "st_" .. smart .. "_name"
+    name = game.translate_string(key)
+    if name ~= key and name ~= "" then
+        return name
+    end
+    ok, name = pcall(function()
+        local lv = alife():level_name(game_graph():vertex(se.m_game_vertex_id):level_id())
+        local s = game.translate_string(lv)
+        return s ~= lv and s or nil
     end)
     return ok and name or smart
 end
