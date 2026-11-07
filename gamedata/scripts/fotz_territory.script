@@ -39,7 +39,7 @@ faction (or is the victim's own: the game already counts that). Both while you l
 MCM's sliders set them.
 --]]
 
-VERSION = "0.5.1"
+VERSION = "0.6.0"
 CONFIG = "plugins\\fotz_politics.ltx"
 ENEMIES = -1000           -- the game's line: a faction at or below it toward another is at war
 
