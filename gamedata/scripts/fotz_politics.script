@@ -27,7 +27,7 @@ came from that faction (fotz_perks.amp). A new faction, or none, drops what was 
 a parked one (fotz_faction) keeps it.
 --]]
 
-VERSION = "0.6.0"
+VERSION = "1.0.0"
 SAVE_VERSION = 1
 CONFIG = "plugins\\fotz_politics.ltx"
 

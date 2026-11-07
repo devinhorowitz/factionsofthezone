@@ -897,8 +897,9 @@ From the Homestead thread on Discord (June to October 2026), asks that land on F
    surrender or come over to you (section 8).
 6. **0.6.0, faction perks** (section 9): a small perk from each faction your members came from,
    growing with them, their ranks and their nearness, and the footprint that draws their enemies.
-7. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
-8. **1.0.0.**
+7. **1.0.0** (2026-11-07): a deep bug check of everything above, and the Factions page rebuilt
+   into subpages that list everything; Reset relations moved to MCM.
+8. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
 
 ## Later
 
