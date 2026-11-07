@@ -20,9 +20,11 @@ writes the starts back and stops. Its state is m_data.fotz, keyed by faction and
 
 The faction you lead (fotz_faction) is a side like any other: it and every faction whose relations
 change make a pair, starting from the relations it was founded with. Its members' kills count for
-it, and so do yours while you lead it; the day's pressure on its pair with a faction grows with
-the members who came from that faction (fotz_perks.amp). A new faction, or none, drops what was
-kept for the last.
+it, and so do yours while you lead it; its members settled on a faction's ground strain its pair
+with that faction (fotz_territory), a grievance of its own, voiced by the faction whose ground it
+is if it ends in war; the day's pressure on its pair with a faction grows with the members who
+came from that faction (fotz_perks.amp). A new faction, or none, drops what was kept for the last;
+a parked one (fotz_faction) keeps it.
 --]]
 
 VERSION = "0.6.0"
@@ -176,7 +178,11 @@ function sync_own()
     local F = led()
     local uid = uid_of(F)
     local st = state()
-    if st.own ~= uid then
+    -- a faction parked (its save loaded without the declaration, fotz_faction) keeps what was kept
+    -- for it, for an install that can restore it
+    local FF = fotz_faction
+    local parked = not F and FF and FF.parked_uid and FF.parked_uid()
+    if st.own ~= uid and not parked then
         for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend" }) do
             for k in pairs(st[name]) do
                 if string.find(k, OWN, 1, true) then
@@ -580,18 +586,22 @@ local function other(p, f)
     return f == p.a and p.b or p.a
 end
 
--- what pushed a pair to war, from its recent grievances: the biggest of ground, front and kills
+-- what pushed a pair to war, from its recent grievances: the biggest of kills, front, ground and
+-- your members settling (on the other side's ground). Voiced by the side hurt most, or for
+-- settling by the side whose ground it is
 local function war_cause(p)
     local r = state().recent[p.key] or {}
     local best, size = "kills", r.kills or 0
-    if (r.front or 0) > size then
-        best, size = "front", r.front
-    end
-    if (r.ground or 0) > size then
-        best = "ground"
+    for _, what in ipairs({ "front", "ground", "settled" }) do
+        if (r[what] or 0) > size then
+            best, size = what, r[what]
+        end
     end
     local hurt = r.hurt or {}
     local voice = (hurt[p.b] or 0) > (hurt[p.a] or 0) and p.b or p.a
+    if best == "settled" then
+        voice = p.a == OWN and p.b or p.a
+    end
     return best, r[best .. "_at"], voice
 end
 
@@ -672,7 +682,7 @@ local function grievances(c, prev, day)
         end
     end
     -- your members settled on ground other factions hold strain your faction's pair with each
-    -- (fotz_territory)
+    -- (fotz_territory): a grievance of its own, which names a war it causes
     local T = fotz_territory
     if T and T.encroachment then
         local ok, enc = pcall(T.encroachment, c)
@@ -682,7 +692,7 @@ local function grievances(c, prev, day)
         for f, push in pairs(ok and enc or {}) do
             local p = pair_of(OWN, f)
             if p and push < 0 then
-                note(t, p, "ground", push)
+                note(t, p, "settled", push)
             end
         end
     end
@@ -708,7 +718,7 @@ local function remember_grievances(k, g)
         return
     end
     r = r or { hurt = {} }
-    for _, what in ipairs({ "kills", "ground", "front" }) do
+    for _, what in ipairs({ "kills", "ground", "front", "settled" }) do
         r[what] = (r[what] or 0) / 2 + (g and g[what] or 0)
         if g and g[what .. "_at"] then
             r[what .. "_at"] = g[what .. "_at"]
@@ -896,6 +906,12 @@ local function load_state(m_data)
         S = d
         for _, k in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "history", "trend" }) do
             S[k] = S[k] or {}
+        end
+        -- 0.6.0 kept your members' settling as ground, with no place: it's its own grievance now
+        for k, r in pairs(S.recent) do
+            if type(r) == "table" and string.find(k, OWN, 1, true) and r.ground and not r.ground_at then
+                r.settled, r.ground = (r.settled or 0) + r.ground, nil
+            end
         end
     elseif d ~= nil then
         log("! the save's state is version %s, this build reads %s: starting over", tostring(type(d) == "table" and d.v), SAVE_VERSION)

@@ -3,12 +3,18 @@ Factions of the Zone: the Factions page, as the PDA's tab and as a window of its
 
 It lays out fotz_tab.page() and nothing else, the way Seasons' and Arsenal's pages are laid out:
 a chamfered frame with its corners left open; the header (your side's icon, name and a line on
-it, and at its right the PDA's Relations tab, from the PDA only, and Back while the page came from
-Mod App Creator's tile); on the left how each faction that can change stands with you, then
-under a short rule the factions that never change; on the right, between dividers, the war log,
-where the fighting is and your members; and the footer: whether politics is in charge, "Reset
-relations" with a line on what it does (the first click asks, a second resets), and the credit.
-The layout is ui_fotz_tab.xml; rows and lines are its templates, moved down by a step.
+it, and at its right Back while the page came from Mod App Creator's tile); under it a button for
+each subpage, Relations, Fighting, Members (while you lead a faction) and War log, the one shown
+with its label in amber and a line under it; the subpage, in a scroll view; and the footer: whether
+politics is in charge, the PDA's own Relations tab (from the PDA only) and the credit. The page
+shows the subpage last chosen (fotz_tab.choose).
+
+A subpage is built anew at each fill into one box, which then goes into the scroll view: a scroll
+view measures what it holds when a window is added, never when one is resized. Rows and lines are
+ui_fotz_tab.xml's templates, placed one under another, every wrapped line by its real height. A
+fill frees the last box with everything in it, so Accept and Decline, which sit in it, act at once
+and leave the fill to the next update: filling during the click would free the button clicked. A
+refill of the same subpage keeps it scrolled where it was.
 
 The art is the game's own (the faction icons, ui_mm_faction_<faction>; the button and the 2D
 PDA's frame), so an HD pack that replaces them shows through, and nothing here can be missing;
@@ -22,23 +28,19 @@ local SINGLETON = nil
 local FLAT = nil
 -- the PDA's pages sit this far into the screen (pda_16.xml), and so does the flat window
 local PDA_X, PDA_Y = 112, 34
-local ROWS, ROW_Y, ROW_STEP = 8, 204, 34
-local FIXED_LINES, FIXED_STEP = 3, 36
-local LOG_Y, FIGHT_Y, FIGHT_STEP, MEMBER_Y, LINE_STEP = 202, 316, 35, 496, 18
-local REQUEST_STEP = 26     -- a join request's row, with its buttons, above the member lines
-local CONFIRM_MS = 4000
+-- the subpages' buttons, from the left (each 160 wide, ui_fotz_tab.xml)
+local SUBPAGE_X, SUBPAGE_STEP, MARK_Y = 52, 168, 204
+-- within a subpage: a faction's row, a request's, the space under a line and between groups
+local ROW_STEP, REQUEST_STEP, LINE_GAP, GROUP_GAP = 34, 26, 2, 8
 
 -- The frame: a chamfered outline with its corners left open, a rule under the header and one
--- over the footer, the columns' split, and dividers between the right column's sections. Close
--- to the background on purpose: they group things, they aren't there to be looked at.
+-- over the footer. Close to the background on purpose: they group things, they aren't there to be
+-- looked at.
 local RULE, RULE_A = { 74, 80, 74 }, 210
 local FR_L, FR_T, FR_R, FR_B = 38, 112, 782, 700
 local CHAMFER = 14
-local HEAD_Y, SPLIT_X, FOOT_Y = 168, 458, 614
-local LOG_END_Y, FIGHT_END_Y = 282, 462     -- the dividers under the war log and the fighting
--- the header's buttons: the Relations tab beside Back, or in Back's place without it
-local NUMBERS_X, NUMBERS_W, BACK_X, BACK_W = 522, 150, 676, 92
-local NOTE_RGB, WARN_RGB = { 150, 150, 150 }, { 238, 196, 112 }
+local HEAD_Y, FOOT_Y = 168, 632
+local AMBER, LABEL, FIXED = { 238, 196, 112 }, { 220, 220, 220 }, { 170, 170, 170 }
 
 local function say(msg)
     printf("[fotz-tab] %s", tostring(msg))
@@ -102,15 +104,41 @@ local function moved(w, x, y)
 end
 
 local function tint(w, rgb)
-    if w then
+    if w and rgb then
         w:SetTextColor(GetARGB(255, rgb[1], rgb[2], rgb[3]))
     end
+end
+
+-- a rule of the frame's color, x, y, w, h, on `parent`
+local function rule(xml, parent, x, y, w, h)
+    local s = xml:InitStatic("px", parent)
+    if s then
+        s:SetWndPos(vector2():set(x, y))
+        s:SetWndSize(vector2():set(w, h))
+        s:SetTextureColor(GetARGB(RULE_A, RULE[1], RULE[2], RULE[3]))
+    end
+    return s
+end
+
+-- a wrapped line in the box at y, tinted, as tall as its text; the y under it
+local function para(xml, box, y, s, rgb)
+    local w = xml:InitTextWnd("line", box)
+    if not w then
+        return y
+    end
+    w:SetText(s or "")
+    tint(w, rgb)
+    w:AdjustHeightToText()
+    moved(w, w:GetWndPos().x, y)
+    return y + w:GetHeight()
 end
 
 class "FactionsTab" (CUIScriptWnd)
 
 function FactionsTab:__init(flat) super()
     self.flat = flat == true
+    self.answers = {}       -- the request buttons' names with a callback
+    self.request_ids = {}
     self:InitControls()
 end
 
@@ -122,30 +150,16 @@ function FactionsTab:__finalize()
     end
 end
 
--- the frame's lines, made once: the frame never moves, and only the rule over the fixed lines
--- and the one over the members are moved or hidden in Fill
+-- the frame's lines, made once: the frame never moves
 function FactionsTab:InitFrame()
     local xml = self.xml
-    local function line(x, y, w, h)
-        local s = xml:InitStatic("px", self)
-        if s then
-            s:SetWndPos(vector2():set(x, y))
-            s:SetWndSize(vector2():set(w, h))
-            s:SetTextureColor(GetARGB(RULE_A, RULE[1], RULE[2], RULE[3]))
-        end
-        return s
-    end
     local inner = FR_R - FR_L - CHAMFER * 2
-    line(FR_L + CHAMFER, FR_T, inner, 1)
-    line(FR_L + CHAMFER, FR_B, inner, 1)
-    line(FR_L, FR_T + CHAMFER, 1, FR_B - FR_T - CHAMFER * 2)
-    line(FR_R, FR_T + CHAMFER, 1, FR_B - FR_T - CHAMFER * 2)
-    line(FR_L + CHAMFER, HEAD_Y, inner, 1)
-    line(FR_L + CHAMFER, FOOT_Y, inner, 1)
-    line(SPLIT_X, HEAD_Y + 8, 1, FOOT_Y - HEAD_Y - 16)
-    line(SPLIT_X + CHAMFER, LOG_END_Y, FR_R - SPLIT_X - CHAMFER * 2, 1)
-    self.members_rule = line(SPLIT_X + CHAMFER, FIGHT_END_Y, FR_R - SPLIT_X - CHAMFER * 2, 1)
-    self.fixed_rule = line(FR_L + CHAMFER, 0, SPLIT_X - FR_L - CHAMFER * 2, 1)
+    rule(xml, self, FR_L + CHAMFER, FR_T, inner, 1)
+    rule(xml, self, FR_L + CHAMFER, FR_B, inner, 1)
+    rule(xml, self, FR_L, FR_T + CHAMFER, 1, FR_B - FR_T - CHAMFER * 2)
+    rule(xml, self, FR_R, FR_T + CHAMFER, 1, FR_B - FR_T - CHAMFER * 2)
+    rule(xml, self, FR_L + CHAMFER, HEAD_Y, inner, 1)
+    rule(xml, self, FR_L + CHAMFER, FOOT_Y, inner, 1)
 end
 
 function FactionsTab:InitControls()
@@ -167,90 +181,27 @@ function FactionsTab:InitControls()
     square(self.icon)
     self.title = xml:InitTextWnd("title", self)
     self.subtitle = xml:InitTextWnd("subtitle", self)
-    put(xml:InitTextWnd("standing_heading", self), fotz_tab.text("st_fotz_tab_standing"))
-    put(xml:InitTextWnd("log_heading", self), fotz_tab.text("st_fotz_tab_log"))
-    put(xml:InitTextWnd("fights_heading", self), fotz_tab.text("st_fotz_tab_fighting"))
-    self.members_heading = xml:InitTextWnd("members_heading", self)
-    put(self.members_heading, fotz_tab.text("st_fotz_tab_members"))
 
-    self.rows = {}
-    for i = 1, ROWS do
-        local dy = (i - 1) * ROW_STEP
-        local r = {
-            icon = xml:InitStatic("row_icon", self),
-            name = xml:InitTextWnd("row_name", self),
-            trend = xml:InitStatic("row_trend", self),
-            standing = xml:InitTextWnd("row_standing", self),
-            change = xml:InitTextWnd("row_change", self),
-            detail = xml:InitTextWnd("row_detail", self),
-            event = xml:InitTextWnd("row_event", self),
-        }
-        square(r.icon)
-        narrow(r.trend)
-        for _, w in pairs(r) do
-            moved(w, w:GetWndPos().x, ROW_Y + dy + w:GetWndPos().y)
+    -- the subpages' buttons, placed in Fill; each label after its plate, so it draws on top
+    self.subpages = {}
+    for _, s in ipairs(fotz_tab.SUBPAGES) do
+        local b = { button = xml:Init3tButton("subpage", self), label = xml:InitTextWnd("subpage_label", self) }
+        if b.button then
+            local name = "subpage_" .. s
+            self:Register(b.button, name)
+            self:AddCallback(name, ui_events.BUTTON_CLICKED, function() self:OnSubpage(s) end, self)
         end
-        self.rows[i] = r
+        self.subpages[s] = b
     end
-    -- placed under the last row shown, in Fill
-    self.fixed = {}
-    for i = 1, FIXED_LINES do
-        self.fixed[i] = xml:InitTextWnd("fixed_line", self)
+    -- the line under the subpage shown
+    self.mark = xml:InitStatic("px", self)
+    if self.mark then
+        self.mark:SetWndSize(vector2():set(160, 2))
+        self.mark:SetTextureColor(GetARGB(255, AMBER[1], AMBER[2], AMBER[3]))
     end
-    self.perks = xml:InitTextWnd("perks_line", self)
-    if self.perks then
-        local c = fotz_tab.COLORS.friends
-        self.perks:SetTextColor(GetARGB(255, c[1], c[2], c[3]))
-    end
-    self.log = {}
-    for i = 1, fotz_tab.LOG_LINES do
-        local w = xml:InitTextWnd("log_line", self)
-        self.log[i] = moved(w, w and w:GetWndPos().x or 0, LOG_Y + (i - 1) * LINE_STEP)
-    end
-    self.fights = {}
-    for i = 1, fotz_tab.FIGHT_LINES do
-        local w = xml:InitTextWnd("fight_line", self)
-        self.fights[i] = moved(w, w and w:GetWndPos().x or 0, FIGHT_Y + (i - 1) * FIGHT_STEP)
-    end
-    self.members = {}
-    for i = 1, fotz_tab.MEMBER_LINES + 1 do
-        local w = xml:InitTextWnd("member_line", self)
-        self.members[i] = moved(w, w and w:GetWndPos().x or 0, MEMBER_Y + (i - 1) * LINE_STEP)
-    end
-    -- join requests (fotz_loyalty), each a line with Accept and Decline at its right, in rows
-    -- above the member lines; each label after its plate, so it draws on top
-    self.requests = {}
-    for i = 1, fotz_tab.REQUEST_ROWS do
-        local r = {
-            line = xml:InitTextWnd("request_line", self),
-            accept = xml:Init3tButton("request_accept", self),
-            accept_label = xml:InitTextWnd("request_accept_label", self),
-            decline = xml:Init3tButton("request_decline", self),
-            decline_label = xml:InitTextWnd("request_decline_label", self),
-        }
-        put(r.accept_label, fotz_tab.text("st_fotz_tab_accept"))
-        put(r.decline_label, fotz_tab.text("st_fotz_tab_decline"))
-        for _, w in pairs(r) do
-            moved(w, w:GetWndPos().x, MEMBER_Y + (i - 1) * REQUEST_STEP + w:GetWndPos().y)
-        end
-        for _, what in ipairs({ "accept", "decline" }) do
-            if r[what] then
-                local name = what .. i
-                self:Register(r[what], name)
-                self:AddCallback(name, ui_events.BUTTON_CLICKED, function() self:OnAnswer(i, what) end, self)
-            end
-        end
-        self.requests[i] = r
-    end
+    self.view = xml:InitScrollView("view", self)
 
-    -- the header's buttons; each label after its plate, so it draws on top
-    self.numbers = xml:Init3tButton("numbers", self)
-    self.numbers_label = xml:InitTextWnd("numbers_label", self)
-    put(self.numbers_label, fotz_tab.text("st_fotz_tab_numbers"))
-    if self.numbers then
-        self:Register(self.numbers, "numbers")
-        self:AddCallback("numbers", ui_events.BUTTON_CLICKED, self.OnNumbers, self)
-    end
+    -- Back, in the header; each label after its plate, so it draws on top
     self.back = xml:Init3tButton("back", self)
     self.back_label = xml:InitTextWnd("back_label", self)
     put(self.back_label, fotz_tab.text("st_fotz_tab_back"))
@@ -261,12 +212,12 @@ function FactionsTab:InitControls()
 
     -- the footer
     self.status = xml:InitTextWnd("status", self)
-    self.reset_note = xml:InitTextWnd("reset_note", self)
-    self.restore = xml:Init3tButton("restore", self)
-    self.restore_label = xml:InitTextWnd("restore_label", self)
-    if self.restore then
-        self:Register(self.restore, "restore")
-        self:AddCallback("restore", ui_events.BUTTON_CLICKED, self.OnRestore, self)
+    self.numbers = xml:Init3tButton("numbers", self)
+    self.numbers_label = xml:InitTextWnd("numbers_label", self)
+    put(self.numbers_label, fotz_tab.text("st_fotz_tab_numbers"))
+    if self.numbers then
+        self:Register(self.numbers, "numbers")
+        self:AddCallback("numbers", ui_events.BUTTON_CLICKED, self.OnNumbers, self)
     end
     self.credit = xml:InitTextWnd("credit", self)
 end
@@ -287,12 +238,165 @@ function FactionsTab:OnBack()
     end
 end
 
--- Reset relations as it stands: its label and the line on what it does, or, waiting for the
--- second click, what that will do
-function FactionsTab:ResetText(label, warn)
-    put(self.restore_label, fotz_tab.text(label))
-    put(self.reset_note, fotz_tab.text(warn and "st_fotz_tab_restore_warn" or "st_fotz_tab_restore_note"))
-    tint(self.reset_note, warn and WARN_RGB or NOTE_RGB)
+-- a subpage's button: that subpage, from its top (the button isn't in the box, so the page can be
+-- filled at once)
+function FactionsTab:OnSubpage(s)
+    fotz_tab.choose(s)
+    self:Reset()
+end
+
+-- a faction's row in the box at y
+function FactionsTab:Row(box, y, row)
+    local xml = self.xml
+    local r = {
+        icon = xml:InitStatic("row_icon", box),
+        name = xml:InitTextWnd("row_name", box),
+        trend = xml:InitStatic("row_trend", box),
+        standing = xml:InitTextWnd("row_standing", box),
+        change = xml:InitTextWnd("row_change", box),
+        detail = xml:InitTextWnd("row_detail", box),
+        event = xml:InitTextWnd("row_event", box),
+    }
+    square(r.icon)
+    narrow(r.trend)
+    for _, w in pairs(r) do
+        moved(w, w:GetWndPos().x, y + w:GetWndPos().y)
+    end
+    if r.icon then
+        r.icon:InitTexture(row.icon)
+    end
+    put(r.name, row.name)
+    put(r.standing, row.standing)
+    tint(r.standing, row.color)
+    put(r.change, row.change)
+    put(r.detail, fit(row.detail, 30))
+    put(r.event, row.event)
+    local t = TREND[row.trend]
+    show(r.trend, t ~= nil)
+    if t and r.trend then
+        r.trend:InitTexture(t[1])
+        r.trend:SetTextureColor(GetARGB(255, t[2], t[3], t[4]))
+    end
+end
+
+-- a join request in the box at y, its line and Accept and Decline; the y under it. The buttons are
+-- named by their row, and a name's callback is added once (it would replace itself anyway)
+function FactionsTab:Request(box, y, i, q)
+    local xml = self.xml
+    local r = {
+        line = xml:InitTextWnd("request_line", box),
+        accept = xml:Init3tButton("request_accept", box),
+        accept_label = xml:InitTextWnd("request_accept_label", box),
+        decline = xml:Init3tButton("request_decline", box),
+        decline_label = xml:InitTextWnd("request_decline_label", box),
+    }
+    put(r.line, q.line)
+    put(r.accept_label, fotz_tab.text("st_fotz_tab_accept"))
+    put(r.decline_label, fotz_tab.text("st_fotz_tab_decline"))
+    if r.line then
+        r.line:AdjustHeightToText()
+    end
+    for _, w in pairs(r) do
+        moved(w, w:GetWndPos().x, y + w:GetWndPos().y)
+    end
+    for _, what in ipairs({ "accept", "decline" }) do
+        if r[what] then
+            local name = what .. i
+            self:Register(r[what], name)
+            if not self.answers[name] then
+                self.answers[name] = true
+                self:AddCallback(name, ui_events.BUTTON_CLICKED, function() self:OnAnswer(i, what) end, self)
+            end
+        end
+    end
+    self.request_ids[i] = q.id
+    return y + math.max(REQUEST_STEP, (r.line and r.line:GetHeight() or 0) + 8)
+end
+
+-- the subpages, each built into the box; each gives the box's height
+
+-- the rows, the factions that never change under a rule, then the perks your members bring, what
+-- your footprint draws here and whom settling here strains, a sentence each
+function FactionsTab:Relations(box, p)
+    local xml, y = self.xml, 0
+    for _, row in ipairs(p.rows) do
+        self:Row(box, y, row)
+        y = y + ROW_STEP
+    end
+    if #p.rows > 0 and #p.fixed > 0 then
+        rule(xml, box, 0, y + 2, box:GetWidth(), 1)
+        y = y + 10
+    end
+    for _, s in ipairs(p.fixed) do
+        y = para(xml, box, y, s, FIXED) + GROUP_GAP
+    end
+    local W = fotz_tab.WARN
+    for _, it in ipairs({ { p.perks, fotz_tab.COLORS.friends }, { p.drawn, W }, { p.strains, W } }) do
+        if it[1] then
+            y = para(xml, box, y, it[1], it[2]) + GROUP_GAP
+        end
+    end
+    return y
+end
+
+function FactionsTab:Fighting(box, p)
+    local y = 0
+    for _, s in ipairs(p.fights) do
+        y = para(self.xml, box, y, s) + GROUP_GAP
+    end
+    return y
+end
+
+-- the requests, each with its buttons; then the members; then the residents nearest to asking,
+-- each group under a rule
+function FactionsTab:Members(box, p)
+    local xml, y = self.xml, 0
+    for i, q in ipairs(p.requests or {}) do
+        y = self:Request(box, y, i, q)
+    end
+    for _, group in ipairs({ p.members or {}, p.residents or {} }) do
+        if #group > 0 and y > 0 then
+            rule(xml, box, 0, y + 2, box:GetWidth(), 1)
+            y = y + 10
+        end
+        for _, s in ipairs(group) do
+            y = para(xml, box, y, s) + LINE_GAP
+        end
+    end
+    return y
+end
+
+function FactionsTab:Log(box, p)
+    local y = 0
+    for _, s in ipairs(p.log) do
+        y = para(self.xml, box, y, s) + LINE_GAP
+    end
+    return y
+end
+
+local BUILD = { relations = "Relations", fighting = "Fighting", members = "Members", log = "Log" }
+
+-- the subpage shown, built anew into the scroll view; the same subpage again stays scrolled where it
+-- was (at the next update, once the view has measured the box)
+function FactionsTab:FillView(p)
+    if not self.view then
+        return
+    end
+    local keep = self.on_subpage == p.subpage and self.view:GetCurrentScrollPos() or nil
+    self.request_ids = {}
+    self.view:Clear()
+    local box = self.xml:InitStatic("box", nil)
+    if not box then
+        return
+    end
+    local ok, h = pcall(self[BUILD[p.subpage]], self, box, p)
+    if not ok then
+        say("! the subpage " .. tostring(p.subpage) .. ": " .. tostring(h))
+        h = 0
+    end
+    box:SetWndSize(vector2():set(box:GetWidth(), math.max(1, h)))
+    self.view:AddWindow(box, true)
+    self.on_subpage, self.scroll_to = p.subpage, keep
 end
 
 function FactionsTab:Fill()
@@ -303,92 +407,38 @@ function FactionsTab:Fill()
     put(self.title, fit(p.title, 40))
     put(self.subtitle, p.subtitle)
     put(self.status, p.status)
-    for i, r in ipairs(self.rows or {}) do
-        local row = p.rows[i]
-        for _, w in pairs(r) do
-            show(w, row ~= nil)
-        end
-        if row then
-            if r.icon then
-                r.icon:InitTexture(row.icon)
-            end
-            put(r.name, row.name)
-            put(r.standing, row.standing)
-            if r.standing then
-                r.standing:SetTextColor(GetARGB(255, row.color[1], row.color[2], row.color[3]))
-            end
-            put(r.change, row.change)
-            put(r.detail, fit(row.detail, 32))
-            put(r.event, row.event)
-            local t = TREND[row.trend]
-            show(r.trend, t ~= nil)
-            if t and r.trend then
-                r.trend:InitTexture(t[1])
-                r.trend:SetTextureColor(GetARGB(255, t[2], t[3], t[4]))
+    -- the subpages' buttons, left to right, the one shown in amber with the line under it
+    local has = {}
+    for _, s in ipairs(p.subpages) do
+        has[s] = true
+    end
+    local x = SUBPAGE_X
+    for _, s in ipairs(fotz_tab.SUBPAGES) do
+        local b = self.subpages and self.subpages[s]
+        if b then
+            show(b.button, has[s] == true)
+            show(b.label, has[s] == true)
+            if has[s] then
+                moved(b.button, x, b.button and b.button:GetWndPos().y or 0)
+                moved(b.label, x, b.label and b.label:GetWndPos().y or 0)
+                put(b.label, p.labels[s])
+                tint(b.label, s == p.subpage and AMBER or LABEL)
+                if s == p.subpage then
+                    moved(self.mark, x, MARK_Y)
+                end
+                x = x + SUBPAGE_STEP
             end
         end
     end
-    -- the factions that never change: under a short rule below the last row shown, or in the
-    -- rows' place when there are none
-    local y = ROW_Y + #p.rows * ROW_STEP
-    local ruled = #p.rows > 0 and #p.fixed > 0
-    moved(self.fixed_rule, FR_L + CHAMFER, y + 2)
-    show(self.fixed_rule, ruled)
-    y = ruled and y + 10 or y
-    for i = 1, FIXED_LINES do
-        local w = self.fixed and self.fixed[i]
-        if w then
-            moved(w, w:GetWndPos().x, y + (i - 1) * FIXED_STEP)
-            put(w, p.fixed[i])
-            show(w, p.fixed[i] ~= nil)
-        end
-    end
-    -- the perks your members bring (fotz_perks), under the last fixed line
-    if self.perks then
-        moved(self.perks, self.perks:GetWndPos().x, y + #p.fixed * FIXED_STEP)
-        put(self.perks, p.perks)
-        show(self.perks, p.perks ~= nil)
-    end
-    for i, w in ipairs(self.log or {}) do
-        put(w, fit(p.log[i], 60))
-    end
-    -- two lines' worth at most
-    for i, w in ipairs(self.fights or {}) do
-        put(w, fit(p.fights[i], 100))
-    end
-    show(self.members_heading, p.members ~= nil)
-    show(self.members_rule, p.members ~= nil)
-    -- the requests first, then the member lines under them, as many as fit above the footer
-    local reqs = p.requests or {}
-    self.request_ids = {}
-    for i, r in ipairs(self.requests or {}) do
-        local q = reqs[i]
-        self.request_ids[i] = q and q.id
-        for _, w in pairs(r) do
-            show(w, q ~= nil)
-        end
-        put(r.line, q and fit(q.line, 30) or "")
-    end
-    local top = MEMBER_Y + math.min(#reqs, #(self.requests or {})) * REQUEST_STEP
-    for i, w in ipairs(self.members or {}) do
-        local y = top + (i - 1) * LINE_STEP
-        moved(w, w and w:GetWndPos().x or 0, y)
-        local room = y + LINE_STEP <= FOOT_Y - 4
-        put(w, (p.members and room) and fit(p.members[i], 58) or "")
-    end
+    self:FillView(p)
     put(self.credit, p.credit)
     -- Back while the page came from MAC's tile; flat, or from its own tab, the way out is the PDA's.
-    -- The Relations tab only in the PDA (flat, there's no PDA to switch), in Back's place without it.
+    -- The Relations tab only in the PDA: flat, there's no PDA to switch
     local back = not self.flat and fotz_tab.back_to_launcher()
     show(self.back, back)
     show(self.back_label, back)
-    local nx = back and NUMBERS_X or BACK_X + BACK_W - NUMBERS_W
-    moved(self.numbers, nx, self.numbers and self.numbers:GetWndPos().y or 0)
-    moved(self.numbers_label, nx, self.numbers_label and self.numbers_label:GetWndPos().y or 0)
     show(self.numbers, not self.flat)
     show(self.numbers_label, not self.flat)
-    self.confirm_until = nil
-    self:ResetText("st_fotz_tab_restore", false)
 end
 
 function FactionsTab:Reset()
@@ -398,42 +448,29 @@ function FactionsTab:Reset()
     end
 end
 
--- a join request answered: the row's settler accepted or declined, and the page filled again
+-- a join request answered: the row's settler accepted or declined, and the page filled again at the
+-- next update (the button clicked sits in the box a fill frees)
 function FactionsTab:OnAnswer(i, what)
     local id = self.request_ids and self.request_ids[i]
     if id and fotz_loyalty then
+        self.request_ids[i] = nil
         local ok, err = pcall(what == "accept" and fotz_loyalty.accept or fotz_loyalty.decline, id)
         if not ok then
             say("! the request: " .. tostring(err))
         end
     end
-    self:Reset()
-end
-
--- the first click asks, a second within a few seconds resets
-function FactionsTab:OnRestore()
-    local now = time_global()
-    if not (self.confirm_until and now <= self.confirm_until) then
-        self.confirm_until = now + CONFIRM_MS
-        self:ResetText("st_fotz_tab_restore_confirm", true)
-        return
-    end
-    local ok, err = pcall(fotz_politics.restore)
-    if not ok then
-        say("! reset failed: " .. tostring(err))
-    end
-    self:Reset()
-    -- "reset" only when it was: a failure (logged) leaves the button as it was
-    if ok then
-        put(self.restore_label, fotz_tab.text("st_fotz_tab_restored"))
-    end
+    self.refill = true
 end
 
 function FactionsTab:Update()
     CUIScriptWnd.Update(self)
-    if self.confirm_until and time_global() > self.confirm_until then
-        self.confirm_until = nil
-        self:ResetText("st_fotz_tab_restore", false)
+    if self.refill then
+        self.refill = nil
+        self:Reset()
+    elseif self.scroll_to and self.view then
+        local pos = self.scroll_to
+        self.scroll_to = nil
+        self.view:SetScrollPos(math.max(0, pos))
     end
 end
 

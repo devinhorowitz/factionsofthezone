@@ -54,6 +54,9 @@
 	<string id="st_fotz_news_war_front">
 		<text>Который день мы бьёмся с группировкой «{b}» у позиции «{place}». С сегодняшнего дня мы с ними воюем.</text>
 	</string>
+	<string id="st_fotz_news_war_settled">
+		<text>Группировка «{b}» обосновалась на нашей земле и не уходит. С сегодняшнего дня мы с ними воюем.</text>
+	</string>
 	<string id="st_fotz_news_truce">
 		<text>На линии с группировкой «{b}» стало тихо. Пока не стреляем.</text>
 	</string>
@@ -181,7 +184,7 @@
 		<text>Отношениями управляет Fluid Relations.</text>
 	</string>
 	<string id="st_fotz_tab_standing">
-		<text>Как к вам относятся группировки</text>
+		<text>Отношения</text>
 	</string>
 	<string id="st_fotz_tab_band_war">
 		<text>Война</text>
@@ -253,7 +256,7 @@
 		<text>Пока ничего: здесь будут войны, перемирия и союзы.</text>
 	</string>
 	<string id="st_fotz_tab_fighting">
-		<text>Где идут бои</text>
+		<text>Бои</text>
 	</string>
 	<string id="st_fotz_tab_fighting_wait">
 		<text>Ещё не подсчитано: перепись вскоре после загрузки.</text>
@@ -279,9 +282,6 @@
 	<string id="st_fotz_and">
 		<text>и</text>
 	</string>
-	<string id="st_fotz_more">
-		<text>ещё {n}</text>
-	</string>
 	<string id="st_fotz_map_label">
 		<text>{a} — {b}</text>
 	</string>
@@ -290,6 +290,9 @@
 	</string>
 	<string id="st_fotz_tab_members">
 		<text>Бойцы</text>
+	</string>
+	<string id="st_fotz_tab_members_asking">
+		<text>Бойцы (просятся: {n})</text>
 	</string>
 	<string id="st_fotz_tab_member_near">
 		<text>{name} («{from}»), рядом</text>
@@ -303,23 +306,17 @@
 	<string id="st_fotz_tab_members_none">
 		<text>Бойцов пока нет: ваши спутники вступают сами.</text>
 	</string>
-	<string id="st_fotz_tab_members_more">
-		<text>и ещё {n}</text>
+	<string id="ui_mcm_fotz_reset_relations">
+		<text>Вернуть отношения как в новой игре</text>
 	</string>
-	<string id="st_fotz_tab_restore">
-		<text>Сбросить отношения</text>
+	<string id="ui_mcm_fotz_reset_relations_desc">
+		<text>Срабатывает один раз в загруженной игре: отношения всех группировок возвращаются к началу новой игры, вашей группировки — к её основанию, и все войны, перемирия и союзы заканчиваются. Затем переключатель выключается сам. Если включить его в главном меню, при следующей загрузке он выключится, ничего не сбросив.</text>
 	</string>
-	<string id="st_fotz_tab_restore_confirm">
-		<text>Нажмите ещё раз</text>
+	<string id="ui_mcm_fotz_reset_relations_warn">
+		<text>Внимание: переключатель ниже возвращает отношения всех группировок к началу новой игры (вашей группировки — к её основанию) и завершает все войны, перемирия и союзы. Отменить это нельзя.</text>
 	</string>
-	<string id="st_fotz_tab_restored">
-		<text>Отношения сброшены</text>
-	</string>
-	<string id="st_fotz_tab_restore_note">
-		<text>Сброс возвращает все отношения к тем, что были до боёв, и завершает все войны, перемирия и союзы.</text>
-	</string>
-	<string id="st_fotz_tab_restore_warn">
-		<text>Второе нажатие вернёт все отношения и завершит все войны, перемирия и союзы. Отменить это нельзя.</text>
+	<string id="st_fotz_relations_reset">
+		<text>Отношения возвращены к началу новой игры, все войны, перемирия и союзы окончены.</text>
 	</string>
 	<string id="st_fotz_tab_numbers">
 		<text>Цифры отношений</text>
@@ -486,6 +483,9 @@
 	<string id="st_fotz_news_fell_left">
 		<text>{who} покидает группировку «{name}» после падения лагеря ({camp}) и возвращается в «{to}».</text>
 	</string>
+	<string id="st_fotz_news_nowhere_left">
+		<text>{who} покидает группировку «{name}», не найдя места ни в одном вашем лагере, и возвращается в «{to}».</text>
+	</string>
 	<string id="st_fotz_tab_member_heading">
 		<text>{name}, преданность {loyalty} (в {camp})</text>
 	</string>
@@ -553,7 +553,7 @@
 		<text>Поселение на чужой земле портит отношения, до (в день)</text>
 	</string>
 	<string id="ui_mcm_fotz_encroach_max_desc">
-		<text>Пока вы ведёте группировку, ваши бойцы, поселившиеся там, где землю держит другая группировка, каждый день портят отношения вашей группировки с ней: тем сильнее, чем больше земли она держит и чем больше там ваших бойцов. Бойцы, пришедшие из этой группировки, не в счёт, а союзник не возражает.</text>
+		<text>Пока вы ведёте группировку, ваши бойцы, поселившиеся там, где землю держит другая группировка, каждый день портят отношения вашей группировки с ней: тем сильнее, чем больше земли она держит и чем больше там ваших бойцов. Ваши спутники и бойцы, пришедшие из этой группировки, не в счёт; союзник не возражает, как и группировка, чьи отношения с вашей неизменны.</text>
 	</string>
 	<string id="ui_mcm_fotz_instigate_max">
 		<text>Убийство на чужой земле стоит репутации, до</text>
@@ -574,13 +574,13 @@
 		<text>скидка {pct}% на медикаменты ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_freedom">
-		<text>скидка {pct}% на части мутантов ({faction})</text>
+		<text>скидка {pct}% на мясо мутантов ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_dolg">
 		<text>скидка {pct}% на ремкомплекты и инструменты ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_csky">
-		<text>скидка {pct}% на детали оружия и брони ({faction})</text>
+		<text>скидка {pct}% на детекторы и приборы ({faction})</text>
 	</string>
 	<string id="st_fotz_perk_army">
 		<text>скидка {pct}% на авиарейсы ({faction})</text>

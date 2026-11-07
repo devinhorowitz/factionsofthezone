@@ -5,7 +5,7 @@ the PDA map.
 Checked: a marker for each level the page names a fight on (fotz_tab.fights), none where neither
 side of the level's main fight holds a smart; the anchor (a smart either side holds with hostile
 squads at it, else the side behind's, else the side ahead's); the hint (the page's sentence for the
-level, then the factions there hostile to you, the most fighters first, four at most, and none
+level, every side named, then every faction there hostile to you, the most fighters first, and none
 without fighters there) and the label ("A vs B", the main fight's sides), in the English table's
 words; red where the fight is your side's; no marker ever saved (map_add_object_spot, never _ser);
 the label on the marker's own widget, in its color, and none without a widget or the engine
@@ -44,7 +44,7 @@ MUTANTS = {
     "hostile_line": ("relation_registry.community_relation(side, f) <= -1000", "relation_registry.community_relation(side, f) < -1000"),
     "hostile_absent": ("if at and (at.fighters or 0) > 0 and", "if at and"),
     "hostile_order": ("            return x.n > y.n", "            return x.n < y.n"),
-    "hostile_uncapped": ("fotz_tab.names_list(foes, HOSTILE_NAMES)", "fotz_tab.names_list(foes)"),
+    "hostile_capped": ("fotz_tab.names_list(foes)", "fotz_tab.names_list({ unpack(foes, 1, 3) })"),
     "saved_spots": ("            level.map_add_object_spot(id, m.spot, m.hint)", "            level.map_add_object_spot_ser(id, m.spot, m.hint)"),
     "readd_always": ("        if not (m and m.spot == p.spot and m.hint == p.hint and m.label == p.label and has(id, p.spot)) then",
                      "        if true then"),
@@ -228,7 +228,7 @@ class World:
 
 # the UI breaks a hint's lines at the two characters \n, as the game's own map hints write them
 GARBAGE_HINT = ("Garbage: your Duty winning, Bandits, Mercenaries and Renegades losing\\n"
-                "Hostile to you here: Bandits, Mercenaries, Renegades and 2 more")
+                "Hostile to you here: Bandits, Mercenaries, Renegades, Sin and Monolith")
 WANT = {
     "103|fotz_front_yours": GARBAGE_HINT,
     "201|fotz_front_yours": "Agroprom: Mercenaries winning, your Duty losing\\nHostile to you here: Mercenaries",
@@ -285,8 +285,8 @@ def update(srcs):
     # more of the Sin on Garbage: its hint changes, its label doesn't, and the marker is renewed
     w.run('front("l02_garbage", "dolg", "greh").fb = 5; FIGHTERS.l02_garbage.greh = 5; counted()')
     w.env.update(w.g.CENSUS)
-    garbage = ("Garbage: your Duty winning, Bandits, Mercenaries and 2 more losing\\n"
-               "Hostile to you here: Bandits, Mercenaries, Sin and 2 more")
+    garbage = ("Garbage: your Duty winning, Bandits, Mercenaries, Sin and Renegades losing\\n"
+               "Hostile to you here: Bandits, Mercenaries, Sin, Renegades and Monolith")
     check(w.calls() == (6, 2, 0) and w.spots().get("103|fotz_front_yours") == garbage,
           "Garbage's hint changed: %s %s" % (w.calls(), w.spots().get("103|fotz_front_yours")))
     # another mod took Garbage's marker off: it goes back

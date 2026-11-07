@@ -10,7 +10,8 @@ log and goes to the listeners (the politics engine).
 A smart is held by the faction with the most fighters in squads assigned to it that have arrived,
 by the smart's own arrival test (squads on their way don't count). It is contested while squads
 of two hostile factions are there at once, and each such pair has a front. Mutant squads count as
-"monster" and never hold or contest a smart.
+"monster" and never hold or contest a smart. One level's ground can also be counted on its own, by
+the same test (level_ground), for a look before the first census after a load.
 --]]
 
 VERSION = "0.6.0"
@@ -70,6 +71,18 @@ function at_its_smart(sq)
     return ok and reached == true
 end
 
+-- a squad's fighters toward holding its smart, if it has arrived there (mutants never hold one)
+local function arrived(present, sq, f, n)
+    if f ~= "monster" and n > 0 and at_its_smart(sq) then
+        local p = present[sq.smart_id]
+        if not p then
+            p = {}
+            present[sq.smart_id] = p
+        end
+        add(p, f, n)
+    end
+end
+
 local function count_squad(c, sim, id, present)
     local sq = sim:object(id)
     if not sq then
@@ -101,14 +114,7 @@ local function count_squad(c, sim, id, present)
     end
     at.squads = at.squads + 1
     at.fighters = at.fighters + n
-    if f ~= "monster" and n > 0 and at_its_smart(sq) then
-        local p = present[sq.smart_id]
-        if not p then
-            p = {}
-            present[sq.smart_id] = p
-        end
-        add(p, f, n)
-    end
+    arrived(present, sq, f, n)
 end
 
 -- the faction with the most fighters present (ties go to the first name), and the hostile pairs
@@ -207,6 +213,36 @@ function take(cause)
     c.held = held
     c.ms = math.floor((os.clock() - t0) * 10000 + 0.5) / 10
     return c
+end
+
+-- one level's ground now, counted as a census counts it: { smarts = the level's smarts, held =
+-- faction -> the smarts it holds there }. For a look before the first census after a load; only
+-- the level's squads' members are counted, so it costs a fraction of a census
+function level_ground(lv)
+    local sim = alife()
+    local out, here, present = { smarts = 0, held = {} }, {}, {}
+    for id, s in pairs(SIMBOARD.smarts) do
+        if level_of(s.smrt) == lv then
+            here[id] = true
+            out.smarts = out.smarts + 1
+        end
+    end
+    for id in pairs(out.smarts > 0 and SIMBOARD.squads or {}) do
+        local sq = sim:object(id)
+        if sq and sq.smart_id and here[sq.smart_id] then
+            local n = 0
+            for k in sq:squad_members() do
+                if k.object or sim:object(k.id) then
+                    n = n + 1
+                end
+            end
+            arrived(present, sq, sq:get_squad_community() or "?", n)
+        end
+    end
+    for _, p in pairs(present) do
+        add(out.held, (holder_of(p)))
+    end
+    return out
 end
 
 -- JSON, with object keys sorted so that two censuses of one world read the same

@@ -5,13 +5,19 @@ The page opens three ways, the player's choice: a tab of its own in the PDA (Mod
 pda_dynamic_tabs, registered a second into play, never during a load), Mod App Creator's tile
 (z_fotz_mac; with MAC an MCM option picks the tile or the tab), or a key that opens it flat. It
 shows your side, the faction you lead or, without one, your own, in words, not numbers (the PDA's
-own Relations tab has those, and the page links to it): how each faction whose relation with your
-side can change stands with you, what holds that (a war, a truce, an alliance) and which way it
-went on politics' last day, and its leader; the factions that never change, in a line for each
-standing; the war log, newest first; where the fighting is, a sentence a level saying who is
-winning, your side's levels first; and your members. "Restore relations" puts every pair back
-where it started. A key in MCM opens the page flat, in a window of its own, since the 3D PDA
-softens PDA pages.
+own Relations tab has those, and the page links to it), on subpages the page remembers while you
+play:
+- Relations: how each faction whose relation with your side can change stands with you, what
+  holds that (a war, a truce, an alliance) and which way it went on politics' last day, and its
+  leader; the factions that never change, in a line for each standing; and with a faction of your
+  own, the perks your members bring, what your footprint draws here and whom settling here strains.
+- Fighting: a sentence a level saying who is winning, your side's levels first.
+- Members (while you lead a faction): the join requests, your members and the residents nearest
+  to asking.
+- War log: newest first.
+Every list is whole, never "and N more": the page scrolls. A key in MCM opens the page flat, in a
+window of its own, since the 3D PDA softens PDA pages. MCM's one-time "Reset relations to a new
+game's" puts every pair back where it started (fotz_politics.restore), in a loaded game only.
 
 page() builds everything the page shows, as text, so it can be tested away from the UI;
 ui_fotz_tab.script only lays it out. fights() is the map's too (fotz_map). Every word is a string
@@ -21,23 +27,25 @@ id.
 VERSION = "0.6.0"
 TAB_CAPTION = "st_fotz_tab"
 KEY_PATH = "fotz/tab_key"
-LOG_LINES = 4
-FIGHT_LINES = 4
-MEMBER_LINES = 5
-REQUEST_ROWS = 2    -- join requests shown with their buttons (fotz_loyalty)
-LIST_NAMES = 3      -- names a fight's list gives before "and N more"
-PERK_NAMES = 4      -- perks the page names, three and "N more" past four (three lines at most)
+RESET_PATH = "fotz/reset_relations"
 SIDE_MIN = 3        -- fighters a side, for a fight worth naming: a few stragglers by a big force aren't one
 -- the stronger side's share of the two, and what it's called: else the sides are evenly matched
 VERDICTS = { { 0.8, "control" }, { 2 / 3, "winning" }, { 0.55, "ahead" } }
+-- the subpages, in their buttons' order, and each one's label
+SUBPAGES = { "relations", "fighting", "members", "log" }
+LABELS = { relations = "st_fotz_tab_standing", fighting = "st_fotz_tab_fighting", members = "st_fotz_tab_members",
+           log = "st_fotz_tab_log" }
 
 -- the standing's colors, as r, g, b: the PDA's reds, ambers and greens
 COLORS = {
     war = { 230, 80, 70 }, enemies = { 210, 110, 90 }, truce = { 238, 196, 112 },
     neutral = { 200, 200, 200 }, friends = { 140, 205, 130 }, alliance = { 120, 225, 140 },
 }
+-- your footprint's and the strain's sentences, in the steer's warning color
+WARN = { 210, 110, 90 }
 
-local TAB    -- the tab's section id, once registered
+local TAB           -- the tab's section id, once registered
+local chosen = SUBPAGES[1]  -- the subpage last chosen, kept while you play (the next load starts over)
 
 local function log(fmt, ...)
     printf("[fotz-tab] " .. fmt, ...)
@@ -60,25 +68,16 @@ function short_date(d)
     return m and (dd .. "." .. m) or tostring(d or "")
 end
 
--- names as a sentence lists them: "A", "A and B", "A, B and C"; past `cap` names, "A, B and N more"
-function names_list(names, cap)
+-- names as a sentence lists them, every one: "A", "A and B", "A, B and C"
+function names_list(names)
     local n = #names
     if n == 0 then
         return ""
-    end
-    local list = {}
-    for i = 1, n do
-        list[i] = names[i]
-    end
-    if cap and n > cap then
-        list = { unpack(list, 1, cap - 1) }
-        list[#list + 1] = text("st_fotz_more", { n = n - cap + 1 })
-    end
-    if #list == 1 then
-        return list[1]
+    elseif n == 1 then
+        return names[1]
     end
     -- the spaces are added here: the string table trims them off the ends of a text
-    return table.concat(list, ", ", 1, #list - 1) .. " " .. text("st_fotz_and") .. " " .. list[#list]
+    return table.concat(names, ", ", 1, n - 1) .. " " .. text("st_fotz_and") .. " " .. names[n]
 end
 
 -- a standing in words: an event in force first, else the game's lines at -1000 and 1000
@@ -135,8 +134,10 @@ local function trend_of(P, pair)
 end
 
 -- the factions whose relation with your side can change, a row each; and the ones that never do,
--- in a line for each standing (permanent enemies first)
+-- in a line for each standing (permanent enemies first). While politics stands down, a war, truce
+-- or trend from before holds nothing: a row goes by the relation alone
 local function rows(P, side)
+    local down = P.standing_down() ~= nil
     local out, fixed = {}, { enemies = {}, neutral = {}, friends = {} }
     for _, f in ipairs(fotz_census.FACTIONS) do
         if f ~= side then
@@ -146,9 +147,9 @@ local function rows(P, side)
                 local list = fixed[band(rel)]
                 list[#list + 1] = P.faction_name(f)
             else
-                local ev = P.S and P.S.events[pair.key]
+                local ev = not down and P.S and P.S.events[pair.key] or nil
                 local b = band(rel, ev and ev.kind)
-                local trend = trend_of(P, pair)
+                local trend = not down and trend_of(P, pair) or nil
                 out[#out + 1] = {
                     faction = f, icon = "ui_mm_faction_" .. f, name = P.faction_name(f), band = b,
                     standing = text("st_fotz_tab_band_" .. b), color = COLORS[b], detail = leader_line(f) or "",
@@ -167,10 +168,11 @@ local function rows(P, side)
     return out, lines
 end
 
+-- the war log, every entry politics keeps, newest first
 local function war_log(P)
     local out = {}
     local h = P.S and P.S.history or {}
-    for i = #h, math.max(1, #h - LOG_LINES + 1), -1 do
+    for i = #h, 1, -1 do
         local e = h[i]
         out[#out + 1] = short_date(e.day) .. "  " .. text("st_fotz_tab_log_" .. tostring(e.kind), {
             a = e.a and P.faction_name(e.a) or "", b = e.b and P.faction_name(e.b) or "" })
@@ -264,7 +266,8 @@ function fights(fronts, side)
     return out
 end
 
--- a fight in words, your side named as yours: "Jupiter: Bandits winning, your Ecologists losing"
+-- a fight in words, every side named, yours as yours: "Jupiter: Bandits winning, your Ecologists
+-- losing"
 function fight_line(fx, side)
     local P = fotz_politics
     local function names(list)
@@ -272,7 +275,7 @@ function fight_line(fx, side)
         for i, f in ipairs(list) do
             out[i] = f == side and text("st_fotz_your", { name = P.faction_name(f) }) or P.faction_name(f)
         end
-        return names_list(out, LIST_NAMES)
+        return names_list(out)
     end
     -- evenly matched is the two biggest: "A and B, C and D evenly matched" can't be read
     local w, l = fx.w, fx.l
@@ -282,6 +285,7 @@ function fight_line(fx, side)
     return text("st_fotz_fight_" .. fx.kind, { place = game.translate_string(fx.level), w = names(w), l = names(l) })
 end
 
+-- every fight, your side's first
 local function fight_lines(side)
     local T = fotz_territory
     -- the census comes some seconds into a load: until then there's nothing to say yet
@@ -289,11 +293,8 @@ local function fight_lines(side)
         return { text("st_fotz_tab_fighting_wait") }
     end
     local out = {}
-    for i, fx in ipairs(fights(T and T.FRONTS, side)) do
-        if i > FIGHT_LINES then
-            break
-        end
-        out[i] = fight_line(fx, side)
+    for _, fx in ipairs(fights(T and T.FRONTS, side)) do
+        out[#out + 1] = fight_line(fx, side)
     end
     if #out == 0 then
         out[1] = text("st_fotz_tab_fighting_none")
@@ -301,8 +302,8 @@ local function fight_lines(side)
     return out
 end
 
--- the members, a settler's with their camp and loyalty (fotz_loyalty); then, while there's room,
--- the residents nearest to asking. The requests waiting go to the page apart, for their buttons
+-- every member, a settler's with their camp and loyalty (fotz_loyalty); every resident near to
+-- asking; and every request waiting, each with its id for the page's buttons
 local function member_lines(P, F)
     local lists = fotz_loyalty and fotz_loyalty.page_lists() or { requests = {}, members = {}, near = {} }
     local settlers = {}
@@ -315,11 +316,7 @@ local function member_lines(P, F)
     end
     table.sort(list, function(x, y) return tostring(x.m.name) < tostring(y.m.name) end)
     local out = {}
-    for i, it in ipairs(list) do
-        if i > MEMBER_LINES then
-            out[#out + 1] = text("st_fotz_tab_members_more", { n = #list - MEMBER_LINES })
-            break
-        end
+    for _, it in ipairs(list) do
         local s = settlers[it.id]
         if s and not it.m.dead then
             -- on their way to a camp, living in one, or (only the sworn) waiting for one with room
@@ -338,47 +335,64 @@ local function member_lines(P, F)
                 from = P.faction_name(it.m.mother), date = short_date(it.m.joined) })
         end
     end
-    for _, it in ipairs(lists.near) do
-        if #out >= MEMBER_LINES then
-            break
-        end
-        out[#out + 1] = text("st_fotz_tab_resident", { name = it.name, camp = it.camp or "", loyalty = it.v })
-    end
     if #out == 0 then
         out[1] = text("st_fotz_tab_members_none")
     end
-    local requests = {}
-    for i, it in ipairs(lists.requests) do
-        if i > REQUEST_ROWS then
-            break
-        end
-        requests[i] = { id = it.id, line = text("st_fotz_tab_request", { name = it.name, loyalty = it.v }) }
+    local residents = {}
+    for _, it in ipairs(lists.near) do
+        residents[#residents + 1] = text("st_fotz_tab_resident", { name = it.name, camp = it.camp or "", loyalty = it.v })
     end
-    return out, requests
+    local requests = {}
+    for _, it in ipairs(lists.requests) do
+        requests[#requests + 1] = { id = it.id, line = text("st_fotz_tab_request", { name = it.name, loyalty = it.v }) }
+    end
+    return out, residents, requests
 end
 
--- the perks your members bring (fotz_perks), in one line: "Perks: 5% off food and drink
--- (Loners) and their radio chatter (Monolith)."; nil with none
+-- A perk's size as the page gives it, in percent, "<1" under 1%; nil for a perk that's only on or
+-- off; false at 0 (its slider at 0), which the page leaves out
+local function perk_pct(M, f)
+    local s = M.size and M.size(f)
+    if s == nil then
+        return nil
+    end
+    if s <= 0 then
+        return false
+    end
+    -- a trade perk's and the airlifts' size is a share off, the others' points out of 100
+    local perk = M.PERKS and M.PERKS[f]
+    local whole = ((M.GOODS and M.GOODS[perk]) or perk == "airlift") and s * 100 or s
+    return whole < 1 and "<1" or M.pct(f)
+end
+
+-- whether the Bandits' perk shows: their squads reach the map only with a PDA that shows allies
+local function bandits_shown(M)
+    local ok, yes = pcall(function() return M.bandits_shown() end)
+    return ok and yes == true
+end
+
+-- the perks your members bring (fotz_perks), every one, in a sentence: "Perks here: 5% off food
+-- and drink (Loners) and their radio chatter (Monolith)."; nil with none
 local function perks_line(P)
     local M = fotz_perks
     local on = M and M.active and M.active() or {}
     local list = {}
     for _, f in ipairs(M and M.ORDER or {}) do
-        if on[f] then
-            list[#list + 1] = text("st_fotz_perk_" .. f, { faction = P.faction_name(f), pct = M.pct(f) })
+        local pct = on[f] and perk_pct(M, f)
+        if on[f] and pct ~= false and (f ~= "bandit" or bandits_shown(M)) then
+            list[#list + 1] = text("st_fotz_perk_" .. f, { faction = P.faction_name(f), pct = pct })
         end
     end
     if #list == 0 then
         return nil
     end
-    return text("st_fotz_tab_perks", { list = names_list(list, PERK_NAMES) })
+    return text("st_fotz_tab_perks", { list = names_list(list) })
 end
 
--- what your footprint draws to the level you're on (fotz_territory), in the steer's warning color:
--- "Your footprint here draws Freedom and the Bandits."; nil with nothing
-DRAWN_COLOR = "%c[255,210,110,90]"
-
-local function drawn_line(P)
+-- What your footprint draws to the level you're on, and whom settling here strains
+-- (fotz_territory), a sentence each: "Your footprint here draws Freedom and the Bandits."; nil for
+-- one with no one in it
+local function drawn_lines(P)
     local T = fotz_territory
     local out = {}
     for _, part in ipairs({ { "drawn_here", "st_fotz_tab_drawn" }, { "strained_here", "st_fotz_tab_strains" } }) do
@@ -392,10 +406,38 @@ local function drawn_line(P)
             for i, it in ipairs(list) do
                 names[i] = P.faction_name(it.f)
             end
-            out[#out + 1] = text(part[2], { list = names_list(names, PERK_NAMES) })
+            out[part[1]] = text(part[2], { list = names_list(names) })
         end
     end
-    return #out > 0 and table.concat(out, " ") or nil
+    return out.drawn_here, out.strained_here
+end
+
+-- the subpages a page has: Members only while you lead a faction
+function subpages(p)
+    local out = {}
+    for _, s in ipairs(SUBPAGES) do
+        if s ~= "members" or p.members ~= nil then
+            out[#out + 1] = s
+        end
+    end
+    return out
+end
+
+-- the subpage to show: the one last chosen while the page has it, else Relations
+function subpage(p)
+    for _, s in ipairs(subpages(p)) do
+        if s == chosen then
+            return s
+        end
+    end
+    return SUBPAGES[1]
+end
+
+-- a subpage's button pressed: the page shows it from now on, until the next load
+function choose(s)
+    if LABELS[s] then
+        chosen = s
+    end
 end
 
 -- everything the page shows
@@ -421,10 +463,9 @@ function page()
         p.subtitle = text("st_fotz_tab_yours", { date = short_date(F.founded), from = P.faction_name(F.mother), n = n })
         -- your faction's own emblem: its patch's art (fotz_patch), which a player may replace
         p.icon = fotz_patch.EMBLEM
-        p.members, p.requests = member_lines(P, F)
-        local perks, drawn = perks_line(P), drawn_line(P)
-        drawn = drawn and (DRAWN_COLOR .. drawn)
-        p.perks = perks and drawn and (perks .. " " .. drawn) or perks or drawn
+        p.members, p.residents, p.requests = member_lines(P, F)
+        p.perks = perks_line(P)
+        p.drawn, p.strains = drawn_lines(P)
     else
         p.title = P.faction_name(side)
         p.subtitle = text("st_fotz_tab_no_faction")
@@ -435,8 +476,49 @@ function page()
     p.rows, p.fixed = rows(P, side)
     p.log = war_log(P)
     p.fights = fight_lines(side)
+    p.subpages, p.subpage = subpages(p), subpage(p)
+    -- each subpage's button label; Members says how many ask to join
+    p.labels = {}
+    for _, s in ipairs(SUBPAGES) do
+        p.labels[s] = text(LABELS[s])
+    end
+    local asking = p.requests and #p.requests or 0
+    if asking > 0 then
+        p.labels.members = text("st_fotz_tab_members_asking", { n = asking })
+    end
     p.credit = text("st_fotz_tab_credit", { v = VERSION })
     return p
+end
+
+-- MCM's one-time "Reset relations to a new game's" --------------------------------------------
+
+-- In a loaded game the switch puts every relation back where it started (fotz_politics.restore),
+-- says so in a tip and sets itself back. Set from the main menu (MCM sends no change there), it is
+-- cleared at the next load without resetting: a reset is for the game you're in.
+local function reset_now()
+    if not (ui_mcm and ui_mcm.get(RESET_PATH) == true) then
+        return
+    end
+    if not (alife and alife() and db.actor) then
+        return
+    end
+    ui_mcm.set(RESET_PATH, false)
+    local ok, err = pcall(fotz_politics.restore)
+    if not ok then
+        log("! the reset failed: %s", tostring(err))
+        return
+    end
+    log("relations reset to a new game's, from MCM")
+    if news_manager and news_manager.send_tip then
+        news_manager.send_tip(db.actor, text("st_fotz_relations_reset"), nil, nil, 12000)
+    end
+end
+
+local function reset_left_set()
+    if ui_mcm and ui_mcm.get(RESET_PATH) == true then
+        ui_mcm.set(RESET_PATH, false)
+        log("the reset was set outside a game: cleared, nothing reset")
+    end
 end
 
 -- the tab -------------------------------------------------------------------------------------
@@ -590,10 +672,28 @@ local function close_flat()
     end
 end
 
+local function guarded(what, fn)
+    local ok, err = pcall(fn)
+    if not ok then
+        log("! %s: %s", what, tostring(err))
+    end
+end
+
+-- in play: the tab or the tile (a registration during a load crashed in testing), and a reset set
+-- from the main menu cleared
+local function actor_on_first_update()
+    sync_soon(1)
+    guarded("the reset switch", reset_left_set)
+end
+
+local function on_option_change()
+    sync_soon(0)
+    guarded("the reset switch", reset_now)
+end
+
 function on_game_start()
-    -- the tab or the tile in play only: a registration during a load crashed in testing
-    RegisterScriptCallback("actor_on_first_update", function() sync_soon(1) end)
-    RegisterScriptCallback("on_option_change", function() sync_soon(0) end)
+    RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+    RegisterScriptCallback("on_option_change", on_option_change)
     RegisterScriptCallback("on_key_press", on_key_press)
     RegisterScriptCallback("actor_on_net_destroy", close_flat)
 end

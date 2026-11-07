@@ -1,5 +1,66 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **The Factions page lists everything.** It has four subpages under its header: Relations,
+  Fighting, Members (while you lead a faction; it says how many are asking to join) and War log.
+  Each scrolls, and every list is whole: every faction, fight, perk, member, join request and
+  war log entry. No more "and N more", on the page or in the map's hints. The page remembers the
+  subpage you chose until the next load.
+- **Reset relations moved to MCM.** It's a one-time switch, "Reset relations to a new game's",
+  under a warning: every faction's relations go back to a new game's (your faction's to its
+  founding), wars, truces and alliances end, and it can't be undone. It acts only in a loaded
+  game; set from the main menu, the next load clears it without resetting.
+- **Freedom's and Clear Sky's trade perks cover goods their traders carry.** In G.A.M.M.A.,
+  Freedom's traders stock no mutant parts and Spore no parts, so neither perk ever applied.
+  Freedom's now covers cooked mutant meat, and Clear Sky's detectors and devices.
+- **A war your settling causes has its own news,** from the faction whose ground it is: "Wolves
+  settled on our ground and stayed." It used to read "took from us" with no place, sometimes in
+  your own faction's voice.
+
+### Fixed
+
+- **Your members:**
+  - Members on other levels are back in your faction right after every load and level change,
+    not only once they come online, so their offline fights count for it.
+  - A member's death is noticed however it comes: offline combat, an anomaly, a fall or a blast.
+    The dead lose their perks, footprint and place on the page at once.
+  - A member is known by name as well as profile: a stranger who gets a dead member's id isn't
+    taken for them, and a settler renamed in Homestead stays a member.
+  - After the game's own faction change (Duty to Freedom, say), your members treat you as they did
+    at founding; before, they could turn hostile.
+  - A fallen member's body drops your faction's patch, also after a save.
+- **Settlers and outposts:**
+  - A member Homestead re-creates after a save stays a member, oath and all.
+  - A member whose trip between camps ends (leaving, disbanding, MCM off) no longer leaves their
+    squad parked by your camp, and a traveller recruited by hand isn't recruited again.
+  - A dead or departed member waiting for a camp no longer asks to join again.
+  - A death Homestead handles itself (a raider job gone wrong) reads as a death, not "has left".
+  - A sworn member who deserts an unhappy camp heads for another.
+  - A traveller's death no longer costs the other travellers loyalty.
+  - The news names the camp that fell, or says no camp took them in.
+  - A ceasefire never touches whoever gets a dead garrison man's id, a silent knife kill ends it,
+    and a companion member's goodwill comes back exactly after a save.
+- **Footprint and consequences:**
+  - Settling strains only factions whose relations with yours can change: not the Monolith, Sin,
+    the ISG, the Renegades, or a faction your old faction's relation with is fixed. The page no
+    longer lists the others, nor any strain while politics stands down.
+  - Your companions don't count as settled.
+  - Killing an arena fighter, a zombie or one of your members no longer costs the ground's holder
+    goodwill.
+  - A kill in the first seconds after a load or level change finds who holds the ground.
+- **While politics stands down** (MCM off, Warfare, the game's dynamic relations), an old war no
+  longer turns a perk off, weighs on loyalty, or shows on the page.
+- **The page:** a perk at 0% is no longer listed, a tiny one shows "<1%", and the Bandits' map
+  perk shows only with a PDA that shows them. The perks, footprint and strain sentences no longer
+  run into the footer.
+- A save loaded without the faction's declaration keeps its politics state for an install that
+  has it.
+- `fotz_politics.ltx` says that with MCM installed its sliders set the perk caps, footprint,
+  encroach and instigate; the config's values count only without MCM.
+
 ## 0.6.0 — 2026-11-07
 
 Install it over 0.5.1; saves carry on as they are.

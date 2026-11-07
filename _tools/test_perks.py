@@ -3,8 +3,9 @@ Travel, the paid companions, Milspec PDA, Dialogues Expanded's radio, Factions' 
 politics, MCM and the clock, and check the perks.
 
 Checked: a perk is on while a living member came from that faction and your faction isn't at war
-with it (a truce or no pair at all is no war), off with the faction gone, the member dead, the war
-on or MCM's switch off, and seen again within the cache's time; each scaled perk grows by the
+with it (a truce or no pair at all is no war, nor a war while politics stands down), off with the
+faction gone, the member dead (marked, or their server object dead or gone), the war on or MCM's
+switch off, and seen again within the cache's time; each scaled perk grows by the
 steps of its members' ranks with positive returns, its cap times (steps / full) ^ curve, full being
 Homestead's cap on a camp's residents (the config's without Homestead or below 1); members count by
 how near their level is to yours on the global map (an online member is on yours, an unplaced level
@@ -12,7 +13,9 @@ counts half), and politics' amplifier by every member wherever they are (online 
 weights), up to its cap; buying (never selling) a faction's own goods from its
 trader costs that much less, on top of every other mod's price, by the item's kind or a section
 prefix, at a trader Factions' trader table names (Sidorovich) or by their own faction, and only
-while the trade window is open; the [perks] config's steps, caps and goods are read; the
+while the trade window is open: Freedom's cooked mutant meat (not raw parts, which its traders
+don't stock), Clear Sky's detectors (not weapon parts); no item in two goods lists; the [perks]
+config's steps, caps and goods are read; the
 Military's airlifts cost less and no other guide's, through one wrapper that passes every argument
 on; merc squads of advanced or veteran fighters take a contract the game's roll refused at the
 perk's chance, each squad's roll kept so the dialog's checks agree, novices and other factions'
@@ -37,9 +40,14 @@ SCRIPT = os.path.join(HERE, "..", "gamedata", "scripts", "fotz_perks.script")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
 MUTANTS = {
-    "gate_dead": ("if f and PERKS[f] and not m.dead then", "if f and PERKS[f] then"),
+    "gate_dead": ("not m.dead and living(id) then", "living(id) then"),
+    "gate_living": ("if f and PERKS[f] and not m.dead and living(id) then", "if f and PERKS[f] and not m.dead then"),
+    "living_missing": ("return se ~= nil and se:alive()", "return se == nil or se:alive()"),
     "gate_war": ("                if not at_war(f) then\n                    t[f] = t[f] or", "                if true then\n                    t[f] = t[f] or"),
     "gate_truce_is_war": ('return ev ~= nil and ev.kind == "war"', "return ev ~= nil"),
+    "war_standing_down": ("    if P and P.standing_down and P.standing_down() then\n        return false\n    end\n", ""),
+    "goods_freedom_parts": ('goods_meat = "i_mutant_cooked",', 'goods_meat = "i_mutant_part, i_mutant_raw",'),
+    "goods_csky_parts": ('goods_devices = "i_device",', 'goods_devices = "i_part",'),
     "gate_mcm": ('return not (ui_mcm and ui_mcm.get("fotz/perks") == false)', "return true"),
     "gate_actor_prefix": ('string.gsub(m.mother, "^actor_", "")', "m.mother"),
     "gate_stale": ("if cache and now >= cache_at and now < cache_at + CACHE_MS then", "if cache then"),
@@ -147,7 +155,8 @@ end
 -- each section's kind, as the game's configs give it
 KINDS = { mutant_part_dog_tail = "i_mutant_part", mutant_part_flesh_meat = "i_mutant_raw", bread = "i_food",
           vodka = "i_drink", medkit = "i_medical", gun_oil_ru = "i_misc", toolkit_2 = "i_quest",
-          sewing_kit_a = "i_repair", prt_w_barrel_1 = "i_part", wpn_ak74 = "w_rifle" }
+          sewing_kit_a = "i_repair", prt_w_barrel_1 = "i_part", wpn_ak74 = "w_rifle",
+          meat_dog = "i_mutant_cooked", meat_flesh = "i_mutant_cooked", detector_simple = "i_device" }
 function SYS_GetParam(typ, sec, key) if key == "kind" then return KINDS[sec] end end
 
 -- each faction's goodwill toward you, as the game keeps it
@@ -159,18 +168,25 @@ relation_registry = {
 }
 
 -- where you are and where members are: online members are on your level; an offline member's
--- server object is on game vertex 1 (your level, Yantar) unless a test says otherwise
+-- server object is on game vertex 1 (your level, Yantar) unless a test says otherwise; it's alive
+-- unless a test marks it dead, and there unless a test says it's gone
 HERE = "l08_yantar"
-ONLINE, SE = {}, {}
+ONLINE, SE, GONE = {}, {}, {}
 VERTEX_LEVEL = { [1] = 8, [2] = 11, [3] = 1, [4] = 99, [5] = 6 }
 LEVEL_NAME = { [8] = "l08_yantar", [11] = "l11_pripyat", [1] = "l01_escape", [99] = "y04_nowhere", [6] = "l06_rostok" }
 level = { object_by_id = function(id) return ONLINE[id] end, name = function() return HERE end }
 function alife() return {
     object = function(self, id)
+        if GONE[id] then
+            return nil
+        end
         local member = fotz_faction.F and fotz_faction.F.members[id]
         local se = SE[id] or (member and {})
         if se and not se.m_game_vertex_id then
             se.m_game_vertex_id = member and member.gv or 1
+        end
+        if se and not se.alive then
+            se.alive = function(s) return not s.dead end
         end
         return se
     end,
@@ -193,8 +209,10 @@ fotz_faction = { F = nil }
 function lead(members) fotz_faction.F = { name = "Wolves", members = members } end
 PAIRS = { freedom = { key = "fotz_own/freedom" }, dolg = { key = "fotz_own/dolg" },
           stalker = { key = "fotz_own/stalker" }, killer = { key = "fotz_own/killer" } }
+STANDING_DOWN = nil     -- politics' reason to stand down (MCM off, Warfare, ...), or nil
 fotz_politics = { OWN = "fotz_own", S = { events = {} },
-    pair_of = function(x, y) return x == "fotz_own" and PAIRS[y] or nil end }
+    pair_of = function(x, y) return x == "fotz_own" and PAIRS[y] or nil end,
+    standing_down = function() return STANDING_DOWN end }
 
 -- traders, and the trade window
 modxml_fotz_patch = { TRADERS = { stalker = { "esc_2_12_stalker_trader" }, dolg = { "bar_dolg_general_petrenko_stalker" } } }
@@ -327,11 +345,23 @@ def gate(src):
     # at war with Duty: off; a truce isn't a war
     w.run('fotz_politics.S.events["fotz_own/dolg"] = { kind = "war" }')
     check(w.on() == [], "on at war: %s" % w.on())
+    # politics standing down (MCM off, Warfare, the game's dynamic relations): its old war doesn't count
+    w.run('STANDING_DOWN = "Warfare mode is on"')
+    check(w.on() == ["dolg"], "off at an old war while politics stands down: %s" % w.on())
+    w.run("STANDING_DOWN = nil")
+    check(w.on() == [], "on at war with politics back: %s" % w.on())
     w.run('fotz_politics.S.events["fotz_own/dolg"] = { kind = "truce" }')
     check(w.on() == ["dolg"], "off in a truce")
     # a faction with no pair (one that never changes) is never at war
     w.run('fotz_faction.F.members[6] = { mother = "monolith", name = "Lev" }')
     check(w.on() == ["dolg", "monolith"], "a faction that never changes: %s" % w.on())
+    # a death the faction hasn't marked (the server object dead), or a member whose id is gone: nothing
+    w.run('fotz_faction.F.members[7] = { mother = "freedom", name = "Gleb" }')
+    check(w.on() == ["dolg", "freedom", "monolith"], "a living member: %s" % w.on())
+    w.run("SE[7] = { dead = true }")
+    check(w.on() == ["dolg", "monolith"], "a dead server object counted: %s" % w.on())
+    w.run("SE[7] = nil; GONE[7] = true")
+    check(w.on() == ["dolg", "monolith"], "a member with no server object counted: %s" % w.on())
     # MCM's switch
     w.run('OPTIONS["fotz/perks"] = false')
     check(w.on() == [], "on with the switch off")
@@ -419,18 +449,18 @@ def by_rank(src):
     w.run('lead({ [1] = { mother = "freedom", name = "Vova" } }); SE[1] = { rank = "novice" }')
     w.run('TALKING = npc("freedom", "mil_freedom_trader") fire("ActorMenu_on_trade_started")')
     w.run("wait(5000)")
-    got = w.eval('price("mutant_part_dog_tail", 2, 1000)')
+    got = w.eval('price("meat_dog", 2, 1000)')
     check(near(got, 1000 * (1 - 0.15 * share(0.5))), "a novice offline: %s" % got)
     # a legend online beside them: 2.5 steps
     w.run('fotz_faction.F.members[2] = { mother = "freedom", name = "Anya" }; ONLINE[2] = { rank = "legend" }; wait(5000)')
-    got = w.eval('price("mutant_part_dog_tail", 2, 1000)')
+    got = w.eval('price("meat_dog", 2, 1000)')
     check(near(got, 1000 * (1 - 0.15 * share(2.5))), "a novice and a legend: %s" % got)
     check(w.env.weight("freedom") == 2.5 and w.env.count("freedom") == 2, "weight %s, count %s" % (w.env.weight("freedom"), w.env.count("freedom")))
     # a rank that can't be read counts as a professional's step
     w.run('ONLINE[2] = { broken = true }; wait(5000)')
     check(w.env.weight("freedom") == 1.5, "an unreadable rank: %s" % w.env.weight("freedom"))
     w.run('for i = 3, 6 do fotz_faction.F.members[i] = { mother = "freedom", name = "L" .. i }; ONLINE[i] = { rank = "legend" } end; wait(5000)')
-    got = w.eval('price("mutant_part_dog_tail", 2, 1000)')
+    got = w.eval('price("meat_dog", 2, 1000)')
     check(near(got, 1000 * (1 - 0.15 * share(9.5))), "four legends more: %s" % got)
     # the config's weights
     w = World(src, 'INI = { perks = { rank_weights = "1, 1, 1, 1, 1, 1, 1, 3" } }')
@@ -484,28 +514,31 @@ def trade(src):
           ' [3] = { mother = "dolg", name = "Petro" } })')
     one = 1 - 0.15 * share(1)
     # no trade window: nothing
-    check(w.eval('price("mutant_part_dog_tail", 2, 1000)') is None, "a price outside a trade")
-    # a Freedom trader: mutant parts and meat off by its members when you buy, after other mods' change
+    check(w.eval('price("meat_dog", 2, 1000)') is None, "a price outside a trade")
+    # a Freedom trader: cooked mutant meat off by its members when you buy, after other mods' change;
+    # not raw mutant parts, which Freedom's traders don't stock in G.A.M.M.A.
     w.run('TALKING = npc("freedom", "mil_freedom_trader") fire("ActorMenu_on_trade_started")')
-    got = (w.eval('price("mutant_part_dog_tail", 2, 1000)'), w.eval('price("mutant_part_flesh_meat", 2, 1000, 800)'))
-    check(near(got[0], 1000 * one) and near(got[1], 800 * one), "Freedom's mutant parts, one member: %s" % (got,))
+    got = (w.eval('price("meat_dog", 2, 1000)'), w.eval('price("meat_flesh", 2, 1000, 800)'))
+    check(near(got[0], 1000 * one) and near(got[1], 800 * one), "Freedom's mutant meat, one member: %s" % (got,))
+    got = (w.eval('price("mutant_part_dog_tail", 2, 1000)'), w.eval('price("mutant_part_flesh_meat", 2, 1000)'))
+    check(got == (None, None), "Freedom's raw mutant parts discounted: %s" % (got,))
     w.run('add("freedom", 1); wait(5000)')
-    got = w.eval('price("mutant_part_dog_tail", 2, 1000)')
+    got = w.eval('price("meat_dog", 2, 1000)')
     check(near(got, 1000 * (1 - 0.15 * share(2))), "two members: %s" % got)
     w.run('add("freedom", 18); wait(5000)')
-    check(near(w.eval('price("mutant_part_dog_tail", 2, 1000)'), 850), "twenty members: %s" % w.eval('price("mutant_part_dog_tail", 2, 1000)'))
+    check(near(w.eval('price("meat_dog", 2, 1000)'), 850), "twenty members: %s" % w.eval('price("meat_dog", 2, 1000)'))
     # MCM's slider sets the cap, in percent
     w.run('OPTIONS["fotz/perks_trade_max"] = 5')
-    check(near(w.eval('price("mutant_part_dog_tail", 2, 1000)'), 950), "the slider at 5%%: %s" % w.eval('price("mutant_part_dog_tail", 2, 1000)'))
+    check(near(w.eval('price("meat_dog", 2, 1000)'), 950), "the slider at 5%%: %s" % w.eval('price("meat_dog", 2, 1000)'))
     w.run('OPTIONS["fotz/perks_trade_max"] = 0')
-    check(w.eval('price("mutant_part_dog_tail", 2, 1000)') == 1000, "the slider at 0: %s" % w.eval('price("mutant_part_dog_tail", 2, 1000)'))
+    check(w.eval('price("meat_dog", 2, 1000)') == 1000, "the slider at 0: %s" % w.eval('price("meat_dog", 2, 1000)'))
     w.run('OPTIONS["fotz/perks_trade_max"] = nil')
     # selling to them, or their food: as it was
-    got = (w.eval('price("mutant_part_dog_tail", 1, 1000)'), w.eval('price("bread", 2, 1000, 900)'))
+    got = (w.eval('price("meat_dog", 1, 1000)'), w.eval('price("bread", 2, 1000, 900)'))
     check(got == (None, 900), "selling or other goods changed: %s" % (got,))
     # trade closed: nothing
     w.run('fire("ActorMenu_on_trade_closed")')
-    check(w.eval('price("mutant_part_dog_tail", 2, 1000)') is None, "a price after the window closed")
+    check(w.eval('price("meat_dog", 2, 1000)') is None, "a price after the window closed")
     # Sidorovich, a "trader" by community: the Loners' by Factions' table
     w.run('TALKING = npc("trader", "esc_2_12_stalker_trader") fire("ActorMenu_on_trade_started")')
     got = (w.eval('price("bread", 2, 100)'), w.eval('price("vodka", 2, 200)'), w.eval('price("medkit", 2, 300)'))
@@ -516,7 +549,11 @@ def trade(src):
     check(all(near(g, 1000 * one) for g in got[:3]) and got[3:] == (None, None), "Duty's goods: %s" % (got,))
     # a trader of a faction no member came from: nothing
     w.run('TALKING = npc("csky", "mar_trader") fire("ActorMenu_on_trade_started")')
-    check(w.eval('price("prt_w_barrel_1", 2, 1000)') is None, "Clear Sky's parts without a member")
+    check(w.eval('price("detector_simple", 2, 1000)') is None, "Clear Sky's detectors without a member")
+    # with one: their detectors and devices, not weapon parts (no Clear Sky trader stocks them)
+    w.run('fotz_faction.F.members[4] = { mother = "csky", name = "Kalancha" }; wait(5000)')
+    got = (w.eval('price("detector_simple", 2, 1000)'), w.eval('price("prt_w_barrel_1", 2, 1000)'))
+    check(near(got[0], 1000 * one) and got[1] is None, "Clear Sky's goods: %s" % (got,))
     # the config's cap and goods, on a straight line of two members
     w = World(src, 'INI = { perks = { trade_max = "0.08", goods_food = "i_food", curve = "1", full_steps = "2" } }')
     w.run('lead({ [1] = { mother = "stalker", name = "Tolik" } })')
@@ -644,6 +681,15 @@ def shipped(src):
         got = cfg.get(k)
         same = (got is not None) and (float(got) == v if isinstance(v, (int, float)) else got == v)
         check(same, "[perks] %s is %r, the script's %r" % (k, got, v))
+    # no item kind or section prefix in two goods lists, so an item is one faction's goods at most
+    owner = {}
+    for k in d.keys():
+        if k.startswith("goods_"):
+            for g in d[k].replace(",", " ").split():
+                check(g not in owner, "%s is both %s and %s" % (g, owner.get(g), k))
+                owner[g] = k
+    pre = [g[:-1] for g in owner if g.endswith("*")]
+    check(not any(a != b and b.startswith(a) for a in pre for b in pre), "goods prefixes overlap: %s" % pre)
     mcm = io.open(os.path.join(HERE, "..", "gamedata", "scripts", "fotz_mcm.script"), encoding="utf-8").read()
     for perk, scale in (("trade", 100), ("airlift", 100), ("merc", 1), ("outpost", 1), ("relations", 100)):
         m = re.search(r'id = "perks_%s_max", type = "track".*?def = ([\d.]+)' % perk, mcm)

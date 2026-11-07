@@ -47,7 +47,17 @@ MUTANTS = {
     "calendar_back": ("    local d = doy - math.floor((153 * mp + 2) / 5) + 1", "    local d = doy - math.floor((153 * mp + 2) / 5) + 2"),
     "budget": ("local move = clamp(pending, -cfg.daily_budget, cfg.daily_budget)", "local move = pending"),
     # members from a faction move your faction's pair with it more (fotz_perks.amp, 0.6.0)
-    "encroach_ignored": ("            if p and push < 0 then\n                note(t, p, \"ground\", push)", "            if false then\n                note(t, p, \"ground\", push)"),
+    "encroach_ignored": ("            if p and push < 0 then\n                note(t, p, \"settled\", push)", "            if false then\n                note(t, p, \"settled\", push)"),
+    # a war your members' settling caused has its own cause and voice (the 2026-11-07 sweep, C3)
+    "settled_as_ground": ('note(t, p, "settled", push)', 'note(t, p, "ground", push)'),
+    "settled_not_cause": ('for _, what in ipairs({ "front", "ground", "settled" }) do', 'for _, what in ipairs({ "front", "ground" }) do'),
+    "settled_not_kept": ('for _, what in ipairs({ "kills", "ground", "front", "settled" }) do',
+                         'for _, what in ipairs({ "kills", "ground", "front" }) do'),
+    "settled_voice": ('    if best == "settled" then\n        voice = p.a == OWN and p.b or p.a\n    end\n', ""),
+    "settled_old_save": ("                r.settled, r.ground = (r.settled or 0) + r.ground, nil", "                r.ground = r.ground"),
+    # a parked faction keeps its state (M7)
+    "parked_cleared": ("    if st.own ~= uid and not parked then", "    if st.own ~= uid then"),
+    "parked_while_led": ("    local parked = not F and FF and", "    local parked = FF and"),
     "encroach_unguarded": ("        local ok, enc = pcall(T.encroachment, c)", "        local ok, enc = true, T.encroachment(c)"),
     "amp_ignored": ("(st.pending[k] or 0) + g.delta * own_amp(p)", "(st.pending[k] or 0) + g.delta"),
     "amp_here_only": ("M and M.amp_all and M.amp_all(other)", "M and M.amp and M.amp(other)"),
@@ -97,7 +107,7 @@ MUTANTS = {
                       "return relation_registry.community_relation(p.a, p.b)"),
     "own_player_side": ("return led() and OWN or get_actor_true_community()", "return get_actor_true_community()"),
     "own_members_cells": ("{ ACTOR_OWN, f }, { f, ACTOR_OWN } } }", '{ ACTOR_OWN, f }, { f, ACTOR_OWN }, { OWN, "actor_" .. f } } }'),
-    "own_keeps_old": ("    if st.own ~= uid then\n        for _, name in", "    if false then\n        for _, name in"),
+    "own_keeps_old": ("    if st.own ~= uid and not parked then\n        for _, name in", "    if false then\n        for _, name in"),
     "own_sides": ("    SIDES[#SIDES + 1] = OWN\n", ""),
     "own_name": ('        return F and F.name or game.translate_string("st_fotz_default_name")',
                  '        return game.translate_string("st_fotz_default_name")'),
@@ -750,6 +760,59 @@ def encroached(src):
     check(w.drift("fotz_own/killer") is None and any("! encroachment" in l for l in w.g.LOG.values()), "a failing strain")
 
 
+SETTLED_NEWS = "killer|Mercenaries: Wolves settled on our ground and stayed. From today we are at war with them."
+
+
+def settled_war(src):
+    """a war your members' settling causes has its own cause and news, in the voice of the faction
+    whose ground it is, whichever way the pair's names sort (Duty before your faction's, the
+    Mercenaries after); a 0.6.0 save, which kept the strain as ground with no place, names it so too"""
+    strain = "\nfotz_territory = { encroachment = function(c) return { killer = STRAIN, dolg = STRAIN } end }\nSTRAIN = -400"
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua(mother="stalker") + strain)
+    for d in ("01", "02", "03"):
+        w.run('day("2012-05-%s")' % d)
+    check(w.event("fotz_own/killer") is None, "war a day early: drift %s" % w.drift("fotz_own/killer"))
+    w.run('day("2012-05-04")')
+    h = w.env.S.history
+    wars = [(h[i].a, h[i].b, h[i].cause, h[i].voice) for i in range(1, len(h) + 1) if h[i].kind == "war"]
+    check(wars == [("dolg", "fotz_own", "settled", "dolg"), ("fotz_own", "killer", "settled", "killer")],
+          "the wars: %s" % wars)
+    check(w.news() == ["dolg|Duty: Wolves settled on our ground and stayed. From today we are at war with them.",
+                       SETTLED_NEWS], "the wars' news: %s" % w.news())
+    # a 0.6.0 save: the strain kept as ground, no place; a little more strain tips it into war
+    saved = ('{ fotz = { v = 1, own = "u1", day = "2012-05-09", drift = { ["fotz_own/killer"] = -700 }, '
+             'pending = { ["fotz_own/killer"] = -400 }, recent = { ["fotz_own/killer"] = { ground = 800, hurt = {} } } } }')
+    w = World(src, anchors=DK_ANCHORS, m_data=saved, pre=led_lua(mother="stalker") + strain.replace("-400", "-40"))
+    w.run('day("2012-05-10")')
+    check(w.event("fotz_own/killer") == "war" and w.news() == [SETTLED_NEWS],
+          "after a 0.6.0 save: %s, news %s" % (w.event("fotz_own/killer"), w.news()))
+
+
+def parked(src):
+    """a faction parked (its save loaded without the declaration: fotz_faction.parked_uid) keeps
+    what politics kept for it through the next save, for an install that can restore it; a faction
+    founded meanwhile starts clean"""
+    saved = ('{ fotz = { v = 1, own = "u1", day = "2012-05-09", drift = { ["fotz_own/killer"] = -300 }, '
+             'events = { ["fotz_own/killer"] = { kind = "truce", since = "2012-05-08", a = "fotz_own", b = "killer", '
+             '["until"] = "2012-05-13" } } } }')
+    w = World(src, anchors=DK_ANCHORS, m_data=saved,
+              pre='fotz_faction = { F = nil, parked_uid = function() return "u1" end }')
+    w.run('day("2012-05-10")')
+    m = w.lua.eval("{}")
+    w.cb["save_state"](m)
+    check(m.fotz.own == "u1" and m.fotz.drift["fotz_own/killer"] == -300 and m.fotz.events["fotz_own/killer"] is not None,
+          "parked, the save kept: own %s, drift %s" % (m.fotz.own, m.fotz.drift["fotz_own/killer"]))
+    check(not any("fotz_own" in c for c in w.g.WRITES.values()), "a parked faction's cells were written")
+    w2 = World(src, anchors=DK_ANCHORS, m_data=w.lua.eval("dump")(m), pre=led_lua("u1"))
+    got = {c: w2.rel(c) for c in OWN_CELLS}
+    check(got == {c: OWN_BASE[c] - 300 for c in OWN_CELLS} and w2.event("fotz_own/killer") == "truce",
+          "restored: %s, %s" % (got, w2.event("fotz_own/killer")))
+    w3 = World(src, anchors=DK_ANCHORS, m_data=saved,
+               pre=led_lua("u2") + '\nfotz_faction.parked_uid = function() return "u1" end')
+    check(w3.drift("fotz_own/killer") is None and w3.event("fotz_own/killer") is None and w3.env.S.own == "u2",
+          "a new faction took the parked one's: drift %s, own %s" % (w3.drift("fotz_own/killer"), w3.env.S.own))
+
+
 def old_fixed(src):
     """Your old faction's fixed relations stay fixed for yours: no pair with a faction your old one
     has a lore pair with, none at all from a faction that never changes. What a 0.5.0 save kept for
@@ -823,12 +886,16 @@ def strings(src):
     root = ET.fromstring(open(ENG, "rb").read().decode("cp1251").split("?>", 1)[1])
     have = {s.get("id") for s in root.iter("string")}
     want = set(re.findall(r'"(st_fotz_news_\w+)"', src)) - {"st_fotz_news_war_"}
-    want |= {"st_fotz_news_war_" + c for c in ("kills", "ground", "front")}
+    want |= {"st_fotz_news_war_" + c for c in ("kills", "ground", "front", "settled")}
+    check(len(want) == 9, "%d news ids were looked for, not 9" % len(want))
     mcm = open(os.path.join(GD, "scripts", "fotz_mcm.script"), encoding="utf-8").read()
-    for opt in re.findall(r'id = "(\w+)", type = "(?:check|list|track)"', mcm):
+    opts = re.findall(r'id = "(\w+)", type = "(?:check|list|track)"', mcm)
+    for opt in opts:
         want |= {"ui_mcm_fotz_" + opt, "ui_mcm_fotz_" + opt + "_desc"}
-    want |= {"ui_mcm_lst_" + k for k in re.findall(r'\{ "\w+", "(fotz_news_\w+)" \}', mcm)}
-    check(len(want) == 55, "%d string ids were looked for, not 55" % len(want))
+    lists = re.findall(r'\{ "\w+", "(fotz_news_\w+)" \}', mcm)
+    want |= {"ui_mcm_lst_" + k for k in lists}
+    # the MCM page's options are the page's to change: only that they were found
+    check(len(opts) >= 15 and len(lists) == 3, "%d MCM options and %d list items found" % (len(opts), len(lists)))
     want |= {"st_fotz_faction_" + f for f in ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army",
                                               "ecolog", "monolith", "renegade", "greh", "isg")}
     missing = sorted(want - have)
@@ -846,13 +913,15 @@ def run(src):
     your_faction(src)
     members_amp(src)
     encroached(src)
+    settled_war(src)
+    parked(src)
     old_fixed(src)
     restore(src)
     caps(src)
     real_config(src)
     other_scripts(src)
     calendar(src)
-    return "15 scenarios, 16 pairs from the shipped config"
+    return "17 scenarios, 16 pairs from the shipped config"
 
 
 def main():

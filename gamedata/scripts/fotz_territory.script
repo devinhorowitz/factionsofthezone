@@ -33,10 +33,13 @@ at each census; the same squads are left alone as by the steer.
 Consequences, on ground other factions hold (a faction's share of a level's smarts, from the
 census): your members settled there strain your faction's relation with it, a push on the pair in
 politics each day up to cfg.encroach at a full settlement's worth of them where it holds all the
-ground (members who came from that faction don't count, and an ally doesn't mind); and a stalker
-you kill there costs you up to cfg.instigate of its goodwill, unless it's at war with the victim's
-faction (or is the victim's own: the game already counts that). Both while you lead a faction;
-MCM's sliders set them.
+ground (members who came from that faction don't count, nor your companions; an ally doesn't mind;
+and only a faction politics has a pair of yours with, not one whose relations never change); and a
+stalker you kill there costs you up to cfg.instigate of its goodwill, unless it's at war with the
+victim's faction (or is the victim's own: the game already counts that). Only a faction's stalker
+counts (not an arena fighter, a zombie or your own member). Before the first census after a load,
+a kill counts the level's ground there and then. Both while you lead a faction; MCM's sliders set
+them.
 --]]
 
 VERSION = "0.6.0"
@@ -56,6 +59,7 @@ local last_census = nil
 local next_foot = 0
 local smart_level = {}    -- target id -> its level, or false for a target that isn't a smart
 INFLUENCE = {}            -- level -> faction -> its share of the level's smarts, at the last census
+                          -- (before the first, a level's own count, on demand)
 local FRIENDS = 1000
 local is_faction = nil    -- the census's factions, as a set
 
@@ -293,8 +297,10 @@ function footprint(c)
     end
     local list = {}
     for id, m in pairs(F.members) do
-        if not m.dead then
-            list[#list + 1] = { lv = P.member_level(id), w = P.weight_of(id),
+        -- no level: their server object is gone (dead, or released)
+        local lv = not m.dead and P.member_level(id)
+        if lv then
+            list[#list + 1] = { lv = lv, w = P.weight_of(id),
                                 mother = type(m.mother) == "string" and string.gsub(m.mother, "^actor_", "") or nil }
         end
     end
@@ -489,19 +495,25 @@ local function slider(id, default)
     return v and math.max(0, v) or default
 end
 
--- each level's ground: level -> faction -> its share of the level's smarts
-function influence(c)
+-- the census's factions, as a set
+local function factions()
     if not is_faction then
         is_faction = {}
         for _, f in ipairs(fotz_census.FACTIONS) do
             is_faction[f] = true
         end
     end
+    return is_faction
+end
+
+-- each level's ground: level -> faction -> its share of the level's smarts
+function influence(c)
+    local is = factions()
     local out = {}
     for lv, l in pairs(c and c.levels or {}) do
         local n = l.smarts or 0
         for f, k in pairs(n > 0 and l.held or {}) do
-            if is_faction[f] then
+            if is[f] then
                 out[lv] = out[lv] or {}
                 out[lv][f] = k / n
             end
@@ -510,21 +522,46 @@ function influence(c)
     return out
 end
 
--- your members on each level, with their steps and the faction they came from
+-- a level's ground: the last census's; before the first census after a load (a level change is
+-- one), the level's own, counted once on demand
+local function ground(lv)
+    local t = INFLUENCE[lv]
+    if t == nil and not last_census and fotz_census.level_ground then
+        local ok, l = pcall(fotz_census.level_ground, lv)
+        if not ok then
+            log("! the ground on %s: %s", lv, tostring(l))
+        end
+        t = ok and influence({ levels = { [lv] = l } })[lv] or {}
+        INFLUENCE[lv] = t
+    end
+    return t or {}
+end
+
+-- your members settled on each level, with their steps and the faction they came from: not the
+-- dead, nor your companions (they go where you go)
 local function members_by_level()
-    local F, P = fotz_faction and fotz_faction.F, fotz_perks
+    local FF, P = fotz_faction, fotz_perks
+    local F = FF and FF.F
     if not (F and P and P.member_level) then
         return nil
     end
     local out = {}
     for id, m in pairs(F.members) do
-        local lv = not m.dead and P.member_level(id)
+        local lv = not m.dead and m.via ~= "companion" and not (FF.is_companion and FF.is_companion(id))
+                   and P.member_level(id)
         if lv then
             out[lv] = out[lv] or {}
             table.insert(out[lv], { w = P.weight_of(id), mother = strip(m.mother) })
         end
     end
     return out
+end
+
+-- whether politics moves your faction's pair with f: not a faction whose relations never change,
+-- nor one your old faction's are fixed with
+local function has_pair(f)
+    local P = fotz_politics
+    return P ~= nil and P.pair_of ~= nil and P.pair_of(P.OWN, f) ~= nil
 end
 
 -- the steps of your members on a level who didn't come from f
@@ -552,7 +589,7 @@ function encroachment(c)
     for lv, shares in pairs(influence(c)) do
         for f, s in pairs(shares) do
             local n = by_level[lv] and outsiders(by_level[lv], f) or 0
-            if n > 0 and rel(f, own) < FRIENDS then
+            if n > 0 and rel(f, own) < FRIENDS and has_pair(f) then
                 out[f] = (out[f] or 0) - cap * fotz_perks.share(n) * s
             end
         end
@@ -563,17 +600,23 @@ function encroachment(c)
     return out
 end
 
--- the factions your members strain where you are, from the last census
+-- the factions your members strain where you are, by the ground there; none while politics
+-- stands down, which applies no strain
 function strained_here()
     local out = {}
+    local P = fotz_politics
+    if P and P.standing_down and P.standing_down() then
+        return out
+    end
     local here = level.name()
     local by_level = members_by_level()
-    local own = fotz_politics and fotz_politics.OWN or "fotz_own"
+    local own = P and P.OWN or "fotz_own"
     if not (by_level and by_level[here] and slider("encroach_max", cfg.encroach) > 0) then
         return out
     end
-    for f, s in pairs(INFLUENCE[here] or {}) do
-        if outsiders(by_level[here], f) > 0 and relation_registry.community_relation(f, own) < FRIENDS then
+    for f, s in pairs(ground(here)) do
+        if outsiders(by_level[here], f) > 0 and relation_registry.community_relation(f, own) < FRIENDS
+                and has_pair(f) then
             out[#out + 1] = { f = f, s = s }
         end
     end
@@ -582,16 +625,17 @@ function strained_here()
 end
 
 -- a stalker you kill on a faction's ground costs you some of its goodwill, unless it's at war with
--- the victim's faction, or it's the victim's own
+-- the victim's faction, or it's the victim's own; only a faction's stalker (not an arena fighter,
+-- a zombie or one of yours)
 function instigated(victim_comm, lv)
     local F = fotz_faction and fotz_faction.F
     local per = slider("instigate_max", cfg.instigate)
-    if not (F and per > 0) then
+    local v, n = strip(victim_comm), 0
+    if not (F and per > 0 and factions()[v]) then
         return 0
     end
-    local v, n = strip(victim_comm), 0
     local rel = relation_registry.community_relation
-    for f, s in pairs(INFLUENCE[lv] or {}) do
+    for f, s in pairs(ground(lv)) do
         if f ~= v and rel(f, v) > ENEMIES then
             local loss = math.floor(per * s + 0.5)
             if loss > 0 then
@@ -613,7 +657,9 @@ local function npc_on_death_callback(victim, killer)
         local owner = killer.parent and killer:parent()
         yours = owner ~= nil and owner:id() == AC_ID
     end
-    if yours then
+    -- one of your members (still in their old faction until they're next online, after a load)
+    local F = fotz_faction and fotz_faction.F
+    if yours and not (F and F.members[victim:id()]) then
         local ok, err = pcall(instigated, victim:character_community(), level.name())
         if not ok then
             log("! a kill's consequence: %s", tostring(err))

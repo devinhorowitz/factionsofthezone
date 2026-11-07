@@ -2,7 +2,9 @@
 Factions of the Zone: its MCM page. Options are read with ui_mcm.get("fotz/<id>").
 
 The faction options belong to the save you're playing: fotz_faction sets them from the save at
-each load, and changing them founds, renames or disbands that save's faction.
+each load, and changing them founds, renames or disbands that save's faction. Two switches act once
+and set themselves back: "Reset relations to a new game's" (fotz_tab) and "Remove your faction's
+patches" (fotz_patch).
 --]]
 
 function on_mcm_load()
@@ -44,6 +46,9 @@ function on_mcm_load()
                 { "all", "fotz_news_all" },
             } },
             { id = "census", type = "check", val = 1, def = true },
+            -- once, in a loaded game: every relation back to a new game's (fotz_tab), its warning shown
+            { id = "reset_relations_warn", type = "desc", text = "ui_mcm_fotz_reset_relations_warn", clr = { 255, 238, 196, 112 } },
+            { id = "reset_relations", type = "check", val = 1, def = false },
             -- before removing the mod: every patch of your faction out of the game (fotz_patch)
             { id = "remove_patches", type = "check", val = 1, def = false },
             { id = "tab_key", type = "key_bind", val = 2, def = -1 },

@@ -130,7 +130,10 @@ its player twin `actor_fotz_own`, team 37).
   you're left alone. "Your old faction" is the game's own record of it
   (`get_actor_true_community()`), so the game's faction change (joining Freedom, say) moves it:
   "You join it" then switches you from the new one, and a save or disbanding puts you back in it
-  (0.5.0; before, it kept to the faction you founded from).
+  (0.5.0; before, it kept to the faction you founded from). After that change your members treat
+  you as at founding: the player row you're on gets your old faction's own row's values, a row you
+  leave gets its founding values back, the founding record is untouched, and politics never moves
+  these cells (before, they took your old faction's view of your new one and could turn hostile).
 - **In politics** (`fotz_politics`): your faction is a side like any other. It and every faction
   whose relations change make a pair, starting from its founding relations rather than the
   config's; the cells moved are its own rows and its player twin's, never its members' relation to
@@ -141,15 +144,24 @@ its player twin `actor_fotz_own`, team 37).
   id) starts from its own founding.
 - **Members:** your companions join, with their own squad and group, and leave when they stop
   being companions. A member who comes online is given the faction on the next update, never
-  inside net spawn, and only if their id still names them (their profile is checked; ids are
-  reused after release).
+  inside net spawn, and only if their id still names them: profile and name (ids are reused after
+  release; a name Homestead changes is taken up, unless the id named no one or someone else in
+  between). Each update and before each save, each member's server object is looked at: a death no
+  callback brought (an anomaly, a fall, a blast) marks them dead, as the server's squad callback
+  (`squad_on_npc_death`) does for offline combat. A member whose object is gone isn't marked dead,
+  so Homestead's re-created settler can still be relinked; the perks and the footprint skip them.
 - **No save holds it.** Before each save every member, online, offline or dead, is set back to
   their old faction in their state packet, and you to yours; the dead are then dropped from the
   roster. You, the online members and every member's server object (which the game reads for
-  A-Life, offline combat and kill credit) are back in it on the next update. Removing the mod needs
-  no step: tested by founding, saving and loading with Factions disabled. A save with a faction,
-  loaded where the faction isn't declared (a broken install), keeps it aside as saved: nothing names
-  an undeclared community, which the engine asserts on.
+  A-Life, offline combat and kill credit) are back in it on the next update, and on the first
+  update after each load or level change (before, offline members stayed in their old faction until
+  they came online). A fallen member's body still drops your patch after a save: the save keeps the
+  fallen (`F.fallen`) until their bodies are searched or gone, and `fotz_patch` wraps
+  `death_manager.create_release_item` so that body's old patch becomes yours for that one call.
+  Removing the mod needs no step: tested by founding, saving and loading with Factions disabled. A
+  save with a faction, loaded where the faction isn't declared (a broken install), keeps it aside
+  as saved, and politics keeps its state for it: nothing names an undeclared community, which the
+  engine asserts on.
 - **Others in it.** Other mods can spread the faction: Homestead caches each settler's faction
   when it recruits them and gives its camp traders the camp's dominant one, so a companion who
   joined and was then recruited would put `fotz_own` in Homestead's save and onto its traders,
@@ -309,7 +321,7 @@ its player twin `actor_fotz_own`, team 37).
     ring (`ui_pda2_attack_base2`), red where the fight is your side's, amber elsewhere. A label
     under it names the fight's two main sides ("Bandits vs Ecologists"); hovering it gives the
     page's sentence for the level and the factions there hostile to you (-1000 or below), the most
-    fighters first, four and then "and N more". No counts: the 2026-11-01 play test found them
+    fighters first, every one of them. No counts: the 2026-11-01 play test found them
     hard to read, a list of numbers to compare.
   - It sits at a smart where the fight's two main sides meet: one either side holds that the
     census found contested, else one the side behind holds (where an attack would go), else one
@@ -370,22 +382,33 @@ its player twin `actor_fotz_own`, team 37).
     `alive()` and counts as living);
   - the factions that never change with your side (fixed pairs and factions), a line for each
     standing, permanent enemies first: "Permanent enemies: Monolith, Renegades, Sin and UNISG.";
-  - the war log, newest first, four lines; where the fighting is (`fotz_tab.fights`, from
-    territory's fronts at the last census), four lines: a sentence a level, about your side when
-    it fights there, else the level's strongest side, against every enemy it faces there, with a
-    verdict from the share the stronger has of it and its biggest enemy (in control from 0.8,
-    winning from two thirds, ahead from 0.55, else evenly matched, which names only those two),
-    your side named as yours ("your Duty"), your side's levels first, then the most fighters;
-    your members, five and "and N more", near, away or dead;
-  - "Reset relations" (`fotz_politics.restore`), after a second click: every pair back where it
-    started, events ended, a line in the log. A line beside it says what it does; on the first
-    click it says what the second will do, in amber.
+  - four subpages under the header (`fotz_tab.SUBPAGES`), the last one chosen kept until the next
+    load. Each lists everything it has, in a scroll view when it runs past the page, and no list
+    ends in "and N more", on the page or in the map's hints (the user's direction, 2026-11-07):
+    - Relations: the rows and the fixed lines above, then the perks, the footprint and the strain
+      where you are, each a sentence of its own placed by its real height;
+    - Fighting: where the fighting is (`fotz_tab.fights`, from territory's fronts at the last
+      census), a sentence a level, about your side when it fights there, else the level's
+      strongest side, against every enemy it faces there, with a verdict from the share the
+      stronger has of it and its biggest enemy (in control from 0.8, winning from two thirds, ahead
+      from 0.55, else evenly matched, which names only those two), your side named as yours ("your
+      Duty"), your side's levels first, then the most fighters;
+    - Members (only while you lead a faction; its button says how many are asking): every join
+      request with Accept and Decline, every member, near, away or dead, then the residents
+      nearest to asking;
+    - War log: all of politics' history, newest first.
+  - While politics stands down, the rows band by the relation alone, with no event or trend.
   - Laid out as Seasons' and Arsenal's pages are (`ui_fotz_tab.xml`): a chamfered frame with its
-    corners open, a header with a rule under it (your side's icon, name and line; the Relations
-    tab and Back at its right), a split between the columns, dividers between the right column's
-    sections, a short rule over the fixed lines, and a footer under a rule (politics' state, Reset
-    relations, the credit). The lines are one white pixel of this mod's, stretched and tinted, as
-    Seasons draws its own; amber headings in letterica18.
+    corners open, a header with a rule under it (your side's icon, name and line; Back at its
+    right), the subpage buttons, the subpage's scroll view, and a footer under a rule (politics'
+    state, the button to the PDA's Relations tab, the credit). The lines are one white pixel of
+    this mod's, stretched and tinted, as Seasons draws its own; amber headings in letterica18.
+  - Reset relations is a one-time switch in MCM, "Reset relations to a new game's" (`fotz_tab`,
+    `fotz_politics.restore`), under a warning on MCM's page: every pair back where it started (a
+    new game's relations unless a story event or another mod moved a cell; your faction's founding
+    ones), events ended, a line in the log, and it can't be undone. It acts only in a loaded game;
+    set from the main menu, the next load clears it without resetting. It left the page on the
+    user's word (2026-11-07).
   Still to come: Clear Sky's per-side strength as a bar. The vanilla Relations tab stays.
 - **Your faction's patch** (`fotz_patch.script`, `mod_system_fotz_patch.ltx`): `fotz_own_patch`,
   a child of the game's `csky_patch`, named for your faction's community so the base game's
@@ -410,8 +433,9 @@ its player twin `actor_fotz_own`, team 37).
     crashed in testing).
   - The war log keeps strategic events only (wars, truces, alliances, ground lost and taken), not
     every message.
-  - A "restore relations" button: clearing the drift puts every pair back where the game started
-    it, mid-save. Six players asked for a way back without a new game.
+  - A way back mid-save (MCM's "Reset relations to a new game's" since 2026-11-07): clearing the
+    drift puts every pair back where the game started it. Six players asked for a way back without
+    a new game.
 - **Art by reference only.** The tab points at textures the game already has: the faction icon
   atlas (`ui_mm_faction_<faction>`, 64 px, with inactive variants), leader portraits and the news
   icons. HD packs that replace them (HD Faction Patches, BBFI) show through, and Factions ships no
@@ -521,7 +545,7 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
   wars), +1 per sworn member in the camp, up to 3.
 - **Events,** on each look (every 10 s): +10 a promotion step; +3 a weapon bought (`bought_tier`
   rising: Homestead clears it on re-creation, and it rises again with the next purchase); +2 an
-  expedition back; -4 a campmate killed. A raid beaten off is +6, +10 for its guards, when the
+  expedition back; -4 a campmate killed (a traveller between camps has no campmates). A raid beaten off is +6, +10 for its guards, when the
   raid's squad is gone or empty. Homestead also drops a raid, raiders alive, when you leave the
   level: that one doesn't count.
 - **Homestead's callbacks** (#391, 1.3.4 and later): `homestead_on_settler_promoted`,
@@ -530,8 +554,10 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
   record (the tier, the expedition, the look's raid watch), so the look counts nothing twice and
   still catches what a callback missed. A promotion can come with no NPC id (Homestead's lookup
   holds only settlers online): the entry is found by its record. Registered on the first update,
-  only when Homestead has `send_settler_callback`. A death needs no callback: the game's own
-  `npc_on_death_callback` has it.
+  only when Homestead has `send_settler_callback`. `homestead_on_settler_killed`: a death Homestead
+  handles itself (a raider job gone wrong, Invincible off: no engine death, the record goes, the
+  object is released) is a death, not a leave, and marks the member dead; with the engine's own
+  death too, the first one counts.
 - **Requests:** at 70 a resident asks (news), and the request waits; it's withdrawn under 60.
   Accept joins them (`fotz_faction.join_settler`: live, or offline by their saved faction).
   Decline costs 10 and three days. "Accept join requests" accepts each as it's made.
@@ -542,6 +568,8 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
 - **Re-created settlers** (`restore_missing_settler`, the Invincible respawn) come back under a new
   id with the same record, sometimes another section. An entry whose id is gone is linked to a
   record of the same camp with the same name, and the membership follows (`fotz_faction.relink`).
+  A member a save dropped meanwhile (their object was gone) joins again, oath and all; if they
+  can't, the oath goes too.
 - **A camp that falls** (its hub gone from `active_camps`; Homestead frees its residents with a
   squad each): residents are forgotten; sworn members stay; other members stay at a roll of their
   loyalty out of 100. A member who stays heads for a camp of yours with room, from Homestead's own
@@ -553,7 +581,14 @@ With Homestead only, while you lead a faction, unless MCM's "Residents can join"
   in through `recruit_npc_to_camp`, with no roll and no fee, and the squad is let go. A camp
   that turns them away, or falls meanwhile, is crossed off for the next. With none left, a
   sworn member waits in the Zone, still a member, and looks again each day; the others go back
-  to their own faction.
+  to their own faction. A sworn member an unhappy camp lets go (Homestead's desertion stamps
+  `_last_abandon_time`; banishing doesn't) sets out the same way, that camp crossed off. However a
+  trip ends (moving in or recruited by hand, leaving, waiting, turned away, disbanding, MCM off),
+  the squad is let go of our smart, and only ours. An entry away from any camp whose member left,
+  died or is someone else now (name and profile) is dropped. A member who moves in arrives as
+  Homestead's new recruit: the fallen camp's record went with it, so a sworn Master arrives a
+  novice, still sworn; keeping the rank needs a Homestead transfer hook (#380). Wars don't weigh on
+  loyalty while politics stands down.
 
 ## 8. Rival outposts beaten (0.5.0)
 
@@ -589,8 +624,12 @@ likely only a ceasefire until they turn hostile again.
   rank and reputation are left; the same between them and the companions following you, both ways.
   Run 21b set `old - attitude` instead, which counted the community terms twice and made a fighter
   a friend (+2412). It lasts 1 to 3 game days, then each personal goodwill goes back (given to
-  `force_set_goodwill` with the community terms added) and they're hostile again. Hitting one
-  of them ends it at once for the outpost. Like Factions' other relation changes it lives only
+  `force_set_goodwill` with the community terms added, by the server objects' communities, which
+  it reads: a companion member's is their old faction after the save's packet edit) and they're
+  hostile again. Hitting one of them (you, or a weapon you hold: a silent knife kill) ends it at
+  once for the outpost. The truce keeps each NPC's name and profile: one who dies, or whose id
+  someone else holds, is dropped, never held or given the old goodwill; a companion pair goes when
+  either side does, the other side's goodwill put back. Like Factions' other relation changes it lives only
   while you play: the truces are in `m_data.fotz_outposts` (by outpost key, each NPC's old
   goodwill, and the pairs with your companions), every save gets the old goodwill back, and the
   next update applies the ceasefire again. An outpost that falls or changes hands meanwhile ends
@@ -610,7 +649,9 @@ strongest near the members, so settlements all over the Zone pay (the user, the 
 - **Earned:** faction X's perk is on while your faction has a living member who came from X (a
   settler, a defector, a companion) and isn't at war with X (a war politics declared; a faction
   whose relation with yours never changes is never at war in that sense, so a Monolith defector
-  still brings their perk). It goes with the last such member, or when the war starts. Worked out
+  still brings their perk). It goes with the last such member, or when the war starts. No war
+  counts while politics stands down (`fotz_politics.standing_down()`), and a member whose server
+  object is gone or dead counts for nothing, even before the faction marks the death. Worked out
   from your members every 2 s at most; nothing saved.
 - **Steps:** each member counts the steps of their rank, `rank_weights` novice to legend (0.5,
   0.6, 0.75, 1, 1.25, 1.5, 1.75, 2; a rank that can't be read counts 1), from the live NPC or their
@@ -630,17 +671,22 @@ strongest near the members, so settlements all over the Zone pay (the user, the 
   settlement of one faction's members, near you, reaches the cap. Since a camp's residents are a
   mix of factions, more camps are how a faction's perk grows. With members of a professional's
   rank on your level, the share of a cap: 1 member 1.7%, 3 9%, 5 19%, 8 39%, 10 54%, 12 72%, 15
-  100%. The caps are MCM sliders (the user: "the cap can be slightly higher, with MCM sliders"),
-  the config's `*_max` their defaults; `curve` and `full_steps` are config only.
-- **Trade** (Loners food and drink, Ecologists medicine, Freedom mutant parts, Duty repair kits and
-  tools, Clear Sky weapon and armor parts): up to 15% off (slider 0 to 25), when you buy that
+  100%. The caps are MCM sliders (the user: "the cap can be slightly higher, with MCM sliders").
+  With MCM installed the sliders always win (a slider never moved answers with MCM's own default),
+  so the config's `*_max` apply only without MCM; `curve` and `full_steps` are config only.
+- **Trade** (Loners food and drink, Ecologists medicine, Freedom cooked mutant meat, Duty repair
+  kits and tools, Clear Sky detectors and devices): up to 15% off (slider 0 to 25), when you buy that
   faction's goods from its traders. One listener on the game's `on_get_item_cost`, while a trade window is
   open (`ActorMenu_on_trade_started` and `_closed`): `profile.mode` 2 only, so selling never pays
   more and nothing is bought to sell back; it multiplies `ret.new_cost`, so the Dynamic Economy
   Engine's change and ours stack in either order. `utils_item.get_item_cost` isn't wrapped: three
   mods already replace it. The trader's faction is Factions' table of each faction's traders (so
   Sidorovich trades for the Loners), else their own, else their squad's. The goods are item kinds
-  or section prefixes (`goods_*`), checked in game (run 26).
+  or section prefixes (`goods_*`), checked in game (run 26): goods each faction's traders stock at
+  every supplies level in G.A.M.M.A., and no item in two lists. The 2026-11-07 sweep checked them
+  against the resolved trade configs: Freedom's traders stock no raw mutant parts (0.6.0's goods)
+  and Spore no parts, so those two changed. Duty's Petrenko matches only camping kits (`i_kit`);
+  its repair goods are at Duty's mechanic.
 - **Military:** up to 30% off its airlifts (slider 0 to 40; Fair Fast Travel's guides at the Cordon
   and Agroprom army traders); a wrapper on `game_guide_travel.get_guidespot_fare`,
   which the route list and the payment both read.
@@ -690,27 +736,37 @@ strongest near the members, so settlements all over the Zone pay (the user, the 
   smarts at the last census (`c.levels[lv].held`; mutants don't count). Both only while you lead
   a faction.
   - **Settling (encroachment):** your members on a level strain your faction's pair with each
-    faction holding ground there, once a day in politics, as ground: up to 40 a day (slider 0 to
+    faction holding ground there that your faction has a changeable pair with (not the Monolith,
+    Sin, the ISG or the Renegades, nor a faction your old faction's relation with is fixed), once a
+    day in politics, as a grievance of its own (`settled`): up to 40 a day (slider 0 to
     100) x share(the members' steps) x its share of the level, summed over its levels and capped.
     Members who came from that faction don't count (Duty tolerates Duty men in Rostok; Freedom
     men there strain it), and an ally (1000 or more toward your faction) doesn't mind. Against
     the daily recovery of 10% it settles near ten days' strain, so a settlement on another's
     ground sours that relation unless something holds it up, and on top of other grievances it
-    can tip into war.
-  - **Fighting (instigation):** a stalker you kill on a faction's ground costs you up to 15 of its
+    can tip into war: that war is announced by the faction whose ground it is ("Wolves settled on
+    our ground and stayed"). Companions aren't settled: they don't strain, though they count for
+    the footprint.
+  - **Fighting (instigation):** a faction's stalker (one of the census's factions: not an arena
+    fighter, a zombie or your member) you kill on another faction's ground costs you up to 15 of its
     goodwill (slider 0 to 50) x its share of the level (the game itself takes about 140 from the
     victim's own faction for a Loner, run 26g), unless it's at war with the victim's
     faction (killing its enemies on its ground is no offense) or the victim is its own (the game
     already counts that). Silent kills (a grenade, a trap) are yours too. With members from that
     faction near you, the relations amplifier makes the loss bigger, as it makes any change.
-  - **Seen:** the page's amber line adds "Settling here strains Duty." where you are.
+    Before the first census after a load or level change, a kill counts the level's ground there
+    and then (`fotz_census.level_ground`).
+  - **Seen:** the page's amber line adds "Settling here strains Duty." where you are; nothing while
+    politics stands down.
+  - With MCM installed its sliders set `footprint`, `encroach` and `instigate`; the config's values
+    count only without MCM.
 - **Left out, on purpose:** the Bandits' daily stash (every stash tip in this install rolls fresh
   loot), psy resistance (a survival loop and a story gate), a free companion, any selling bonus,
   and the enemy side's raids with captives (content, not perks).
-- **The page:** one line under the factions that never change, the perks where you are, four
-  named, then three and "N more": "Perks here: 4% off mutant parts (Freedom), their radio chatter
-  (Monolith) and ...". Run 26
-  showed it in game with eight perks on.
+- **The page:** on the Relations subpage, under the factions that never change, the perks where you
+  are, every one: "Perks here: 4% off mutant meat (Freedom) and their radio chatter (Monolith)." A
+  perk at 0% isn't listed, one under 1% shows "<1%", and the Bandits' map only with a PDA that
+  shows them. Run 26 showed the line in game with eight perks on.
 
 ## The save
 
@@ -767,7 +823,7 @@ strongest near the members, so settlements all over the Zone pay (the user, the 
     missing).
   - Leading from your old faction ("You join it" off, the default since 2026-10-31) avoids all of
     these. A story change of your
-    faction (`set_actor_true_community`) leaves the faction's record of where you came from stale.
+    faction (`set_actor_true_community`) keeps your members' attitude to you as at founding.
 - **Your members, as G.A.M.M.A. sees them:** their bodies get no faction loot, patch or PDA, and
   the news names them with this mod's own strings. Mods that save a member's faction get the old
   one in its place (`PARTNERS`): Homestead's camps, and Fair Autocomplete's kill records (it
@@ -796,7 +852,8 @@ by how many different people raised each. They shape the plan:
   question about hubs toward sparing them.
 - **Deeds, not only kills, move politics (about 8):** tasks done for a faction, rescues. DFRC's
   rule that unseen kills don't count was praised.
-- **A way back mid-save (about 6):** the tab's "restore relations" button.
+- **A way back mid-save (about 6):** MCM's "Reset relations to a new game's" (the page's button
+  until 2026-11-07).
 - **News the player controls (about 5),** with no internal names: already the MCM news level.
 
 From the Homestead thread on Discord (June to October 2026), asks that land on Factions:
