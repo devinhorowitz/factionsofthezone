@@ -125,10 +125,14 @@ local function rank_of(se)
     return RANKS[name] or 0
 end
 
--- the chances, out of 100, that a garrison of this average rank comes over to you, or gives up
+-- the chances, out of 100, that a garrison of this average rank comes over to you, or gives up;
+-- the Renegades' perk (fotz_perks) adds to a defection that could happen at all
 function chances(rank)
-    return math.max(0, cfg.defect_novice - cfg.defect_step * rank),
-        math.max(0, cfg.surrender_novice - cfg.surrender_step * rank)
+    local d = math.max(0, cfg.defect_novice - cfg.defect_step * rank)
+    if d > 0 and fotz_perks and fotz_perks.outpost_bonus then
+        d = d + fotz_perks.outpost_bonus()
+    end
+    return d, math.max(0, cfg.surrender_novice - cfg.surrender_step * rank)
 end
 
 -- the companions following you, online

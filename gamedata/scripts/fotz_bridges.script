@@ -15,6 +15,11 @@ while you lead one, so raids come from your faction's enemies, and gets a member
 anything Homestead saves (fotz_faction.saved_faction), so its save never holds ours. A member
 never moves on from a camp (homestead_on_before_settler_leave, issue #380): their faction is yours
 now. An older Homestead has neither, and nothing changes there.
+
+Tagged Patches (Utjan). It writes who a fallen stalker was, and how they died, on the patch they
+drop, for the factions in its own list; your faction joins the list, so a fallen member's patch is
+tagged, and with "You join it" yours is your own. The list is a local of its script, reached
+through the functions that use it, as other wrappers may stand in between.
 --]]
 
 local OWN_IDS = { fotz_own = true, actor_fotz_own = true }
@@ -117,9 +122,63 @@ function hook_homestead()
     end
 end
 
+-- Tagged Patches -----------------------------------------------------------------------------------
+
+-- a table a function holds as an upvalue by that name, or one a function it holds does, nearest
+-- first, `depth` deep
+function upvalue(fn, name, depth)
+    local seen = {}
+    local function search(f, d)
+        if type(f) ~= "function" or seen[f] or d > (depth or 3) then
+            return nil
+        end
+        seen[f] = true
+        local nested, i = {}, 1
+        while true do
+            local n, v = debug.getupvalue(f, i)
+            if not n then
+                break
+            end
+            if n == name and type(v) == "table" then
+                return v
+            end
+            if type(v) == "function" then
+                nested[#nested + 1] = v
+            end
+            i = i + 1
+        end
+        for _, g in ipairs(nested) do
+            local t = search(g, d + 1)
+            if t then
+                return t
+            end
+        end
+    end
+    return search(fn, 1)
+end
+
+-- your faction's patch in Tagged Patches' list of each faction's patch
+function tag_patches()
+    local tp = tagged_patches
+    if type(tp) ~= "table" or type(tp.is_patch) ~= "function" or type(debug) ~= "table" then
+        return false
+    end
+    local list = upvalue(tp.is_patch, "valid_community")
+    if not list then
+        log("Tagged Patches: its list of patches wasn't found, so your faction's aren't tagged")
+        return false
+    end
+    if list[fotz_faction.OWN] ~= fotz_patch.SECTION then
+        list[fotz_faction.OWN] = fotz_patch.SECTION
+        log("Tagged Patches: your faction's patches are tagged")
+    end
+    return true
+end
+
 function on_game_start()
     hook_names()
     RegisterScriptCallback("npc_on_death_callback", on_death)
     RegisterScriptCallback("monster_on_death_callback", on_death)
     RegisterScriptCallback("actor_on_first_update", hook_homestead)
+    RegisterScriptCallback("actor_on_first_update", tag_patches)
 end

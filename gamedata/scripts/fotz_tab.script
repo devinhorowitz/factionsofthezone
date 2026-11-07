@@ -26,6 +26,7 @@ FIGHT_LINES = 4
 MEMBER_LINES = 5
 REQUEST_ROWS = 2    -- join requests shown with their buttons (fotz_loyalty)
 LIST_NAMES = 3      -- names a fight's list gives before "and N more"
+PERK_NAMES = 4      -- perks the page names, three and "N more" past four (three lines at most)
 SIDE_MIN = 3        -- fighters a side, for a fight worth naming: a few stragglers by a big force aren't one
 -- the stronger side's share of the two, and what it's called: else the sides are evenly matched
 VERDICTS = { { 0.8, "control" }, { 2 / 3, "winning" }, { 0.55, "ahead" } }
@@ -356,6 +357,47 @@ local function member_lines(P, F)
     return out, requests
 end
 
+-- the perks your members bring (fotz_perks), in one line: "Perks: 5% off food and drink
+-- (Loners) and their radio chatter (Monolith)."; nil with none
+local function perks_line(P)
+    local M = fotz_perks
+    local on = M and M.active and M.active() or {}
+    local list = {}
+    for _, f in ipairs(M and M.ORDER or {}) do
+        if on[f] then
+            list[#list + 1] = text("st_fotz_perk_" .. f, { faction = P.faction_name(f), pct = M.pct(f) })
+        end
+    end
+    if #list == 0 then
+        return nil
+    end
+    return text("st_fotz_tab_perks", { list = names_list(list, PERK_NAMES) })
+end
+
+-- what your footprint draws to the level you're on (fotz_territory), in the steer's warning color:
+-- "Your footprint here draws Freedom and the Bandits."; nil with nothing
+DRAWN_COLOR = "%c[255,210,110,90]"
+
+local function drawn_line(P)
+    local T = fotz_territory
+    local out = {}
+    for _, part in ipairs({ { "drawn_here", "st_fotz_tab_drawn" }, { "strained_here", "st_fotz_tab_strains" } }) do
+        local ok, list = pcall(function() return T and T[part[1]] and T[part[1]]() or {} end)
+        if not ok then
+            log("! %s: %s", part[1], tostring(list))
+            list = {}
+        end
+        if #list > 0 then
+            local names = {}
+            for i, it in ipairs(list) do
+                names[i] = P.faction_name(it.f)
+            end
+            out[#out + 1] = text(part[2], { list = names_list(names, PERK_NAMES) })
+        end
+    end
+    return #out > 0 and table.concat(out, " ") or nil
+end
+
 -- everything the page shows
 -- your side: the faction you lead, or without one your own
 function side()
@@ -380,6 +422,9 @@ function page()
         -- your faction's own emblem: its patch's art (fotz_patch), which a player may replace
         p.icon = fotz_patch.EMBLEM
         p.members, p.requests = member_lines(P, F)
+        local perks, drawn = perks_line(P), drawn_line(P)
+        drawn = drawn and (DRAWN_COLOR .. drawn)
+        p.perks = perks and drawn and (perks .. " " .. drawn) or perks or drawn
     else
         p.title = P.faction_name(side)
         p.subtitle = text("st_fotz_tab_no_faction")

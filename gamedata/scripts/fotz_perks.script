@@ -1,0 +1,634 @@
+--[[
+Factions of the Zone: faction perks (0.6.0).
+
+A member who came from another faction brings a small perk of that faction's, while your faction
+isn't at war with it (a war politics declared; a faction whose relation with yours never changes
+is never at war in that sense). The perk grows with each living member from that faction, by the
+member's rank (cfg.rank_weights: a novice half a step, a legend two), with positive returns: its
+size is its cap times (steps / full) ^ cfg.curve, full being a settlement's worth (Homestead's cap
+on a player camp's residents, 15 unless its MCM says otherwise; else cfg.full_steps). So the first
+member brings a little, each one after brings more, and a full settlement of a faction's members
+reaches the cap; recruiting more of a faction, and better fighters, pays more than one of each. It
+goes when the last of them dies or leaves, or the war starts.
+
+Where you are counts: a member's steps count in full on your level and less the farther away they
+are, 1 / (1 + d / cfg.near_half), d the distance between the two levels' centers on the PDA's
+global map (game.ltx's global_rect), so a member a level over counts about half. Your settlements
+near you make the perks there; settlements all over make them everywhere. The map and the radio
+are on or off wherever their members are. Nothing is saved: the perks are worked out from your
+members each time, so disbanding or removing Factions leaves nothing behind. MCM's "Faction perks"
+turns them off.
+
+Small on purpose: nothing free, nothing that can be bought and sold back, and no survival, stash,
+loot, repair or companion loop is touched.
+
+- Loners, Ecologists, Freedom, Duty, Clear Sky: up to the trade cap off one kind of goods, when you
+  buy from that faction's traders. The game's own on_get_item_cost callback, while a trade window
+  is open: the price other mods made is multiplied, never set, and only when you buy (profile.mode
+  2). The goods are the [perks] goods_* lists: item kinds, or section prefixes ending in *.
+- Military: up to the airlift cap off its airlifts (Fair Fast Travel's fares from the Cordon and
+  Agroprom army traders; the price list and the payment both read the fare).
+- Mercenaries: a merc squad of advanced or veteran fighters that the game's own roll turned down
+  takes your contract after all, at a chance out of 100 up to the mercs' cap; each squad rolls once
+  while you play, so both of the dialog's checks agree. Novices still refuse, and the price is the
+  game's (txr_paid_companions).
+- Renegades: a beaten outpost is up to the outposts' cap in points likelier to come over to you,
+  when it would at all (fotz_outposts).
+- Bandits: their squads show on your PDA map, as allies' do (Milspec PDA: PDA 2 and up). On or
+  off: one member is enough.
+- Monolith, Sin, ISG: their radio chatter reaches your PDA (Dialogues Expanded's channels, which
+  otherwise carry them only to their own players). On or off, as the map.
+
+Relations, for better or worse: members from a faction make your relations with it move more,
+at war or not. Each change in its goodwill toward you (tasks, kills, help: whatever moved it) is
+followed by more of the same, up to the relations cap, on the same curve and nearness; a jump over
+cfg.goodwill_jump (a story setting it) is left alone. Politics' daily pressure on your faction's
+pair with it grows the same way, by all its members wherever they are (fotz_politics, amp_all).
+
+The caps are MCM sliders (in percent, or points out of 100), the config's *_max their defaults.
+
+Each hook is guarded: without the mod it needs, there's just no such perk.
+--]]
+
+CONFIG = "plugins\\fotz_politics.ltx"
+CACHE_MS = 2000         -- the perks are worked out again at most this often
+LOOK_MS = 10000         -- the radio channels and the log of changes, this often
+RADIO_AFTER_MS = 40000  -- Dialogues Expanded starts its radio about 27.5 s after a load
+
+-- the faction a member came from -> its perk
+PERKS = {
+    stalker = "food", ecolog = "medicine", freedom = "mutant", dolg = "tools", csky = "parts",
+    army = "airlift", killer = "mercs", bandit = "map", renegade = "outposts",
+    monolith = "radio", greh = "radio", isg = "radio",
+}
+-- the order the page names them in
+ORDER = { "stalker", "ecolog", "freedom", "dolg", "csky", "army", "killer", "bandit", "renegade",
+          "monolith", "greh", "isg" }
+-- the Military's airlifts: Fair Fast Travel's guides at the army traders
+AIRLIFTS = { esc_3_16_military_trader = true, agr_smart_terrain_1_6_army_trader_stalker = true }
+RADIO = { "monolith", "greh", "isg" }
+-- communities that aren't a trader's faction: theirs is their squad's, or Factions' trader table's
+NOT_A_FACTION = { trader = true, zombied = true, monster = true }
+-- the game's ranks, novice to legend: a member's step is cfg.rank_weights' entry for theirs
+RANKS = { "novice", "trainee", "experienced", "professional", "veteran", "expert", "master", "legend" }
+UNKNOWN_RANK = 4        -- a member whose rank can't be read counts as a professional
+-- MCM's sliders for the caps, in percent or points out of 100: perk -> option, its scale
+SLIDERS = { trade = { "perks_trade_max", 100 }, airlift = { "perks_airlift_max", 100 },
+            mercs = { "perks_merc_max", 1 }, outposts = { "perks_outpost_max", 1 },
+            relations = { "perks_relations_max", 100 } }
+GOODWILL_MS = 1000      -- your goodwill with each faction is looked at this often
+
+DEFAULTS = {
+    trade_max = 0.15, airlift_max = 0.30, merc_max = 100, outpost_max = 15, relations_max = 1.00,
+    full_steps = 15, curve = 1.5, goodwill_jump = 500, near_half = 300, near_unknown = 0.5,
+    rank_weights = "0.5, 0.6, 0.75, 1, 1.25, 1.5, 1.75, 2",
+    goods_food = "i_food, i_drink",
+    goods_medicine = "i_medical",
+    goods_mutant = "i_mutant_part, i_mutant_raw",
+    goods_tools = "i_repair, i_kit, gun_oil*, toolkit_*",
+    goods_parts = "i_part",
+}
+
+cfg = nil
+GOODS = nil             -- goods name -> { kinds = { kind = true }, prefixes = { ... } }
+WEIGHTS = nil           -- rank name -> the steps a member of that rank counts for
+local cache, cache_at = nil, nil
+local steps_all = {}    -- faction -> the steps of every living member from it where you are, at war or not
+local steps_total = {}  -- the same, wherever they are
+local full_now = nil    -- a settlement's worth of steps, as of the last count
+local places = {}       -- level -> its center on the global map, or false
+local goodwill = nil    -- faction -> its goodwill toward you at the last look; nil after a load
+local next_goodwill = 0
+local trade = nil       -- while a trade window is open: { faction = the trader's, or nil }
+local goods_cache = {}  -- section -> its goods name, or false
+local radio_on = {}     -- channels this turned on
+local shown = {}        -- the perks last logged
+local radio_from = nil
+local next_look = 0
+local original_fare, original_competent, original_mapspot = nil, nil, nil
+local merc_rolls = {}   -- squad id -> its roll, 1 to 100, kept while you play
+
+local function log(fmt, ...)
+    printf("[fotz-perks] " .. fmt, ...)
+end
+
+-- the config ---------------------------------------------------------------------------------------
+
+local function goods_spec(s)
+    local g = { kinds = {}, prefixes = {} }
+    for w in string.gmatch(s or "", "[^,%s]+") do
+        if string.sub(w, -1) == "*" then
+            g.prefixes[#g.prefixes + 1] = string.sub(w, 1, -2)
+        else
+            g.kinds[w] = true
+        end
+    end
+    return g
+end
+
+function load_config(ini)
+    ini = ini or ini_file(CONFIG)
+    local has = ini and ini:section_exist("perks")
+    cfg, GOODS = {}, {}
+    for key, def in pairs(DEFAULTS) do
+        local v = nil
+        if has and ini:line_exist("perks", key) then
+            if type(def) == "number" then
+                v = ini:r_float_ex("perks", key)
+            else
+                v = ini:r_string_ex("perks", key)
+            end
+        end
+        cfg[key] = v or def
+    end
+    for _, perk in pairs(PERKS) do
+        if cfg["goods_" .. perk] then
+            GOODS[perk] = goods_spec(cfg["goods_" .. perk])
+        end
+    end
+    WEIGHTS = {}
+    local i = 0
+    for w in string.gmatch(cfg.rank_weights, "[^,%s]+") do
+        i = i + 1
+        if RANKS[i] and tonumber(w) then
+            WEIGHTS[RANKS[i]] = tonumber(w)
+        end
+    end
+    goods_cache = {}
+    return cfg
+end
+
+-- which perks are on -------------------------------------------------------------------------------
+
+function enabled()
+    return not (ui_mcm and ui_mcm.get("fotz/perks") == false)
+end
+
+-- whether politics has your faction at war with f
+function at_war(f)
+    local P = fotz_politics
+    local p = P and P.pair_of and P.pair_of(P.OWN, f)
+    local ev = p and P.S and P.S.events and P.S.events[p.key]
+    return ev ~= nil and ev.kind == "war"
+end
+
+-- a member's rank name: the live NPC's, else their server object's; nil if it can't be read
+local function rank_name(id)
+    local ok, name = pcall(function()
+        local o = level.object_by_id(id)
+        if o then
+            return ranks.get_obj_rank_name(o)
+        end
+        local se = alife():object(id)
+        return se and ranks.get_se_obj_rank_name(se)
+    end)
+    return ok and name or nil
+end
+
+-- the steps a member counts for, by their rank
+function weight_of(id)
+    return WEIGHTS[rank_name(id)] or WEIGHTS[RANKS[UNKNOWN_RANK]] or 1
+end
+
+-- the level a member is on: yours if they're online, else their server object's
+function member_level(id)
+    local ok, name = pcall(function()
+        if level.object_by_id(id) then
+            return level.name()
+        end
+        local se = alife():object(id)
+        return se and alife():level_name(game_graph():vertex(se.m_game_vertex_id):level_id())
+    end)
+    return ok and name or nil
+end
+
+-- a level's center on the PDA's global map, or nil
+function place(lv)
+    local p = places[lv]
+    if p == nil then
+        p = false
+        local ok, s = pcall(function() return game_ini():r_string_ex(lv, "global_rect") end)
+        local x1, y1, x2, y2
+        if ok and type(s) == "string" then
+            x1, y1, x2, y2 = string.match(s, "^%s*([%d%.%-]+)%s*,%s*([%d%.%-]+)%s*,%s*([%d%.%-]+)%s*,%s*([%d%.%-]+)")
+        end
+        if y2 then
+            p = { x = (tonumber(x1) + tonumber(x2)) / 2, y = (tonumber(y1) + tonumber(y2)) / 2 }
+        end
+        places[lv] = p
+    end
+    return p or nil
+end
+
+-- how much a member on level a counts on level b: 1 on the same level, less the farther apart
+function nearness(a, b)
+    if a and a == b then
+        return 1
+    end
+    local pa, pb = a and place(a), b and place(b)
+    if not (pa and pb) then
+        return cfg.near_unknown
+    end
+    local d = math.sqrt((pa.x - pb.x) ^ 2 + (pa.y - pb.y) ^ 2)
+    return 1 / (1 + d / cfg.near_half)
+end
+
+-- the perks on now: faction -> { names = the members who bring it, weight = their steps }; and
+-- every living member's steps by the faction they came from, at war or not (steps_all)
+function active()
+    local now = time_global()
+    if cache and now >= cache_at and now < cache_at + CACHE_MS then
+        return cache
+    end
+    local t, all, total = {}, {}, {}
+    local F = fotz_faction and fotz_faction.F
+    if F and enabled() then
+        local here = level.name()
+        for id, m in pairs(F.members) do
+            local f = type(m.mother) == "string" and string.gsub(m.mother, "^actor_", "") or nil
+            if f and PERKS[f] and not m.dead then
+                local w = weight_of(id)
+                local near = w * nearness(member_level(id), here)
+                all[f] = (all[f] or 0) + near
+                total[f] = (total[f] or 0) + w
+                if not at_war(f) then
+                    t[f] = t[f] or { names = {}, weight = 0, near = 0 }
+                    table.insert(t[f].names, tostring(m.name))
+                    t[f].weight = t[f].weight + w
+                    t[f].near = t[f].near + near
+                end
+            end
+        end
+    end
+    for _, p in pairs(t) do
+        table.sort(p.names)
+    end
+    cache, cache_at, steps_all, steps_total, full_now = t, now, all, total, full()
+    return t
+end
+
+-- how much more your relations with f move, for better or worse: 1, and up to the relations cap
+-- more on the curve, by the members from f where you are, at war or not
+function amp(f)
+    active()
+    return 1 + cap("relations", cfg.relations_max) * share(steps_all[f])
+end
+
+-- the same, by every member from f wherever they are: for politics' pressure on your faction's
+-- pair with f, which belongs to no place
+function amp_all(f)
+    active()
+    return 1 + cap("relations", cfg.relations_max) * share(steps_total[f])
+end
+
+function on(f)
+    return active()[f] ~= nil
+end
+
+-- the members who bring f's perk
+function count(f)
+    local p = active()[f]
+    return p and #p.names or 0
+end
+
+-- the steps they count for, by their ranks
+function weight(f)
+    local p = active()[f]
+    return p and p.weight or 0
+end
+
+-- the steps they count for where you are, by their ranks and how near they are
+function near_weight(f)
+    local p = active()[f]
+    return p and p.near or 0
+end
+
+-- a cap: MCM's slider, else the config's
+function cap(kind, default)
+    local s = SLIDERS[kind]
+    local v = s and ui_mcm and tonumber(ui_mcm.get("fotz/" .. s[1]))
+    if v then
+        return math.max(0, v / s[2])
+    end
+    return default
+end
+
+-- a settlement's worth of steps: Homestead's cap on a player camp's residents (its MCM's), else
+-- the config's
+function full()
+    local ok, n = pcall(function() return tonumber(stalker_camp_builder.cfg.max_survivors_player_camp) end)
+    return (ok and n and n >= 1) and n or cfg.full_steps
+end
+
+-- the share of a cap that members' steps give, with positive returns: each step adds more than the
+-- one before, until a settlement's worth reaches the cap
+function share(w)
+    if not w or w <= 0 then
+        return 0
+    end
+    return math.min(1, w / (full_now or full())) ^ cfg.curve
+end
+
+-- a perk's size with its members: a trade perk's and the airlifts' a share off, the mercs' and the
+-- outposts' points out of 100; 0 while it's off, nil for a perk that's only on or off
+function size(f)
+    local perk = PERKS[f]
+    local max
+    if GOODS[perk] then
+        max = cap("trade", cfg.trade_max)
+    elseif perk == "airlift" then
+        max = cap("airlift", cfg.airlift_max)
+    elseif perk == "mercs" then
+        max = math.min(100, cap("mercs", cfg.merc_max))
+    elseif perk == "outposts" then
+        max = cap("outposts", cfg.outpost_max)
+    else
+        return nil
+    end
+    return max * share(near_weight(f))
+end
+
+-- forget what was worked out (a member joined or left, an option changed)
+function refresh()
+    cache = nil
+end
+
+-- trade --------------------------------------------------------------------------------------------
+
+-- the faction a trader trades for: Factions' table of each faction's traders (Sidorovich's is the
+-- Loners'), else their own, else their squad's
+function trader_faction(npc)
+    if not npc then
+        return nil
+    end
+    local T = modxml_fotz_patch and modxml_fotz_patch.TRADERS
+    local who = npc.profile_name and npc:profile_name()
+    if who and type(T) == "table" then
+        for f, ids in pairs(T) do
+            for _, id in ipairs(ids) do
+                if id == who then
+                    return f
+                end
+            end
+        end
+    end
+    local comm = npc:character_community()
+    if comm and PERKS[comm] then
+        return comm
+    end
+    local squad = get_object_squad and get_object_squad(npc)
+    local sc = squad and squad.get_squad_community and squad:get_squad_community()
+    if sc and PERKS[sc] and not NOT_A_FACTION[sc] then
+        return sc
+    end
+    return nil
+end
+
+-- the goods a section is, by the [perks] lists: its kind, or a prefix of its name
+function goods_of(sec)
+    local g = goods_cache[sec]
+    if g == nil then
+        g = false
+        local kind = SYS_GetParam(0, sec, "kind")
+        for name, spec in pairs(GOODS) do
+            if kind and spec.kinds[kind] then
+                g = name
+            else
+                for _, p in ipairs(spec.prefixes) do
+                    if string.sub(sec, 1, #p) == p then
+                        g = name
+                        break
+                    end
+                end
+            end
+            if g then
+                break
+            end
+        end
+        goods_cache[sec] = g
+    end
+    return g or nil
+end
+
+-- the game's price callback: buying (mode 2) the trader's faction's goods, with its perk on
+function on_item_cost(kind, obj, profile, cost, ret)
+    local f = trade and trade.faction
+    if not (f and obj and type(profile) == "table" and profile.mode == 2 and type(ret) == "table") then
+        return
+    end
+    if goods_of(obj:section()) ~= PERKS[f] or not on(f) then
+        return
+    end
+    local c = tonumber(ret.new_cost) or tonumber(cost)
+    if c then
+        ret.new_cost = c * (1 - size(f))
+    end
+end
+
+-- a trade window opens (the game's ActorMenu_on_trade_started): whose goods are on offer
+function trade_started()
+    local npc = mob_trade and mob_trade.GetTalkingNpc and mob_trade.GetTalkingNpc()
+    trade = { faction = trader_faction(npc) }
+end
+
+function trade_closed()
+    trade = nil
+end
+
+-- the other perks ----------------------------------------------------------------------------------
+
+-- the Military's airlifts, less while its perk is on
+local function fare(g, s, ...)
+    local v = original_fare(g, s, ...)
+    if AIRLIFTS[g] and type(v) == "number" and v > 0 and on("army") then
+        return math.floor(v * (1 - size("army")) + 0.5)
+    end
+    return v
+end
+
+-- a merc squad the game's roll turned down takes the contract at the Mercenaries' chance: advanced
+-- and veteran squads, as the game rolls for (a novice squad never works), each squad's roll kept
+function merc_takes(actor, npc)
+    local chance = size("killer")
+    if chance <= 0 then
+        return false
+    end
+    local who = dialogs and dialogs.who_is_npc and dialogs.who_is_npc(actor, npc)
+    if not who then
+        return false
+    end
+    local squad = get_object_squad(who)
+    local sec = squad and squad:section_name() or ""
+    if not (squad and who:character_community() == "killer"
+            and (string.find(sec, "veteran", 1, true) or string.find(sec, "advanced", 1, true))) then
+        return false
+    end
+    local roll = merc_rolls[squad.id] or math.random(1, 100)
+    merc_rolls[squad.id] = roll
+    return roll <= chance
+end
+
+local function competent(actor, npc, ...)
+    if original_competent(actor, npc, ...) then
+        return true
+    end
+    return merc_takes(actor, npc)
+end
+
+-- the Bandits' squads on your map, as allies' are, with a PDA that shows allies
+function bandits_shown()
+    local m = item_milpda
+    if m.is_blacklisted("bandit") then
+        return false
+    end
+    return m.pda_type_supports_mapspot(nil, "bandit", true, false) == true
+end
+
+local function mapspot(comm, ...)
+    if original_mapspot(comm, ...) then
+        return true
+    end
+    return comm == "bandit" and on("bandit") and bandits_shown()
+end
+
+-- a perk's size in percent, for the page: a discount, or points of a chance; nil for a perk
+-- that's only on or off
+function pct(f)
+    local s = size(f)
+    if not s then
+        return nil
+    end
+    local perk = PERKS[f]
+    return math.floor(((GOODS[perk] or perk == "airlift") and s * 100 or s) + 0.5)
+end
+
+-- the Renegades': points added to a beaten outpost's chance of coming over (fotz_outposts)
+function outpost_bonus()
+    return size("renegade")
+end
+
+-- Monolith's, Sin's and the ISG's radio channels, on while their perk is; a channel the game
+-- opened (you're of that faction) is left alone
+function radio()
+    local m = dynamic_news_manager
+    local mgr = type(m) == "table" and type(m.get_dynamic_news) == "function" and m.get_dynamic_news()
+    local ch = mgr and mgr.channel_status
+    if type(ch) ~= "table" then
+        return
+    end
+    for _, f in ipairs(RADIO) do
+        if on(f) then
+            if ch[f] ~= true then
+                ch[f], radio_on[f] = true, true
+                log("%s's radio chatter on", f)
+            end
+        elseif radio_on[f] then
+            ch[f], radio_on[f] = false, nil
+            log("%s's radio chatter off", f)
+        end
+    end
+end
+
+-- each hook once, when every script has loaded; a mod that isn't there means no such perk
+function hook()
+    local g = game_guide_travel
+    if not original_fare and type(g) == "table" and type(g.get_guidespot_fare) == "function" then
+        original_fare = g.get_guidespot_fare
+        g.get_guidespot_fare = fare
+    end
+    local c = txr_paid_companions
+    if not original_competent and type(c) == "table" and type(c.is_squad_competent) == "function" then
+        original_competent = c.is_squad_competent
+        c.is_squad_competent = competent
+    end
+    local p = item_milpda
+    if not original_mapspot and type(p) == "table" and type(p.actor_pda_can_see_mapspot) == "function"
+        and type(p.pda_type_supports_mapspot) == "function" and type(p.is_blacklisted) == "function" then
+        original_mapspot = p.actor_pda_can_see_mapspot
+        p.actor_pda_can_see_mapspot = mapspot
+    end
+end
+
+-- your goodwill with each faction: a change since the last look is followed by the members' share
+-- more of it; the first look after a load only reads
+function goodwill_look()
+    local rr = relation_registry
+    local now = {}
+    for _, f in ipairs(ORDER) do
+        now[f] = rr.community_goodwill(f, AC_ID)
+    end
+    if goodwill then
+        for _, f in ipairs(ORDER) do
+            local d = now[f] - (goodwill[f] or now[f])
+            local a = d ~= 0 and math.abs(d) <= cfg.goodwill_jump and amp(f) or 1
+            if a > 1 then
+                local extra = d * (a - 1)
+                extra = extra > 0 and math.floor(extra + 0.5) or -math.floor(-extra + 0.5)
+                if extra ~= 0 then
+                    rr.change_community_goodwill(f, AC_ID, extra)
+                    now[f] = rr.community_goodwill(f, AC_ID)
+                    log("%s's goodwill %s, and %s more for your members from it", f, d, extra)
+                end
+            end
+        end
+    end
+    goodwill = now
+end
+
+-- the log line when the perks change, for the game's log
+local function note()
+    local t, now = active(), {}
+    for _, f in ipairs(ORDER) do
+        if t[f] then
+            now[f] = table.concat(t[f].names, ", ")
+            if shown[f] ~= now[f] then
+                log("%s's perk on (%s, %s): %s", f, PERKS[f], tostring(pct(f) or "on"), now[f])
+            end
+        elseif shown[f] then
+            log("%s's perk off", f)
+        end
+    end
+    shown = now
+end
+
+local function guarded(what, fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok then
+        log("! %s: %s", what, tostring(err))
+    end
+end
+
+local function actor_on_first_update()
+    guarded("hooks", hook)
+    radio_from = time_global() + RADIO_AFTER_MS
+end
+
+local function actor_on_update()
+    local now = time_global()
+    if now >= next_goodwill then
+        next_goodwill = now + GOODWILL_MS
+        guarded("goodwill", goodwill_look)
+    end
+    if now < next_look then
+        return
+    end
+    next_look = now + LOOK_MS
+    guarded("look", note)
+    if radio_from and now >= radio_from then
+        guarded("radio", radio)
+    end
+end
+
+local function on_option_change()
+    refresh()
+end
+
+function on_game_start()
+    load_config()
+    RegisterScriptCallback("on_get_item_cost", function(...) guarded("price", on_item_cost, ...) end)
+    RegisterScriptCallback("ActorMenu_on_trade_started", function() guarded("trade", trade_started) end)
+    RegisterScriptCallback("ActorMenu_on_trade_closed", trade_closed)
+    RegisterScriptCallback("actor_on_first_update", actor_on_first_update)
+    RegisterScriptCallback("actor_on_update", actor_on_update)
+    RegisterScriptCallback("on_option_change", on_option_change)
+end

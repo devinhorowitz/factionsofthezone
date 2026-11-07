@@ -52,6 +52,27 @@ last fighters may give up. The greener they are, the likelier they are to come o
 faction and head for one of your camps, or to surrender: a ceasefire of a few days before they
 turn on you again. Veterans fight to the end.
 
+**Earn their faction's favor.** A member who came from another faction brings a small perk of theirs
+while you're not at war with it, growing faster with each member from that faction (more for higher
+ranks) until a full settlement of them reaches the cap, and strongest near them, so a Rostok
+settlement of Duty men sways Rostok's traders and settlements all over the Zone pay: a discount on
+one kind of goods at their traders (Loners' food, Ecologists' medicine, Freedom's mutant parts,
+Duty's repair kits, Clear Sky's parts), cheaper Military airlifts, mercs likelier to take your
+contract, outposts likelier to come over (Renegades), Bandit squads on your map, or Monolith, Sin
+and ISG radio chatter. Light on purpose: only when you buy, never when you sell, and nothing free;
+MCM's sliders set how far each can grow. Members from a faction also make your relations with it
+move more, for better or worse: do Duty a favor with Duty men in your ranks and it counts for more,
+and so does crossing them.
+
+**Mind your footprint.** Members draw their enemies: squads of factions hostile to your faction, or
+to where your members came from, come to where your members are, from there and next door, more the
+bigger and nearer your faction. Stay small and light and you slip by; grow big in a busy place and
+your enemies answer like an immune response. A mix of members spreads that attention; twenty men
+from Duty bring Freedom down on you. Spread out to keep the peace, or gather to start a war. And
+mind whose ground it is: settling your people where another faction holds the land strains your
+relation with it day by day (unless they came from that faction, or it's your ally), and a stalker
+you kill on a faction's ground costs you its goodwill, unless the dead were its enemies.
+
 ### Coming next
 
 - **Invasions:** factions pushing into each other's ground, not only leaning toward it.
@@ -158,7 +179,7 @@ works either way.
 MCM, under Factions of the Zone: your faction (found or disband it, its name, whether you join it
 yourself, off unless you choose it, whether companions join, whether your residents can join, and
 whether their requests are accepted as they're made, off unless you choose it), whether beaten
-outposts can give up, politics on or off, the territory steer, the fighting on the PDA map, PDA
+outposts can give up, faction perks and their caps, politics on or off, the territory steer, the fighting on the PDA map, PDA
 news (off, wars and truces, or everything), the census log, removing your faction's patches
 (before you remove the mod), the Factions page key, and, with Mod App Creator, the page's own PDA
 tab.
@@ -224,10 +245,12 @@ faction's patches out of the game (above).
   scoring, `test_map.py` runs the fighting on the PDA map against a stand-in for its spots,
   `test_patch.py` runs your faction's patch and the traders' dialog against a stand-in for the
   actor and their talk, `test_loyalty.py` runs settler loyalty against a stand-in for Homestead's
-  camps, `test_bridges.py` runs your faction's name, members' kills and Homestead's hooks against
-  stand-ins for the string table, the loot claim and Homestead, and `test_text.py` checks the
-  Russian tables' build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (396 so far); every
+  camps, `test_bridges.py` runs your faction's name, members' kills, Homestead's hooks and Tagged
+  Patches against stand-ins for the string table, the loot claim, Homestead and Tagged Patches,
+  `test_perks.py` runs the faction perks against stand-ins for the trade callback, Fair Fast Travel,
+  the paid companions, Milspec PDA and the radio, and `test_text.py` checks the Russian tables'
+  build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (506 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.

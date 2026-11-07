@@ -5,7 +5,10 @@ Checked: the shipped config's [loyalty] section is the script's defaults; each s
 day's term (living there, working, the camp's comfort, your faction's relation with theirs times
 their tier's pull, your wars, the sworn near them, capped, not counting themselves); the events (a
 promotion, a weapon bought, again after Homestead re-creates them, an expedition back, a raid beaten
-off, guards more, a raid you left not counted, a campmate killed); a request at the ask threshold,
+off, guards more, a raid you left not counted, a campmate killed); Homestead's callbacks (none
+hooked on an older Homestead; a promotion, with no id too, the sworn unmoved; an expedition back; a
+raid beaten off, one the look never saw too), each counted once with the look, none with the MCM
+switch off; a request at the ask threshold,
 once a day, withdrawn under its threshold; Accept and its news; Decline, its cost and its wait;
 "Accept join requests"; a settler member leaving under the leave threshold, a companion member
 not; swearing, each condition failing alone; the sworn kept at full loyalty; a member who stops
@@ -48,7 +51,18 @@ MUTANTS = {
     "no_wars": ("    if at_war >= cfg.many_wars then", "    if false then"),
     "friends_ignored": ("    elseif r >= FRIENDS then\n        v = v + cfg.day_friends * pull", "    elseif false then\n        v = v + cfg.day_friends * pull"),
     "sworn_uncapped": ("math.min(sworn_in(res, e.hub), cfg.sworn_near_max)", "sworn_in(res, e.hub)"),
-    "promotion_once": ("        e.v = clamp(e.v + cfg.promotion * (tier - e.tier))", "        e.v = clamp(e.v + cfg.promotion)"),
+    "promotion_once": ("    if tier > e.tier then\n        e.v = clamp(e.v + cfg.promotion * (tier - e.tier))",
+                       "    if tier > e.tier then\n        e.v = clamp(e.v + cfg.promotion)"),
+    # Homestead's callbacks (1.3.4 and later)
+    "callback_promotion_twice": ('    e.tier = tier\n    log("%s promoted', '    log("%s promoted'),
+    "callback_expedition_twice": ('    e.away = nil\n    log("%s back', '    log("%s back'),
+    "callback_raid_twice": ("    raids[hub] = nil\n    beaten(hub, camp, b.res)", "    beaten(hub, camp, b.res)"),
+    "callback_no_expedition": ("    if not e.sworn then\n        e.v = clamp(e.v + cfg.expedition_back)",
+                               "    if false then\n        e.v = clamp(e.v + cfg.expedition_back)"),
+    "callback_moves_sworn": ("    if not e.sworn then\n        e.v = clamp(e.v + cfg.promotion", "    if true then\n        e.v = clamp(e.v + cfg.promotion"),
+    "callback_no_record": ("                if rec == survivor then", "                if false then"),
+    "callback_ignores_switch": ("    local b, m = enabled() and book(), homestead()", "    local b, m = book(), homestead()"),
+    "hooks_older_homestead": ('type(m.send_settler_callback) ~= "function"', "false"),
     "no_weapon": ("    if bought > e.bought then\n        e.v = clamp(e.v + cfg.weapon)\n    end\n", ""),
     "no_expedition": ("    if e.away and not rec.on_expedition then", "    if false then"),
     "raid_any_end": ("    if left > 0 then\n        log(", "    if false then\n        log("),
@@ -492,6 +506,67 @@ def raids(src):
     check(w.v(10) == 56, "a raid left behind counted: %s" % w.v(10))
 
 
+HOOKS = ("homestead_on_settler_promoted", "homestead_on_expedition_returned", "homestead_on_raid_defended")
+
+
+def callbacks(src):
+    w = fresh(src, 'camp(1, "A", 50)', 'camp(2, "B", 50)',
+              'S = settler(1, 10, { community = "dolg", tier = 0 })', 'settler(1, 11, { community = "dolg", job = "guard" })',
+              'settler(1, 12, { community = "dolg" })', 'settler(2, 20, { community = "dolg" })')
+    # an older Homestead sends none: nothing hooked
+    w.env.hook_homestead()
+    check(all(w.g.CALLBACKS[h] is None for h in HOOKS), "an older Homestead hooked")
+    w.run("function stalker_camp_builder.send_settler_callback() end")
+    w.env.hook_homestead()
+    check(all(w.g.CALLBACKS[h] is not None for h in HOOKS),
+          "not hooked: %s" % [h for h in HOOKS if w.g.CALLBACKS[h] is None])
+    w.env.look()
+    for i in (10, 11, 12, 20):
+        w.res()[i].v = 50
+    w.res()[12].sworn = True
+    send = w.lua.eval("function(name, ...) CALLBACKS[name](...) end")
+    # a promotion counts as Homestead sends it, then not again at the look
+    w.run("S.tier = 2")
+    send("homestead_on_settler_promoted", 10, w.g.S, 2)
+    check(w.v(10) == 70, "promoted by the callback: %s" % w.v(10))
+    w.env.look()
+    check(w.v(10) == 70, "the promotion counted twice: %s" % w.v(10))
+    # with no id, found by its record
+    w.run("S.tier = 3")
+    send("homestead_on_settler_promoted", None, w.g.S, 3)
+    check(w.v(10) == 80, "a promotion with no id: %s" % w.v(10))
+    # the sworn as they are
+    w.run("CAMPS[1].survivors[12].tier = 1")
+    send("homestead_on_settler_promoted", 12, w.lua.eval("CAMPS[1].survivors[12]"), 1)
+    check(w.v(12) == 50, "a sworn member's promotion moved them: %s" % w.v(12))
+    # an expedition back, once
+    w.run("S.on_expedition = true")
+    w.env.look()
+    w.run("S.on_expedition = nil")
+    send("homestead_on_expedition_returned", 10, w.g.S, w.lua.table())
+    check(w.v(10) == 82, "back from an expedition by the callback: %s" % w.v(10))
+    w.env.look()
+    check(w.v(10) == 82, "the expedition counted twice: %s" % w.v(10))
+    # a raid the look was watching, beaten off: once, guards more, the sworn and the other camp not
+    w.run('CAMPS[1].active_raid = { squad_id = 500 }; squad(500, 3)')
+    w.env.look()
+    w.run('squad(500, 0)')
+    send("homestead_on_raid_defended", 1, 3, 0)
+    w.run('CAMPS[1].active_raid = nil')
+    w.env.look()
+    got = (w.v(10), w.v(11), w.v(12), w.v(20))
+    check(got == (88, 60, 50, 50), "a raid beaten off by the callback: %s" % (got,))
+    # one the look never saw
+    send("homestead_on_raid_defended", 2, 2, 1)
+    check(w.v(20) == 56, "a raid the look missed: %s" % w.v(20))
+    # the MCM switch off: nothing
+    w.run('MCM["fotz/loyalty"] = false')
+    send("homestead_on_raid_defended", 2, 2, 0)
+    w.run("S.tier = 4")
+    send("homestead_on_settler_promoted", 10, w.g.S, 4)
+    check((w.v(20), w.v(10)) == (56, 88), "counted with the switch off: %s %s" % (w.v(20), w.v(10)))
+
+
 def deaths(src):
     w = fresh(src, 'camp(1, "A", 50)', 'camp(2, "B", 50)',
               'settler(1, 10, { community = "dolg" })', 'settler(1, 11, { community = "dolg" })',
@@ -816,11 +891,11 @@ def strings(src):
 
 
 def run(src):
-    for t in (config, start, daily, sworn_near, events, raids, deaths, requests, leaving, swearing, residency,
-              relinking, census_flow, switched_off, near_list, between, turned_away, nowhere_to_go, enemy_smart,
-              take_in, strings):
+    for t in (config, start, daily, sworn_near, events, raids, callbacks, deaths, requests, leaving, swearing,
+              residency, relinking, census_flow, switched_off, near_list, between, turned_away, nowhere_to_go,
+              enemy_smart, take_in, strings):
         t(src)
-    return "21 scenarios"
+    return "22 scenarios"
 
 
 def expose(src):

@@ -197,6 +197,11 @@ function FactionsTab:InitControls()
     for i = 1, FIXED_LINES do
         self.fixed[i] = xml:InitTextWnd("fixed_line", self)
     end
+    self.perks = xml:InitTextWnd("perks_line", self)
+    if self.perks then
+        local c = fotz_tab.COLORS.friends
+        self.perks:SetTextColor(GetARGB(255, c[1], c[2], c[3]))
+    end
     self.log = {}
     for i = 1, fotz_tab.LOG_LINES do
         local w = xml:InitTextWnd("log_line", self)
@@ -337,6 +342,12 @@ function FactionsTab:Fill()
             put(w, p.fixed[i])
             show(w, p.fixed[i] ~= nil)
         end
+    end
+    -- the perks your members bring (fotz_perks), under the last fixed line
+    if self.perks then
+        moved(self.perks, self.perks:GetWndPos().x, y + #p.fixed * FIXED_STEP)
+        put(self.perks, p.perks)
+        show(self.perks, p.perks ~= nil)
     end
     for i, w in ipairs(self.log or {}) do
         put(w, fit(p.log[i], 60))

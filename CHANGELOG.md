@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased
+
+- **Loyalty hears Homestead directly** (Homestead 1.3.4 and later). A promotion, an expedition
+  back and a raid beaten off move your residents' loyalty the moment Homestead reports them, so a
+  raid fought between Factions' checks counts too. With an older Homestead, Factions still finds
+  them by looking.
+- **Faction perks.** A member who came from another faction brings a small perk of theirs while
+  your faction isn't at war with it: up to 15% off one kind of goods at that faction's traders
+  (Loners' food and drink, Ecologists' medicine, Freedom's mutant parts, Duty's repair kits and
+  tools, Clear Sky's weapon and armor parts) when you buy, never when you sell; up to 30% off the
+  Military's airlifts; a merc squad that turned you down taking your contract after all; a beaten
+  outpost up to 15 points likelier to come over (Renegades); and, with one member, Bandit squads
+  on your PDA map (PDA 2 and up), or Monolith, Sin and ISG radio chatter. A perk grows with each
+  member from that faction, by rank (a legend counts four times a novice; Homestead's promotions
+  raise a settler's rank), with each member adding more than the one before, until a full
+  Homestead settlement's worth of them reaches the cap. Members count where you are: in full on
+  your level, about half a level over, little across the Zone, so a settlement of Duty men in
+  Rostok sways Rostok's Duty traders, not Cordon's. The Factions page lists the perks where you
+  are. MCM's "Faction perks" turns them off, and its sliders set each cap; the rest is in the
+  `[perks]` section of `fotz_politics.ltx`.
+- **Your footprint draws your enemies.** The other side of the perks: squads of factions hostile to
+  your faction, or to the factions your members came from, are drawn to where your members are,
+  from that level and the ones next to it, up to half again as likely to head there with a full
+  settlement's worth near (an MCM slider). A Rostok settlement of Duty men brings Freedom's squads
+  to Rostok; a small faction barely registers, a giant one draws an immune response, and a mix of
+  members spreads the attention over many factions where twenty from one focus one enemy's. The
+  Factions page says what your footprint draws where you are.
+- **Consequences on others' ground.** Where another faction holds the ground, your members settled
+  there strain your faction's relation with it a little each day, more the more of the ground it
+  holds and the more members you have there (members who came from that faction don't count, and an
+  ally doesn't mind); and a stalker you kill there costs you a little of its goodwill, unless it's
+  at war with the victim's faction. The Factions page says what settling where you are strains;
+  MCM's sliders set both.
+- **Members make relations move more.** For better or worse, at war or not: with members from a
+  faction near you, each change in its goodwill toward you (a task, a kill, help) comes with more,
+  on the same curve, up to twice the change (an MCM slider), and your faction's relation with it
+  moves faster in politics too, by all its members wherever they are.
+- **Tagged Patches.** With Utjan's Tagged Patches, a fallen member's patch says who they were and
+  how they died, as other factions' do.
+
 ## 0.5.1 — 2026-11-06
 
 Install it over 0.5.0; saves carry on as they are.

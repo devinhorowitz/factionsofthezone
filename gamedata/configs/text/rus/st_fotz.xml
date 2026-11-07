@@ -504,4 +504,103 @@
 	<string id="st_fotz_news_outpost_truce_broken">
 		<text>Вы нарушили перемирие с гарнизоном {outpost} ({faction}): они снова враждебны.</text>
 	</string>
+	<string id="ui_mcm_fotz_perks">
+		<text>Бонусы группировок</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_desc">
+		<text>Боец, пришедший из другой группировки, приносит её небольшой бонус, пока вы с ней не воюете; бонус растёт всё быстрее с каждым бойцом из неё, больше за высокий ранг и сильнее всего рядом с ними, так что выгодны поселения по всей Зоне: скидка на один вид товаров у её торговцев или на авиарейсы, наёмники, охотнее берущиеся за ваш контракт, аванпосты, охотнее переходящие к вам, отряды бандитов на вашей карте или переговоры по радио. На странице «Группировки» перечислены бонусы там, где вы находитесь. А ещё бойцы из группировки делают так, что ваши отношения с ней меняются сильнее, к лучшему или к худшему.</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_trade_max">
+		<text>Бонусы: наибольшая скидка на товары (%)</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_trade_max_desc">
+		<text>Наибольшая скидка торгового бонуса на товары группировки; её дают бойцы из группировки, когда их набирается на целое поселение.</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_airlift_max">
+		<text>Бонусы: наибольшая скидка на авиарейсы (%)</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_airlift_max_desc">
+		<text>Наибольшая скидка бонуса военных на их авиарейсы.</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_merc_max">
+		<text>Бонусы: наибольший шанс наёмников (%)</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_merc_max_desc">
+		<text>Наибольший шанс, что отряд наёмников, отказавший вам, всё же возьмётся за контракт.</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_outpost_max">
+		<text>Бонусы: наибольшая прибавка для аванпостов (+%)</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_outpost_max_desc">
+		<text>Наибольшая прибавка бонуса ренегатов к шансу, что побеждённый аванпост перейдёт к вам.</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_relations_max">
+		<text>Бонусы: отношения меняются сильнее до (+%)</text>
+	</string>
+	<string id="ui_mcm_fotz_perks_relations_max_desc">
+		<text>Бойцы из группировки делают так, что ваши отношения с ней меняются сильнее, к лучшему или к худшему, до этого предела, когда их набирается на целое поселение.</text>
+	</string>
+	<string id="ui_mcm_fotz_footprint_max">
+		<text>Ваше присутствие притягивает врагов, до (+%)</text>
+	</string>
+	<string id="ui_mcm_fotz_footprint_max_desc">
+		<text>Пока вы ведёте группировку, отряды группировок, враждебных ей или тем, откуда пришли ваши бойцы, тянутся туда, где ваши бойцы: больше боёв рядом с вашими поселениями, и тем больше, чем больше бойцов. Не больше этого, когда рядом их на целое поселение.</text>
+	</string>
+	<string id="st_fotz_tab_drawn">
+		<text>Ваше присутствие здесь притягивает: {list}.</text>
+	</string>
+	<string id="ui_mcm_fotz_encroach_max">
+		<text>Поселение на чужой земле портит отношения, до (в день)</text>
+	</string>
+	<string id="ui_mcm_fotz_encroach_max_desc">
+		<text>Пока вы ведёте группировку, ваши бойцы, поселившиеся там, где землю держит другая группировка, каждый день портят отношения вашей группировки с ней: тем сильнее, чем больше земли она держит и чем больше там ваших бойцов. Бойцы, пришедшие из этой группировки, не в счёт, а союзник не возражает.</text>
+	</string>
+	<string id="ui_mcm_fotz_instigate_max">
+		<text>Убийство на чужой земле стоит репутации, до</text>
+	</string>
+	<string id="ui_mcm_fotz_instigate_max_desc">
+		<text>Пока вы ведёте группировку, сталкер, убитый вами там, где землю держит другая группировка, стоит вам части её расположения, если только она не воюет с группировкой убитого.</text>
+	</string>
+	<string id="st_fotz_tab_strains">
+		<text>Поселение здесь портит отношения: {list}.</text>
+	</string>
+	<string id="st_fotz_tab_perks">
+		<text>Бонусы здесь: {list}.</text>
+	</string>
+	<string id="st_fotz_perk_stalker">
+		<text>скидка {pct}% на еду и напитки ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_ecolog">
+		<text>скидка {pct}% на медикаменты ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_freedom">
+		<text>скидка {pct}% на части мутантов ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_dolg">
+		<text>скидка {pct}% на ремкомплекты и инструменты ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_csky">
+		<text>скидка {pct}% на детали оружия и брони ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_army">
+		<text>скидка {pct}% на авиарейсы ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_killer">
+		<text>+{pct}% к шансу, что наёмники возьмутся за ваш контракт ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_bandit">
+		<text>их отряды на вашей карте ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_renegade">
+		<text>+{pct}% к шансу, что аванпосты перейдут к вам ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_monolith">
+		<text>их переговоры по радио ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_greh">
+		<text>их переговоры по радио ({faction})</text>
+	</string>
+	<string id="st_fotz_perk_isg">
+		<text>их переговоры по радио ({faction})</text>
+	</string>
 </string_table>

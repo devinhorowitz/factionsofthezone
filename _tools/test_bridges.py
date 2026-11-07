@@ -7,7 +7,9 @@ however often it's hooked; a member's kill is freed for you to loot once their c
 from the claim table as it is then, and no one else's kill or claim is; Homestead gets the
 provider (your faction while you lead one, a member's old faction to save), a member is kept from
 moving on and no one else, the callback is registered once and only with a Homestead that sends
-it, and a game without Homestead or the loot claim is left alone.
+it, and a game without Homestead or the loot claim is left alone; Tagged Patches' list of each
+faction's patch, found through two wrappers and past another table, takes your faction's patch, and
+a Tagged Patches whose list isn't there is said and left alone.
 
     python test_bridges.py            the real script
     python test_bridges.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -45,6 +47,11 @@ MUTANTS = {
                                 "    if not registered then"),
     "registers_twice": ("        registered = true\n", ""),
     "no_provider": ("    hs.faction_provider = provider\n", ""),
+    "tag_not_hooked": ('    RegisterScriptCallback("actor_on_first_update", tag_patches)\n', ""),
+    "tag_wrong_faction": ("        list[fotz_faction.OWN] = fotz_patch.SECTION",
+                          "        list[fotz_faction.ACTOR_OWN] = fotz_patch.SECTION"),
+    "tag_any_table": ('            if n == name and type(v) == "table" then', '            if type(v) == "table" then'),
+    "tag_no_wrappers": ("                nested[#nested + 1] = v\n", ""),
 }
 
 WORLD = r"""
@@ -55,9 +62,15 @@ function printf(fmt, ...)
     LOG[#LOG + 1] = fmt
 end
 
-CALLBACKS, REGISTERED = {}, {}
+CALLBACKS, REGISTERED, HANDLERS = {}, {}, {}
 function RegisterScriptCallback(name, fn)
-    CALLBACKS[name] = fn
+    HANDLERS[name] = HANDLERS[name] or {}
+    table.insert(HANDLERS[name], fn)
+    CALLBACKS[name] = function(...)
+        for _, f in ipairs(HANDLERS[name]) do
+            f(...)
+        end
+    end
     REGISTERED[name] = (REGISTERED[name] or 0) + 1
 end
 
@@ -82,7 +95,8 @@ end }
 
 function obj(id) return { id = function() return id end } end
 
-fotz_faction = { OWN = "fotz_own", F = nil,
+fotz_patch = { SECTION = "fotz_own_patch" }
+fotz_faction = { OWN = "fotz_own", ACTOR_OWN = "actor_fotz_own", F = nil,
     saved_faction = function(comm, id) return "saved:" .. tostring(comm) .. ":" .. tostring(id) end }
 function lead(name)
     fotz_faction.F = { name = name, members = { [501] = { mother = "stalker" } } }
@@ -98,6 +112,33 @@ function mutant_dies(victim, killer)
     CALLBACKS.monster_on_death_callback(obj(victim), killer and obj(killer))
     grok_loot_claim.claimed[victim] = killer
 end
+"""
+
+# Tagged Patches as its script has it: its list of each faction's patch a local, read by is_patch and
+# by register (its register_patch); another local table comes first in is_patch's upvalues
+TAGGED = r"""
+local mutant_sections = { psy_dog = "psydog" }
+local valid_community = { stalker = "stalker_patch", csky = "csky_patch", bandit = "bandit_patch" }
+function is_patch(obj, sec)
+    if mutant_sections[sec] then return false end
+    for _, patch in pairs(valid_community) do
+        if sec == patch then return true end
+    end
+    return false
+end
+function register(comm, sec) return valid_community[comm] == sec end
+"""
+
+# Tagged Patches loaded as a script, then wrapped twice by other mods
+TAGGED_SETUP = r"""
+tagged_patches = setmetatable({}, { __index = _G })
+local f = assert(loadstring(TAGGED_SRC, "tagged_patches"))
+setfenv(f, tagged_patches)
+f()
+local inner = tagged_patches.is_patch
+tagged_patches.is_patch = function(obj, sec) return inner(obj, sec) end
+local outer = tagged_patches.is_patch
+tagged_patches.is_patch = function(...) return outer(...) end
 """
 
 HOMESTEAD_NEW = "stalker_camp_builder = { active_camps = {}, send_settler_callback = function() end }"
@@ -215,11 +256,33 @@ def homestead(src):
     check(keep(501) is None, "kept while not leading")
 
 
+def tagged(src):
+    # no Tagged Patches: nothing, and no error
+    w = World(src)
+    w.run("CALLBACKS.actor_on_first_update()")
+    check(w.eval("tagged_patches") is None, "a stand-in appeared")
+    # Tagged Patches, wrapped twice: your faction's patch is a patch, and a fallen member's is tagged
+    w = World(src, "TAGGED_SRC = [==[" + TAGGED + "]==]\n" + TAGGED_SETUP)
+    check(w.eval('tagged_patches.is_patch(nil, "fotz_own_patch")') is False, "a patch before the hook")
+    w.run("CALLBACKS.actor_on_first_update(); CALLBACKS.actor_on_first_update()")
+    got = (w.eval('tagged_patches.is_patch(nil, "fotz_own_patch")'), w.eval('tagged_patches.register("fotz_own", "fotz_own_patch")'),
+           w.eval('tagged_patches.register("stalker", "stalker_patch")'), w.eval('tagged_patches.is_patch(nil, "psy_dog")'))
+    check(got == (True, True, True, False), "after the hook: %s" % (got,))
+    tagged_lines = [l for l in w.eval("LOG").values() if "Tagged Patches" in l]
+    check(len(tagged_lines) == 1 and "tagged" in tagged_lines[0], "log: %s" % tagged_lines)
+    # a Tagged Patches whose list goes by another name: said once, nothing changed, no error
+    w = World(src, "TAGGED_SRC = [==[" + TAGGED.replace("valid_community", "patches_of") + "]==]\n" + TAGGED_SETUP)
+    w.run("CALLBACKS.actor_on_first_update()")
+    check(w.eval('tagged_patches.is_patch(nil, "fotz_own_patch")') is False, "tagged without its list")
+    check(any("wasn't found" in l for l in w.eval("LOG").values()), "no line for a list not found")
+
+
 def run(src):
     names(src)
     loot(src)
     homestead(src)
-    return "3 scenarios: names, loot, Homestead"
+    tagged(src)
+    return "4 scenarios: names, loot, Homestead, Tagged Patches"
 
 
 def main():
