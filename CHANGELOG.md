@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 — 2026-11-07
+
+The first full release: everything 0.1 to 0.6 built, checked over in a deep bug check,
+and the Factions page rebuilt to list everything. Install it over 0.6.0; saves carry on as they
+are. Reset relations is now in MCM.
 
 ### Changed
 
