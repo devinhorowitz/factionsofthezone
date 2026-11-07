@@ -1,11 +1,9 @@
 # Changelog
 
-## Unreleased
+## 0.6.0 — 2026-11-07
 
-- **Loyalty hears Homestead directly** (Homestead 1.3.4 and later). A promotion, an expedition
-  back and a raid beaten off move your residents' loyalty the moment Homestead reports them, so a
-  raid fought between Factions' checks counts too. With an older Homestead, Factions still finds
-  them by looking.
+Install it over 0.5.1; saves carry on as they are.
+
 - **Faction perks.** A member who came from another faction brings a small perk of theirs while
   your faction isn't at war with it: up to 15% off one kind of goods at that faction's traders
   (Loners' food and drink, Ecologists' medicine, Freedom's mutant parts, Duty's repair kits and
@@ -37,6 +35,10 @@
   faction near you, each change in its goodwill toward you (a task, a kill, help) comes with more,
   on the same curve, up to twice the change (an MCM slider), and your faction's relation with it
   moves faster in politics too, by all its members wherever they are.
+- **Loyalty hears Homestead directly** (Homestead 1.3.4 and later). A promotion, an expedition
+  back and a raid beaten off move your residents' loyalty the moment Homestead reports them, so a
+  raid fought between Factions' checks counts too. With an older Homestead, Factions still finds
+  them by looking.
 - **Tagged Patches.** With Utjan's Tagged Patches, a fallen member's patch says who they were and
   how they died, as other factions' do.
 
