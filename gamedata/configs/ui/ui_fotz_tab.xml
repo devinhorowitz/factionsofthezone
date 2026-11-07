@@ -92,6 +92,10 @@
     <fixed_line x="52" y="0" width="394" height="32">
         <text font="letterica16" r="170" g="170" b="170" complex_mode="1" align="l" vert_align="t"/>
     </fixed_line>
+    <!-- the perks your members bring, under the fixed lines, up to three lines; tinted from script -->
+    <perks_line x="52" y="0" width="394" height="50">
+        <text font="letterica16" r="170" g="170" b="170" complex_mode="1" align="l" vert_align="t"/>
+    </perks_line>
 
     <!-- ============ the right column ============ -->
     <!-- the war log, newest first -->

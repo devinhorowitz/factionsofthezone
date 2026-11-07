@@ -17,6 +17,14 @@ recruiting everyone he could, giving them jobs, helping one faction and hurting 
 "homestead is like first step of making your own faction". The idea went to Homestead's author the
 same hour, and this mod is its faction half.
 
+**The rule every feature answers to** (the user, 2026-11-07): Factions is a synergistic loop. It
+doesn't break the game, doesn't let you cheat it, and doesn't turn it upside down with chaos; it
+makes the Zone more responsive to your decisions and to how you progress, and rewards choice,
+precision and care with a deeper, reasoned world that works more like a simulation than random
+squads spawning with a chance to meet. The world gradually reflects your choices. So every effect
+is small, earned and gradual; every benefit has a cost in the same currency (perks bring your
+footprint, section 9); and everything comes from the game's own systems, nudged, never replaced.
+
 This is a plan, not a manual. What exists today is the census (0.1.0), the politics engine
 (0.2.0) and the first part of your own faction (0.3.0).
 
@@ -243,6 +251,8 @@ its player twin `actor_fotz_own`, team 37).
   `hi` (`[territory]` in `plugins\fotz_politics.ltx`: 0.5, 0.6, 1.5; three to one gives 1.25,
   one to three 0.75). A score of 0 stays 0. A truce lifts a pair out of enmity, so it doesn't
   steer; your own faction has no squads to steer.
+- **Your faction's footprint** (0.6.0, section 9): on top of the weight, squads hostile to your
+  members are drawn to the levels where your members are (`FOOT`, by faction and level).
 - **Fronts only:** a level both sides have fighters on. Deep in enemy country, with none of its
   own on the level, a faction's squads choose as the game would. Seen in game: weighing every
   level put most entries at the 0.6 floor (Duty toward Limansk, the Swamp base, the CNPP) and
@@ -444,6 +454,11 @@ its player twin `actor_fotz_own`, team 37).
   faction's name stands in for the `fotz_own` and `actor_fotz_own` strings through a wrapper on
   `game.translate_string`, so every Lua page that names a community shows it
   (`ui_inventory.script` sets the card's faction that way); the engine's own pages don't.
+- **Tagged Patches** (Utjan, 1.22; checked in run 26). It writes who a fallen stalker was and how
+  they died on the patch they drop, for the factions in its `valid_community`, a file local. Your
+  faction's patch joins that table on the first update, found through `is_patch`'s upvalues (and
+  any wrapper's, three deep), so a fallen member's patch is tagged, and with "You join it" yours is
+  your own.
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.
@@ -583,6 +598,120 @@ likely only a ceasefire until they turn hostile again.
 - **News:** the surrender, the defection (and each defector's trip, from loyalty), the
   ceasefire's end, a ceasefire you broke.
 
+## 9. Faction perks (0.6.0)
+
+`fotz_perks.script`, tuned by the `[perks]` section of `configs/plugins/fotz_politics.ltx`, MCM
+"Faction perks" (on). Pikapika's idea (the thread, 11-03), on the user's terms (2026-11-07): very
+conservative, a light perk, never a way to cut away at a core game loop; growing with the members
+from that faction and with their ranks, so recruiting more of a faction, and better fighters, pays
+more than collecting one of each; with positive returns up to a full Homestead settlement; and
+strongest near the members, so settlements all over the Zone pay (the user, the same day).
+
+- **Earned:** faction X's perk is on while your faction has a living member who came from X (a
+  settler, a defector, a companion) and isn't at war with X (a war politics declared; a faction
+  whose relation with yours never changes is never at war in that sense, so a Monolith defector
+  still brings their perk). It goes with the last such member, or when the war starts. Worked out
+  from your members every 2 s at most; nothing saved.
+- **Steps:** each member counts the steps of their rank, `rank_weights` novice to legend (0.5,
+  0.6, 0.75, 1, 1.25, 1.5, 1.75, 2; a rank that can't be read counts 1), from the live NPC or their
+  server object. Homestead's promotions add to a settler's game rank (1,500, 3,000 and 6,000 points
+  at Skilled, Expert and Master), so a settler who grows in your camp brings more.
+- **Nearness:** a member's steps count in full on your level and less the farther away they are:
+  1 / (1 + d / 300), d the distance between the two levels' centers on the PDA's global map
+  (game.ltx's `global_rect`; the map is 1024 x 2634). A member a level over counts about half, one
+  across the Zone a sixth or less; an online member is on your level; a level the map doesn't
+  place counts half. The user's example: a settlement in Rostok full of members from Duty sways
+  Rostok's Duty traders with all of them, while from Cordon each counts about 0.31, so the same
+  settlement gives 15% off at Rostok and about 2.5% at Cordon. Settlements near you make the perks
+  there; settlements all over make them everywhere.
+- **Its size, with positive returns:** cap x (steps / full) ^ 1.5, full being a settlement's worth
+  of steps, Homestead's cap on a player camp's residents (`max_survivors_player_camp`, 15 unless
+  its MCM says otherwise; else `full_steps`). Each member adds more than the one before, and a full
+  settlement of one faction's members, near you, reaches the cap. Since a camp's residents are a
+  mix of factions, more camps are how a faction's perk grows. With members of a professional's
+  rank on your level, the share of a cap: 1 member 1.7%, 3 9%, 5 19%, 8 39%, 10 54%, 12 72%, 15
+  100%. The caps are MCM sliders (the user: "the cap can be slightly higher, with MCM sliders"),
+  the config's `*_max` their defaults; `curve` and `full_steps` are config only.
+- **Trade** (Loners food and drink, Ecologists medicine, Freedom mutant parts, Duty repair kits and
+  tools, Clear Sky weapon and armor parts): up to 15% off (slider 0 to 25), when you buy that
+  faction's goods from its traders. One listener on the game's `on_get_item_cost`, while a trade window is
+  open (`ActorMenu_on_trade_started` and `_closed`): `profile.mode` 2 only, so selling never pays
+  more and nothing is bought to sell back; it multiplies `ret.new_cost`, so the Dynamic Economy
+  Engine's change and ours stack in either order. `utils_item.get_item_cost` isn't wrapped: three
+  mods already replace it. The trader's faction is Factions' table of each faction's traders (so
+  Sidorovich trades for the Loners), else their own, else their squad's. The goods are item kinds
+  or section prefixes (`goods_*`), checked in game (run 26).
+- **Military:** up to 30% off its airlifts (slider 0 to 40; Fair Fast Travel's guides at the Cordon
+  and Agroprom army traders); a wrapper on `game_guide_travel.get_guidespot_fare`,
+  which the route list and the payment both read.
+- **Mercenaries:** an advanced or veteran merc squad the game's own roll turned down
+  (`txr_paid_companions.is_squad_competent`) takes your contract after all, at a chance up to 100
+  in 100 (slider). Each squad's roll is kept while you play, so the dialog's two
+  preconditions agree (they're asked one after the other). Novices never; the price is the game's.
+- **Renegades:** a beaten outpost is up to 15 points likelier to come over (section 8; slider 0 to
+  25), only where a defection could happen at all, so veterans still fight to the
+  end.
+- **Bandits:** their squads on your PDA map, as allies' are (Milspec PDA's
+  `actor_pda_can_see_mapspot`; a PDA that shows allies, and not a faction you blacklisted).
+- **Monolith, Sin, ISG:** their radio chatter (Dialogues Expanded's `channel_status`, which opens
+  them only to their own players), from 40 s after a load, when its radio is up; a channel the game
+  opened is never closed. The map and the radio are on or off: one member is enough.
+- **Relations, for better or worse** (the user: "the quantity of members should function to
+  amplify the result"): members from a faction make your relations with it move more, at war or
+  not. Every second the faction's goodwill toward you is read; a change since the last read (a
+  task, a kill, help: whatever moved it, where you are) is followed by up to +100% more of it
+  (slider 0 to 200), on the same curve and nearness. The extra is read back at once, so it never compounds; the first read after a load
+  only reads, and a jump over 500 (a story setting it) is left alone. Politics' daily pressure on
+  your faction's pair with that faction grows the same way, by every member wherever they are
+  (`amp_all`; the pair is the whole faction's, not a place's; `fotz_politics` step, `own_amp`), its
+  causes for the war log as they were.
+- **The counterweight, your footprint** (the user: "a faction, and its member composition, has an
+  effect that could be positive and negative to the surrounding area"): where your members are,
+  the factions hostile to them come. In the territory steer (`fotz_territory`), a squad of faction
+  E weighs every smart on a level where E has fighters, or next to one (nearness 0.4 or more, about
+  a level over, so neighbors send squads too), by 1 + 0.5 x share(draw) (slider 0 to 100%),
+  draw being the steps of your members hostile to E, each by nearness: all of them if E is at war
+  with your faction, else those who came from a faction E is at war with. So a Rostok settlement
+  full of men from Duty brings Freedom's and the Mercenaries' squads to Rostok, a bigger faction
+  draws more than a small one, and a player can spread out to keep any one spot quiet or gather to
+  start a war. The more fighting there feeds politics like any other (members' kills count).
+  The user's reading of it: a small, light faction avoids attention; a giant one in a populated
+  area draws an "immune response", its enemies putting more into cutting it down; and a variety of
+  members is a choice, since each hostile faction answers only to the members it has a grudge
+  against: a few of one faction and twenty from Duty bring a focused response from Freedom and
+  little from anyone else. The curve's positive returns are what make size matter that much. The
+  same squads are left alone as by the steer (story, scripted, companions, garrisons, other mods'),
+  it's off with the steer and in Warfare mode, and it's worked out at each census and every 30 s
+  as members come and go. The page says it under the perks, in the steer's warning color: "Your
+  footprint here draws Freedom and the Mercenaries."
+- **Consequences on others' ground** (the user: "factions rewards you for making choices, but
+  unintended results can happen; instigation within another faction's area of influence can result
+  in conflict, or loss of goodwill"). A faction's area of influence is its share of a level's
+  smarts at the last census (`c.levels[lv].held`; mutants don't count). Both only while you lead
+  a faction.
+  - **Settling (encroachment):** your members on a level strain your faction's pair with each
+    faction holding ground there, once a day in politics, as ground: up to 40 a day (slider 0 to
+    100) x share(the members' steps) x its share of the level, summed over its levels and capped.
+    Members who came from that faction don't count (Duty tolerates Duty men in Rostok; Freedom
+    men there strain it), and an ally (1000 or more toward your faction) doesn't mind. Against
+    the daily recovery of 10% it settles near ten days' strain, so a settlement on another's
+    ground sours that relation unless something holds it up, and on top of other grievances it
+    can tip into war.
+  - **Fighting (instigation):** a stalker you kill on a faction's ground costs you up to 15 of its
+    goodwill (slider 0 to 50) x its share of the level (the game itself takes about 140 from the
+    victim's own faction for a Loner, run 26g), unless it's at war with the victim's
+    faction (killing its enemies on its ground is no offense) or the victim is its own (the game
+    already counts that). Silent kills (a grenade, a trap) are yours too. With members from that
+    faction near you, the relations amplifier makes the loss bigger, as it makes any change.
+  - **Seen:** the page's amber line adds "Settling here strains Duty." where you are.
+- **Left out, on purpose:** the Bandits' daily stash (every stash tip in this install rolls fresh
+  loot), psy resistance (a survival loop and a story gate), a free companion, any selling bonus,
+  and the enemy side's raids with captives (content, not perks).
+- **The page:** one line under the factions that never change, the perks where you are, four
+  named, then three and "N more": "Perks here: 4% off mutant parts (Freedom), their radio chatter
+  (Monolith) and ...". Run 26
+  showed it in game with eight perks on.
+
 ## The save
 
 - **The census writes nothing to the save.** Its file is outside it.
@@ -709,8 +838,10 @@ From the Homestead thread on Discord (June to October 2026), asks that land on F
 5. **0.5.0, settler loyalty** (section 7, built): loyalty, join requests, sworn members, and
    members moving to another of your camps when theirs falls; rival outposts you beat may
    surrender or come over to you (section 8).
-6. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
-7. **1.0.0.**
+6. **0.6.0, faction perks** (section 9): a small perk from each faction your members came from,
+   growing with them, their ranks and their nearness, and the footprint that draws their enemies.
+7. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
+8. **1.0.0.**
 
 ## Later
 

@@ -29,6 +29,10 @@ history         = 50    ; how many past events the save keeps
 k               = 0.5   ; how hard the share pulls: 0.5 gives 1.25 at three to one, 0.75 at one to three
 lo              = 0.6   ; the least a losing front is weighed
 hi              = 1.5   ; the most a winning front is weighed
+footprint       = 0.5   ; your members draw squads hostile to them: up to this much more, with a full settlement's worth near
+footprint_reach = 0.4   ; ... squads on the level, or on one at least this near (fotz_perks' nearness: about a level over)
+encroach        = 40    ; your members settled on a faction's ground push your pair with it down up to this a day
+instigate       = 15    ; a stalker you kill on a faction's ground costs up to this of its goodwill (not its enemies')
 
 ; the victim's rank, for kills
 [rank_weight]
@@ -125,3 +129,26 @@ surrender_step   = 7     ; ... less this a rank
 defector_loyalty = 50    ; a defector's loyalty as they set out for your camp
 truce_days_min   = 1     ; a surrender's ceasefire lasts this many game days ...
 truce_days_max   = 3     ; ... to this many
+
+[perks]
+; a member who came from a faction brings its perk while your faction isn't at war with it; the
+; perk grows with each member from that faction, by their rank, with positive returns: cap x
+; (steps / full) ^ curve, full being Homestead's cap on a camp's residents (MCM's sliders set the
+; caps; these are their defaults)
+rank_weights   = 0.5, 0.6, 0.75, 1, 1.25, 1.5, 1.75, 2  ; the steps a member counts for, novice to legend
+full_steps     = 15    ; the steps that reach a cap, without Homestead (with it, its cap on a camp's residents)
+curve          = 1.5   ; above 1, each step adds more than the one before; 1 is a straight line
+trade_max      = 0.15  ; off that faction's goods when you buy from its traders (Loners to Clear Sky)
+airlift_max    = 0.30  ; off the Military's airlifts
+merc_max       = 100   ; out of 100: the chance a merc squad that turned you down takes your contract after all
+outpost_max    = 15    ; added to a beaten outpost's chance of coming over, out of 100 (Renegades)
+relations_max  = 1.00  ; your relations with that faction move this much more, for better or worse (1.00: twice)
+goodwill_jump  = 500   ; a change in its goodwill toward you bigger than this (a story setting it) is left alone
+near_half      = 300   ; global map units: a member this far from your level counts half (about a level over)
+near_unknown   = 0.5   ; a member on a level the global map doesn't place counts this much
+; the goods each trade perk covers: item kinds, or section prefixes ending in *
+goods_food     = i_food, i_drink                      ; Loners
+goods_medicine = i_medical                            ; Ecologists
+goods_mutant   = i_mutant_part, i_mutant_raw          ; Freedom
+goods_tools    = i_repair, i_kit, gun_oil*, toolkit_* ; Duty
+goods_parts    = i_part                               ; Clear Sky

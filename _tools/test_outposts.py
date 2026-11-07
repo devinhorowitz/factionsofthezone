@@ -37,6 +37,10 @@ ENG = os.path.join(GD, "configs", "text", "eng", "st_fotz.xml")
 
 #: name -> (text in the script, its broken replacement); each must make this test fail
 MUTANTS = {
+    # the Renegades' perk (fotz_perks, 0.6.0)
+    "perk_ignored": ("        d = d + fotz_perks.outpost_bonus()\n", ""),
+    "perk_past_zero": ("    if d > 0 and fotz_perks and fotz_perks.outpost_bonus then",
+                       "    if fotz_perks and fotz_perks.outpost_bonus then"),
     "no_war_check": ("    return relation_registry.community_relation(f, db.actor:character_community()) <= ENEMIES",
                      "    return true"),
     "war_line_strict": ("db.actor:character_community()) <= ENEMIES", "db.actor:character_community()) < ENEMIES"),
@@ -56,8 +60,8 @@ MUTANTS = {
     "rank_ignored": ("        sum = sum + rank_of(se)", "        sum = sum + 0"),
     "defect_inverted": ("    if x < d then", "    if x >= d then"),
     "surrender_band": ("    elseif x < d + s then", "    elseif x < s then"),
-    "chance_floor": ("    return math.max(0, cfg.defect_novice - cfg.defect_step * rank),",
-                     "    return cfg.defect_novice - cfg.defect_step * rank,"),
+    "chance_floor": ("    local d = math.max(0, cfg.defect_novice - cfg.defect_step * rank)",
+                     "    local d = cfg.defect_novice - cfg.defect_step * rank"),
     "no_fallback": ("        return defect(key, camp, alive) or surrender(key, camp, alive)",
                     '        return defect(key, camp, alive) or "fought on"'),
     "room_ignored": ("    if not (F and L and L.enabled() and L.has_room()) then",
@@ -381,6 +385,11 @@ def chances(src):
     for rank, want in ((0, (30, 50)), (4, (14, 22)), (7, (2, 1)), (10, (0, 0)), (2, (22, 36))):
         got = w.env.chances(rank)
         check(tuple(got) == want, "chances at rank %s: %s, not %s" % (rank, got, want))
+    # the Renegades' perk adds to a defection that could happen at all; veterans still fight on
+    w.run("fotz_perks = { outpost_bonus = function() return 5 end }")
+    for rank, want in ((0, (35, 50)), (7, (7, 1)), (10, (0, 0))):
+        got = w.env.chances(rank)
+        check(tuple(got) == want, "with the perk, chances at rank %s: %s, not %s" % (rank, got, want))
 
 
 def fight(src):

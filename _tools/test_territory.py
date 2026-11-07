@@ -12,7 +12,9 @@ unwind it, but never another mod's wrapper over it; wrapping again doesn't weigh
 census's log line and counters; the shipped config's numbers. The fronts: each enemy pair's shared
 levels, the biggest first; the upper hand at two thirds; news when a side newly takes it on a front
 that was there last census and is big enough, two a day, the biggest first, none from the first
-census after a load; an error there doesn't stop the steer.
+census after a load; an error there doesn't stop the steer. Your faction's footprint: squads hostile
+to your members drawn to the levels they're on, by steps and nearness, up to the cap or MCM's
+slider; worked out again between censuses; the steer's exemptions; the page's list.
 
     python test_territory.py            the real script
     python test_territory.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -52,7 +54,7 @@ MUTANTS = {
                       "    if wrapper and simulation_objects then"),
     "wrap_twice": ("    if wrapper then\n        return true\n    end\n    orig", "    orig"),
     "varargs": ("local prior = orig(target, squad, ...)", "local prior = orig(target, squad)"),
-    "stats_kept": ("    STATS.calls, STATS.raised, STATS.lowered = 0, 0, 0\n", ""),
+    "stats_kept": ("    STATS.calls, STATS.raised, STATS.lowered, STATS.drawn = 0, 0, 0, 0\n", ""),
     "front_one_way": ("            if relation_registry.community_relation(a, b) <= ENEMIES\n"
                       "                or relation_registry.community_relation(b, a) <= ENEMIES then",
                       "            if relation_registry.community_relation(a, b) <= ENEMIES then"),
@@ -81,6 +83,37 @@ MUTANTS = {
     "map_not_updated": ("        ok, err = pcall(fotz_map.update, c)\n", "        ok, err = true, nil\n"),
     "map_unguarded": ("        ok, err = pcall(fotz_map.update, c)\n", "        ok, err = true, fotz_map.update(c)\n"),
     "ctz_ignored": ("    if squad.ctz_campaign_owned then\n        return \"ctz\"\n    end\n", ""),
+    # your faction's footprint (0.6.0)
+    "foot_everyone": ("if hates_you or (m.mother and rel(e, m.mother) <= ENEMIES) then", "if true then"),
+    "foot_not_you": ("        local hates_you = rel(e, own) <= ENEMIES", "        local hates_you = false"),
+    "foot_far_as_near": ("draw = draw + m.w * P.nearness(m.lv, lv)", "draw = draw + m.w"),
+    "foot_no_neighbors": ("                if at == lv or P.nearness(at, lv) >= cfg.reach then", "                if at == lv then"),
+    "foot_reach_all": ("                if at == lv or P.nearness(at, lv) >= cfg.reach then", "                if true then"),
+    "foot_absent": ("            if (l.fighters or 0) > 0 then\n                present[#present + 1] = lv",
+                    "            if true then\n                present[#present + 1] = lv"),
+    "foot_slider_scale": ("        return math.max(0, v / 100)", "        return math.max(0, v)"),
+    "foot_dead": ("    for id, m in pairs(F.members) do\n        if not m.dead then", "    for id, m in pairs(F.members) do\n        if true then"),
+    "foot_no_timer": ("    next_foot = now + FOOT_MS\n    update_footprint()\n", "    next_foot = now + FOOT_MS\n"),
+    "infl_mutants": ("            if is_faction[f] then", "            if true then"),
+    "infl_held_only": ("                out[lv][f] = k / n", "                out[lv][f] = 1"),
+    "enc_from_holder": ("        if m.mother ~= f then", "        if true then"),
+    "enc_ally": ("            if n > 0 and rel(f, own) < FRIENDS then", "            if n > 0 then"),
+    "enc_by_share": ("                out[f] = (out[f] or 0) - cap * fotz_perks.share(n) * s", "                out[f] = (out[f] or 0) - cap * fotz_perks.share(n)"),
+    "enc_uncapped": ("        out[f] = math.max(-cap, v)", "        out[f] = v"),
+    "enc_no_slider": ('    local cap = slider("encroach_max", cfg.encroach)', "    local cap = cfg.encroach"),
+    "inst_enemies": ("        if f ~= v and rel(f, v) > ENEMIES then", "        if f ~= v then"),
+    "inst_own": ("        if f ~= v and rel(f, v) > ENEMIES then", "        if rel(f, v) > ENEMIES then"),
+    "inst_anyone": ("    if yours then\n        local ok, err = pcall(instigated", "    if true then\n        local ok, err = pcall(instigated"),
+    "inst_silent": ("        yours = owner ~= nil and owner:id() == AC_ID", "        yours = false"),
+    "inst_unfounded": ("    if not (F and per > 0) then\n        return 0", "    if not (per > 0) then\n        return 0"),
+    "inst_prefix": ("    local v, n = strip(victim_comm), 0", "    local v, n = victim_comm, 0"),
+    "strain_here_any": ("        if outsiders(by_level[here], f) > 0 and relation_registry", "        if relation_registry"),
+    "foot_update_unguarded": ("    local ok, n = pcall(footprint, last_census)", "    local ok, n = true, footprint(last_census)"),
+    "foot_any_target": ("SIMBOARD and SIMBOARD.smarts and SIMBOARD.smarts[target.id] and fotz_census.level_of(target) or false",
+                        "fotz_census.level_of(target) or false"),
+    "foot_left_alone": ("    if (m == nil and fm == nil) or left_alone(squad) then", "    if m == nil and fm == nil then"),
+    "foot_shown_off": ("    local out = {}\n    if not on then\n        return out\n    end\n", "    local out = {}\n"),
+    "foot_unguarded": ("    local ok2, drawn = pcall(footprint, c)", "    local ok2, drawn = true, footprint(c)"),
 }
 
 WORLD = r"""
@@ -123,8 +156,12 @@ fotz_politics = {
 -- the PDA map's fronts, updated from each census
 MAPPED = {}
 fotz_map = { update = function(c) MAPPED[#MAPPED + 1] = c.date end }
-SIMBOARD = { smarts_by_names = {} }
-function smart(name, id, level) SIMBOARD.smarts_by_names[name] = { id = id }; LEVEL[id] = level end
+SIMBOARD = { smarts_by_names = {}, smarts = {} }
+function smart(name, id, level) SIMBOARD.smarts_by_names[name] = { id = id }; SIMBOARD.smarts[id] = {}; LEVEL[id] = level end
+NOW = 0
+function time_global() return NOW end
+HERE = "l02_garbage"
+level = { name = function() return HERE end }
 
 STORY = {}
 function get_object_story_id(id) return STORY[id] end
@@ -401,11 +438,172 @@ def fronts(src):
           "after the news and the map failed: steer %s, log %s" % (w.env.STEER["dolg"], w.log()[-3:]))
 
 
+#: your faction: four members from Duty on Garbage, two from the Ecologists on Agroprom; the
+#: perks' helpers as stand-ins: a step each, half as near off their level, a straight share of 10
+FOOT_SETUP = SETUP + """
+war("freedom", "dolg")
+fotz_faction = { F = { members = {
+    [1] = { mother = "dolg" }, [2] = { mother = "dolg" }, [3] = { mother = "actor_dolg" }, [4] = { mother = "dolg" },
+    [5] = { mother = "ecolog" }, [6] = { mother = "ecolog" }, [7] = { mother = "dolg", dead = true } } } }
+MEMBER_LV = { [1] = "l02_garbage", [2] = "l02_garbage", [3] = "l02_garbage", [4] = "l02_garbage",
+              [5] = "l03_agroprom", [6] = "l03_agroprom", [7] = "l02_garbage" }
+-- Garbage and Agroprom are neighbors (0.5); the Army Warehouses are far from both (0.2)
+NEAR = { ["l02_garbage>l03_agroprom"] = 0.5, ["l03_agroprom>l02_garbage"] = 0.5 }
+fotz_perks = { member_level = function(id) return MEMBER_LV[id] end, weight_of = function(id) return 1 end,
+               nearness = function(a, b) return a == b and 1 or NEAR[a .. ">" .. b] or 0.2 end,
+               share = function(w) return math.min(1, w / 10) end }
+-- a squad as a target, sitting on Garbage
+LEVEL[900] = "l02_garbage"
+"""
+#: the ground: on Garbage, Duty holds 6 of 10 smarts and the Mercenaries 2; on Agroprom the
+#: Mercenaries hold 4 of 8 and all of the Army Warehouses; mutants hold some too, and aren't a faction
+GROUND = """levels = { l02_garbage = { smarts = 10, held = { dolg = 6, killer = 2, monster = 1 } },
+           l03_agroprom = { smarts = 8, held = { killer = 4 } }, l07_military = { smarts = 4, held = { killer = 4 } } }"""
+#: the census, with Freedom also counted on the Army Warehouses with no one there
+FOOT_CENSUS = CENSUS.replace("freedom = { levels = { l02_garbage = { fighters = 20 } } }",
+                             "freedom = { levels = { l02_garbage = { fighters = 20 }, l07_military = { fighters = 0 } } }")
+#: the same, with the ground held
+GROUND_CENSUS = FOOT_CENSUS.replace('{ date = "2012-05-02 08:00",', '{ date = "2012-05-02 08:00", ' + GROUND + ',')
+
+
+def consequences(src):
+    """your members settled on others' ground strain your pair with each holder a day, by their steps
+    (members who came from the holder don't count) and the holder's share, up to the cap; an ally
+    doesn't mind; a stalker you kill on a faction's ground costs its goodwill unless it's at war with
+    the victim's faction or the victim is its own; MCM's sliders; the page's list where you are"""
+    setup = FOOT_SETUP + """
+GW = {}
+relation_registry.change_community_goodwill = function(f, id, d) assert(id == AC_ID) GW[f] = (GW[f] or 0) + d end
+AC_ID = 0
+ACTOR = { id = function() return 0 end }
+function IsStalker(o) return o and o.stalker end
+function npc(comm) return { stalker = true, id = function() return 77 end, character_community = function() return comm end } end
+"""
+    w = World(src, setup)
+    w.census(GROUND_CENSUS)
+    inf = w.env.INFLUENCE
+    check((inf["l02_garbage"]["dolg"], inf["l02_garbage"]["killer"], inf["l02_garbage"]["monster"], inf["l03_agroprom"]["killer"])
+          == (0.6, 0.2, None, 0.5), "the ground: %s" % dict(inf["l02_garbage"]))
+    # encroachment: on Garbage, Duty holds 0.6, but your four there came from Duty: no strain from
+    # Duty; the Mercenaries hold 0.2 and see four outsiders; on Agroprom they hold 0.5 and see two
+    enc = w.env.encroachment(w.eval(GROUND_CENSUS))
+    got = {f: enc[f] for f in ("dolg", "killer", "freedom")}
+    want = {"dolg": None, "killer": -(40 * 0.4 * 0.2 + 40 * 0.2 * 0.5), "freedom": None}
+    check(got["dolg"] is None and got["freedom"] is None and abs(got["killer"] - want["killer"]) < 1e-9,
+          "the strain: %s, not %s" % (got, want))
+    # an ally doesn't mind
+    w.run('REL["killer>fotz_own"] = 1000')
+    check(w.env.encroachment(w.eval(GROUND_CENSUS))["killer"] is None, "an ally strained")
+    w.run('REL["killer>fotz_own"] = 0')
+    # the cap, and MCM's slider
+    w.run('for i = 10, 30 do fotz_faction.F.members[i] = { mother = "ecolog" }; MEMBER_LV[i] = "l07_military" end')
+    check(w.env.encroachment(w.eval(GROUND_CENSUS))["killer"] == -40, "the cap: %s" % w.env.encroachment(w.eval(GROUND_CENSUS))["killer"])
+    w.run('MCM["fotz/encroach_max"] = 10')
+    check(w.env.encroachment(w.eval(GROUND_CENSUS))["killer"] == -10, "the slider at 10")
+    w.run('MCM["fotz/encroach_max"] = 0')
+    check(next(iter(w.env.encroachment(w.eval(GROUND_CENSUS)).keys()), None) is None, "a strain with the slider at 0")
+    w.run('MCM["fotz/encroach_max"] = nil')
+    # the page: where you are (Garbage), the Mercenaries; not Duty
+    s = w.env.strained_here()
+    check([s[i].f for i in range(1, len(s) + 1)] == ["killer"], "strained here: %s" % [s[i].f for i in range(1, len(s) + 1)])
+    # instigation: a Loner you kill on Garbage costs Duty 9 (15 x 0.6) and the Mercenaries 3 (15 x 0.2)
+    kill = w.eval("function(comm, killer) CALLBACKS.npc_on_death_callback(npc(comm), killer) end")
+    kill("stalker", w.g.ACTOR)
+    check((w.eval("GW.dolg"), w.eval("GW.killer")) == (-9, -3), "a Loner killed: %s, %s" % (w.eval("GW.dolg"), w.eval("GW.killer")))
+    # Freedom, at war with Duty: only the Mercenaries mind; a Duty man: only the Mercenaries; Mercs: only Duty...
+    # and the Mercenaries are at war with Duty: killing a Duty man costs them nothing
+    w.run("GW = {}")
+    kill("freedom", w.g.ACTOR)
+    kill("actor_dolg", w.g.ACTOR)
+    check((w.eval("GW.dolg"), w.eval("GW.killer")) == (None, -3), "Freedom and Duty killed: %s, %s" % (w.eval("GW.dolg"), w.eval("GW.killer")))
+    # someone else's kill, or a silent kill of yours (the weapon's owner)
+    w.run("GW = {}")
+    kill("stalker", w.eval("npc('bandit')"))
+    check(w.eval("GW.dolg") is None, "someone else's kill cost you")
+    kill("stalker", w.eval("{ id = function() return 5 end, parent = function() return ACTOR end }"))
+    check(w.eval("GW.dolg") == -9, "a silent kill of yours: %s" % w.eval("GW.dolg"))
+    # the slider; no faction
+    w.run('GW = {}; MCM["fotz/instigate_max"] = 0')
+    kill("stalker", w.g.ACTOR)
+    check(w.eval("GW.dolg") is None, "a kill cost goodwill with the slider at 0")
+    w.run('MCM["fotz/instigate_max"] = nil; fotz_faction.F = nil')
+    kill("stalker", w.g.ACTOR)
+    check(w.eval("GW.dolg") is None, "a kill cost goodwill without a faction")
+    check(any("on dolg's ground" in l for l in w.log()), "no log line")
+
+
+def footprint(src):
+    """your faction's footprint: the factions hostile to your members (all of them for a faction at
+    war with yours, else those who came from a faction it's at war with) are drawn to levels they're
+    on, by the members' steps and nearness, up to the cap; nothing for the dead, without a faction or
+    with the slider at 0; the steer's exemptions; worked out again between censuses; the page's
+    list"""
+    w = World(src, FOOT_SETUP)
+    w.census(FOOT_CENSUS)
+    F = w.env.FOOT
+    got = {(e, lv): F[e][lv] for e in ("freedom", "killer", "bandit", "army", "dolg", "csky")
+           if F[e] for lv in ("l02_garbage", "l03_agroprom", "l07_military") if F[e][lv]}
+    want = {("freedom", "l02_garbage"): 1.2,                     # four Duty members on Garbage ...
+            ("freedom", "l03_agroprom"): 1.1,                    # ... and next door, from Garbage's squads
+            ("killer", "l02_garbage"): 1.2, ("killer", "l03_agroprom"): 1.1, ("killer", "l07_military"): 1.04,
+            ("bandit", "l02_garbage"): 1.25,                     # at war with yours: all six, two of them half
+            ("bandit", "l03_agroprom"): 1.2}                     # next door: the two there whole, four half
+    check(set(got) == set(want) and all(abs(got[k] - want[k]) < 1e-9 for k in want), "the pull: %s" % got)
+    # the scores: Freedom's squads to Garbage; the Mercenaries to Duty's s2 on Agroprom, steered and drawn
+    got = [w.eval('score(103, "freedom")'), w.eval('score(102, "killer")'), w.eval('score(103, "army")'),
+           w.eval('score(900, "freedom")')]
+    check(all(abs(a - b) < 1e-9 for a, b in zip(got, [12, 13.75, 10, 10])), "scores %s" % got)
+    w.run('STORY[901] = "story_squad"')
+    check(w.eval('score(103, "freedom", 901)') == 10, "a story squad drawn")
+    log = [l for l in w.log() if "your footprint draws on" in l]
+    check(log and "your footprint draws on 7 levels" in log[0], "log %s" % log)
+    # the page's list where you are: the strongest first
+    here = w.env.drawn_here()
+    check([here[i].f for i in range(1, len(here) + 1)][0] == "bandit" and len(here) == 3, "drawn here: %s"
+          % [here[i].f for i in range(1, len(here) + 1)])
+    # between censuses: a member leaves, and the pull follows on the next look
+    w.run('fotz_faction.F.members[4] = nil; NOW = 31000')
+    w.run('for _, fn in pairs(CALLBACKS) do end')
+    w.g.CALLBACKS["actor_on_update"]()
+    check(w.env.FOOT["freedom"]["l02_garbage"] == 1.15, "after a member left: %s" % w.env.FOOT["freedom"]["l02_garbage"])
+    # MCM's slider, in percent
+    w.run('MCM["fotz/footprint_max"] = 100')
+    w.census(FOOT_CENSUS)
+    check(abs(w.env.FOOT["freedom"]["l02_garbage"] - 1.3) < 1e-9, "the slider at 100: %s" % w.env.FOOT["freedom"]["l02_garbage"])
+    w.run('MCM["fotz/footprint_max"] = 0')
+    w.census(FOOT_CENSUS)
+    check(next(iter(w.env.FOOT.keys()), None) is None, "drawn with the slider at 0")
+    # the steer off: nothing shown
+    w.run('MCM["fotz/footprint_max"] = nil')
+    w.census(FOOT_CENSUS)
+    w.run('MCM["fotz/territory"] = false')
+    w.census(FOOT_CENSUS)
+    check(len(w.env.drawn_here()) == 0, "shown with the steer off")
+    # no faction: nothing
+    w = World(src, FOOT_SETUP + "fotz_faction.F = nil")
+    w.census(FOOT_CENSUS)
+    check(next(iter(w.env.FOOT.keys()), None) is None, "drawn without a faction")
+    # a footprint that fails doesn't stop the census
+    w = World(src, FOOT_SETUP + "fotz_perks.member_level = function() error('boom') end")
+    w.census(FOOT_CENSUS)
+    check(any("! the footprint" in l for l in w.log()) and w.env.STEER["dolg"] is not None, "a failing footprint")
+    # and between censuses: logged, not raised
+    w.run("NOW = 31000")
+    w.g.CALLBACKS["actor_on_update"]()
+    check(w.env.update_footprint() == 0, "a failing footprint between censuses")
+
+
 def shipped_config(src):
     text = open(CONFIG, encoding="utf-8").read()
     sec = re.search(r"(?ms)^\[territory\](.*?)(^\[|\Z)", text).group(1)
     vals = {k: float(v) for k, v in re.findall(r"(?m)^(\w+)\s*=\s*([-\d.]+)", sec)}
-    check(vals == {"k": 0.5, "lo": 0.6, "hi": 1.5}, "the shipped [territory]: %s" % vals)
+    check(vals == {"k": 0.5, "lo": 0.6, "hi": 1.5, "footprint": 0.5, "footprint_reach": 0.4, "encroach": 40,
+                   "instigate": 15},
+          "the shipped [territory]: %s" % vals)
+    c = World(src).env.cfg
+    check((vals["footprint"], vals["footprint_reach"], vals["encroach"], vals["instigate"])
+          == (c.footprint, c.reach, c.encroach, c.instigate),
+          "the script's defaults: %s, %s, %s, %s" % (c.footprint, c.reach, c.encroach, c.instigate))
     check(vals["lo"] < 1 < vals["hi"], "the bounds don't straddle 1")
 
 
@@ -415,8 +613,10 @@ def run(src):
     left_alone(src)
     switch(src)
     fronts(src)
+    footprint(src)
+    consequences(src)
     shipped_config(src)
-    return "6 scenarios"
+    return "8 scenarios"
 
 
 def main():

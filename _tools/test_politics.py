@@ -5,7 +5,8 @@ and fronts name a war's cause and voice, with the news levels; a common enemy ma
 that lapses once the enemy is gone; each reason to stand down puts the game's relations back;
 a relation another mod changed becomes the new start; a save and load rebuild the same matrix;
 offline kills pass through the wrapper; the player's kills, silent kills and ignored kills; the
-caps; and the shipped config's pairs.
+caps; members from a faction moving your faction's pair with it more (fotz_perks.amp), either way
+round, and no other pair; and the shipped config's pairs.
 
     python test_politics.py            the real script
     python test_politics.py MUTANT     a broken copy (see MUTANTS); the run must fail
@@ -45,6 +46,14 @@ MUTANTS = {
                      "local doy = math.floor((153 * ((m + 9) % 12) + 2) / 5) + d"),
     "calendar_back": ("    local d = doy - math.floor((153 * mp + 2) / 5) + 1", "    local d = doy - math.floor((153 * mp + 2) / 5) + 2"),
     "budget": ("local move = clamp(pending, -cfg.daily_budget, cfg.daily_budget)", "local move = pending"),
+    # members from a faction move your faction's pair with it more (fotz_perks.amp, 0.6.0)
+    "encroach_ignored": ("            if p and push < 0 then\n                note(t, p, \"ground\", push)", "            if false then\n                note(t, p, \"ground\", push)"),
+    "encroach_unguarded": ("        local ok, enc = pcall(T.encroachment, c)", "        local ok, enc = true, T.encroachment(c)"),
+    "amp_ignored": ("(st.pending[k] or 0) + g.delta * own_amp(p)", "(st.pending[k] or 0) + g.delta"),
+    "amp_here_only": ("M and M.amp_all and M.amp_all(other)", "M and M.amp and M.amp(other)"),
+    "amp_one_side": ("local other = (p.a == OWN and p.b) or (p.b == OWN and p.a)", "local other = (p.a == OWN and p.b)"),
+    "amp_all_pairs": ("local other = (p.a == OWN and p.b) or (p.b == OWN and p.a)",
+                      "local other = (p.a == OWN and p.b) or (p.b == OWN and p.a) or p.a"),
     "no_recover": ("        d = d - d * cfg.recover\n", "        d = d\n"),
     "recover_at_war": ('if not (ev and ev.kind == "war") then', "if true then"),
     "truce_hold": ("d = math.max(d, ENEMIES + 1 - base)", "d = d"),
@@ -75,8 +84,8 @@ MUTANTS = {
     "any_version": ('if type(d) == "table" and d.v == SAVE_VERSION then', 'if type(d) == "table" then'),
     "news_level": ('if lv == "off" or (level == "all" and lv ~= "all") then', 'if lv == "off" then'),
     "news_cap": ("if shown < 3 and say(", "if say("),
-    "pending_cap": ("clamp((st.pending[k] or 0) + g.delta, -cfg.pending_max, cfg.pending_max)",
-                    "(st.pending[k] or 0) + g.delta"),
+    "pending_cap": ("clamp((st.pending[k] or 0) + g.delta * own_amp(p), -cfg.pending_max, cfg.pending_max)",
+                    "(st.pending[k] or 0) + g.delta * own_amp(p)"),
     "lo_cap": ("d = clamp(d + move, p.lo, p.hi)", "d = d + move"),
     "string_id": ('"st_fotz_news_alliance_plain"', '"st_fotz_news_alliance_plane"'),
     "news_unlogged": ('        log("news: %s", text)\n', ""),
@@ -700,6 +709,47 @@ def your_faction(src):
     check(w2.env.S.kills["dolg/killer"] == 0.5, "after disbanding, your kill counted %s for Duty" % w2.env.S.kills["dolg/killer"])
 
 
+def members_amp(src):
+    """members from a faction move your faction's pair with it more, either way round, and no other
+    pair: fotz_perks.amp_all (wherever the members are), here 1.5 for the Mercenaries and 2 for Duty"""
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua(mother="stalker") +
+              '\nfotz_perks = { amp_all = function(f) return ({ killer = 1.5, dolg = 2 })[f] or 1 end }')
+    w.run('day("2012-05-01")')
+    w.run('kill("killer", "fotz_own", "veteran", 30)')
+    w.run('kill("dolg", "fotz_own", "novice", 30)')
+    w.run('kill("killer", "dolg", "novice", 30)')
+    keys = {w.env.PAIRS[i].key for i in range(1, len(w.env.PAIRS) + 1)}
+    duty = "dolg/fotz_own" if "dolg/fotz_own" in keys else "fotz_own/dolg"
+    k0 = {k: w.env.S.kills[k] for k in ("fotz_own/killer", duty, "dolg/killer")}
+    w.run('day("2012-05-02")')
+    got = {k: w.env.S.pending[k] for k in ("fotz_own/killer", duty, "dolg/killer")}
+    want = {}
+    for k, amp in (("fotz_own/killer", 1.5), (duty, 2), ("dolg/killer", 1)):
+        cfg = w.env.cfg
+        p = max(-cfg.pending_max, cfg.kill * k0[k] * amp)
+        move = max(p, -cfg.daily_budget)
+        want[k] = (p - move) or None
+    check(got == want, "pending after a day: %s, not %s (kills %s)" % (got, want, k0))
+
+
+def encroached(src):
+    """your members on others' ground strain your faction's pair with each holder: fotz_territory's
+    day's push lands on the pair, as ground, and an error there costs nothing else"""
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua(mother="stalker") +
+              '\nfotz_territory = { encroachment = function(c) return { killer = -40, dolg = -10, monolith = -5 } end }')
+    w.run('day("2012-05-01")')
+    w.run('day("2012-05-02")')
+    keys = {w.env.PAIRS[i].key for i in range(1, len(w.env.PAIRS) + 1)}
+    duty = "dolg/fotz_own" if "dolg/fotz_own" in keys else "fotz_own/dolg"
+    got = (w.drift("fotz_own/killer"), w.drift(duty))
+    check(got == (-40, -10), "the pairs after a day of strain: %s" % (got,))
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua(mother="stalker") +
+              "\nfotz_territory = { encroachment = function(c) error('boom') end }")
+    w.run('day("2012-05-01")')
+    w.run('day("2012-05-02")')
+    check(w.drift("fotz_own/killer") is None and any("! encroachment" in l for l in w.g.LOG.values()), "a failing strain")
+
+
 def old_fixed(src):
     """Your old faction's fixed relations stay fixed for yours: no pair with a faction your old one
     has a lore pair with, none at all from a faction that never changes. What a 0.5.0 save kept for
@@ -775,10 +825,10 @@ def strings(src):
     want = set(re.findall(r'"(st_fotz_news_\w+)"', src)) - {"st_fotz_news_war_"}
     want |= {"st_fotz_news_war_" + c for c in ("kills", "ground", "front")}
     mcm = open(os.path.join(GD, "scripts", "fotz_mcm.script"), encoding="utf-8").read()
-    for opt in re.findall(r'id = "(\w+)", type = "(?:check|list)"', mcm):
+    for opt in re.findall(r'id = "(\w+)", type = "(?:check|list|track)"', mcm):
         want |= {"ui_mcm_fotz_" + opt, "ui_mcm_fotz_" + opt + "_desc"}
     want |= {"ui_mcm_lst_" + k for k in re.findall(r'\{ "\w+", "(fotz_news_\w+)" \}', mcm)}
-    check(len(want) == 37, "%d string ids were looked for, not 37" % len(want))
+    check(len(want) == 55, "%d string ids were looked for, not 55" % len(want))
     want |= {"st_fotz_faction_" + f for f in ("stalker", "bandit", "csky", "dolg", "freedom", "killer", "army",
                                               "ecolog", "monolith", "renegade", "greh", "isg")}
     missing = sorted(want - have)
@@ -794,13 +844,15 @@ def run(src):
     save_and_load(src, w)
     kills(src)
     your_faction(src)
+    members_amp(src)
+    encroached(src)
     old_fixed(src)
     restore(src)
     caps(src)
     real_config(src)
     other_scripts(src)
     calendar(src)
-    return "13 scenarios, 16 pairs from the shipped config"
+    return "15 scenarios, 16 pairs from the shipped config"
 
 
 def main():

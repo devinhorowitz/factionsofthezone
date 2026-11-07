@@ -10,8 +10,9 @@ cap; the war log, newest first, four at most, with its dates; where the fighting
 fronts at the last census): a sentence a level about your side when it fights there, else the
 strongest side, against every enemy there, with its verdict from the share of the two biggest, the
 stragglers left out, evenly matched naming the two biggest, your side named as yours, your side's levels first, four at most; the wait and
-none lines; members (the dead apart, near or away, five then "and N more"); why politics stands
-down; Restore relations; the button to the PDA's Relations tab; every string exists.
+none lines; members (the dead apart, near or away, five then "and N more"); the perks your
+members bring, in a line; why politics stands down; Restore relations; the button to the PDA's
+Relations tab; MCM's options; every string exists.
 The page's layout (ui_fotz_tab.script) is checked in game.
 
     python test_tab.py            the real script
@@ -45,6 +46,19 @@ MUTANTS = {
     "member_state": ('local state = it.m.dead and "dead" or (level.object_by_id(it.id) and "near" or "away")',
                      'local state = "near"'),
     "member_cap": ("        if i > MEMBER_LINES then", "        if false then"),
+    # faction perks (0.6.0)
+    "perks_empty_line": ('    if #list == 0 then\n        return nil\n    end\n    return text("st_fotz_tab_perks"',
+                         '    return text("st_fotz_tab_perks"'),
+    "perks_uncapped": ("names_list(list, PERK_NAMES)", "names_list(list)"),
+    "perks_unlisted": ("        local perks, drawn = perks_line(P), drawn_line(P)", "        local perks, drawn = nil, drawn_line(P)"),
+    "drawn_unshown": ("        p.perks = perks and drawn and (perks .. \" \" .. drawn) or perks or drawn",
+                      "        p.perks = perks"),
+    "strains_unshown": ('{ { "drawn_here", "st_fotz_tab_drawn" }, { "strained_here", "st_fotz_tab_strains" } }',
+                        '{ { "drawn_here", "st_fotz_tab_drawn" } }'),
+    "drawn_unguarded": ("        local ok, list = pcall(function() return T and T[part[1]] and T[part[1]]() or {} end)",
+                        "        local ok, list = true, T and T[part[1]] and T[part[1]]() or {}"),
+    "drawn_uncolored": ("        drawn = drawn and (DRAWN_COLOR .. drawn)\n", ""),
+    "perks_no_option": ('            { id = "perks", type = "check", val = 1, def = true },\n', "", "fotz_mcm"),
     "side": ("    return F and fotz_politics.OWN or get_actor_true_community()", "    return get_actor_true_community()"),
     "status": ('p.status = why and text("st_fotz_tab_down_" .. why) or text("st_fotz_tab_in_charge")',
                'p.status = text("st_fotz_tab_in_charge")'),
@@ -366,7 +380,13 @@ def strings(srcs):
         want.add("st_fotz_tab_member_" + s)
     for d in ("off", "dynamic", "warfare", "dfrc", "fluid"):
         want.add("st_fotz_tab_down_" + d)
-    want |= {"ui_mcm_fotz_tab_key", "ui_mcm_fotz_tab_key_desc", "ui_mcm_fotz_pda_tab", "ui_mcm_fotz_pda_tab_desc"}
+    want |= {"ui_mcm_fotz_tab_key", "ui_mcm_fotz_tab_key_desc", "ui_mcm_fotz_pda_tab", "ui_mcm_fotz_pda_tab_desc",
+             "ui_mcm_fotz_perks", "ui_mcm_fotz_perks_desc"}
+    # a perk's words for each faction fotz_perks names
+    perks = io.open(os.path.join(SCRIPTS_DIR, "fotz_perks.script"), encoding="utf-8").read()
+    order = re.search(r"^ORDER = \{(.*?)\}", perks, re.S | re.M).group(1)
+    for f in re.findall(r'"(\w+)"', order):
+        want.add("st_fotz_perk_" + f)
     missing = sorted(want - have)
     check(not missing, "missing from the English table: %s" % missing)
     return len(want)
@@ -458,6 +478,8 @@ def mcm_option(srcs):
     ids = [g.id for g in t.p.g.fotz_mcm.on_mcm_load().gr.values()]
     check("pda_tab" in ids and ids[-1] == "about" and ids.index("pda_tab") == ids.index("tab_key") + 1,
           "with MAC, the options: %s" % ids)
+    perks = [g for g in t.p.g.fotz_mcm.on_mcm_load().gr.values() if g.id == "perks"]
+    check(len(perks) == 1 and perks[0]["def"] is True, "the perks option, on by default: %s" % len(perks))
 
 
 def settler_lines(srcs):
@@ -497,6 +519,48 @@ fotz_loyalty = { page_lists = function() return {
     check(p.members is None and p.requests is None, "a page without a faction lists %s, %s" % (p.members, p.requests))
 
 
+def perks(srcs):
+    """The perks your members bring (fotz_perks), in one line in fotz_perks' order, each with its
+    faction's name and percent: none without a perk or a faction, three named and "N more" past
+    that."""
+    t = Tab(srcs, pre=TP.led_lua() + """
+fotz_faction.F.members = { [501] = { name = "Vaska", mother = "stalker", joined = "2012-05-01" } }
+ACTIVE = {}
+fotz_perks = { ORDER = { "stalker", "ecolog", "freedom", "army", "monolith" },
+               active = function() return ACTIVE end,
+               pct = function(f) return ({ stalker = 5, ecolog = 5, freedom = 5, army = 10 })[f] end }
+""")
+    check(t.page().perks is None, "a perks line with none on: %r" % t.page().perks)
+    t.run('ACTIVE = { monolith = { "Yuri" }, stalker = { "Vaska" } }')
+    check(t.page().perks == "Perks here: 5% off food and drink (Loners) and their radio chatter (Monolith).",
+          "two perks: %r" % t.page().perks)
+    t.run('ACTIVE = { monolith = { "Yuri" }, stalker = { "Vaska" }, army = { "Sgt" }, ecolog = { "Kruglov" } }')
+    check(t.page().perks == "Perks here: 5% off food and drink (Loners), 5% off medicine (Ecologists), 10% off airlifts"
+          " (Military) and their radio chatter (Monolith).", "four perks: %r" % t.page().perks)
+    t.run('ACTIVE.freedom = { "Vova" }')
+    check(t.page().perks == "Perks here: 5% off food and drink (Loners), 5% off medicine (Ecologists), 5% off mutant parts"
+          " (Freedom) and 2 more.", "five perks: %r" % t.page().perks)
+    # your footprint here (fotz_territory), after the perks in the warning color, or alone
+    t.run('DRAWN = { { f = "freedom", m = 1.3 }, { f = "bandit", m = 1.1 } }; '
+          'fotz_territory.drawn_here = function() return DRAWN end; ACTIVE = { stalker = { "Vaska" } }')
+    check(t.page().perks == "Perks here: 5% off food and drink (Loners). %c[255,210,110,90]Your footprint here draws"
+          " Freedom and Bandits.", "perks and the footprint: %r" % t.page().perks)
+    t.run("ACTIVE = {}")
+    check(t.page().perks == "%c[255,210,110,90]Your footprint here draws Freedom and Bandits.",
+          "the footprint alone: %r" % t.page().perks)
+    # and what settling here strains (fotz_territory)
+    t.run('STRAINED = { { f = "dolg", s = 0.6 } }; fotz_territory.strained_here = function() return STRAINED end')
+    check(t.page().perks == "%c[255,210,110,90]Your footprint here draws Freedom and Bandits. Settling here strains Duty.",
+          "the footprint and the strain: %r" % t.page().perks)
+    t.run('fotz_territory.strained_here = function() error("boom") end')
+    check(t.page().perks == "%c[255,210,110,90]Your footprint here draws Freedom and Bandits.",
+          "a failing list broke the page: %r" % t.page().perks)
+    t.run("DRAWN = {}; STRAINED = {}; fotz_territory.strained_here = function() return STRAINED end")
+    check(t.page().perks is None, "a line with nothing to say: %r" % t.page().perks)
+    t.run("fotz_faction.F = nil")
+    check(t.page().perks is None, "a perks line without a faction")
+
+
 def run(srcs):
     n = strings(srcs)
     names(srcs)
@@ -507,7 +571,8 @@ def run(srcs):
     parked(srcs)
     mcm_option(srcs)
     settler_lines(srcs)
-    return "8 scenarios, %d strings" % n
+    perks(srcs)
+    return "9 scenarios, %d strings" % n
 
 
 def main():

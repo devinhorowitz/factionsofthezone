@@ -681,3 +681,135 @@ msgstr "Перемирие с гарнизоном {outpost} ({faction}) зак�
 msgctxt "st_fotz_news_outpost_truce_broken"
 msgid "You broke the ceasefire at {outpost}: {faction} there are hostile again."
 msgstr "Вы нарушили перемирие с гарнизоном {outpost} ({faction}): они снова враждебны."
+
+msgctxt "ui_mcm_fotz_perks"
+msgid "Faction perks"
+msgstr "Бонусы группировок"
+
+msgctxt "ui_mcm_fotz_perks_desc"
+msgid "A member who came from another faction brings a small perk of theirs while you're not at war with it, growing faster with each member from that faction, more for higher ranks, and strongest near them, so settlements all over pay: a discount on one kind of goods at their traders or on airlifts, mercs likelier to take your contract, outposts likelier to come over, Bandit squads on your map, or radio chatter. The Factions page lists the perks where you are. Members from a faction also make your relations with it move more, for better or worse."
+msgstr "Боец, пришедший из другой группировки, приносит её небольшой бонус, пока вы с ней не воюете; бонус растёт всё быстрее с каждым бойцом из неё, больше за высокий ранг и сильнее всего рядом с ними, так что выгодны поселения по всей Зоне: скидка на один вид товаров у её торговцев или на авиарейсы, наёмники, охотнее берущиеся за ваш контракт, аванпосты, охотнее переходящие к вам, отряды бандитов на вашей карте или переговоры по радио. На странице «Группировки» перечислены бонусы там, где вы находитесь. А ещё бойцы из группировки делают так, что ваши отношения с ней меняются сильнее, к лучшему или к худшему."
+
+msgctxt "st_fotz_tab_perks"
+msgid "Perks here: {list}."
+msgstr "Бонусы здесь: {list}."
+
+msgctxt "st_fotz_perk_stalker"
+msgid "{pct}% off food and drink ({faction})"
+msgstr "скидка {pct}% на еду и напитки ({faction})"
+
+msgctxt "st_fotz_perk_ecolog"
+msgid "{pct}% off medicine ({faction})"
+msgstr "скидка {pct}% на медикаменты ({faction})"
+
+msgctxt "st_fotz_perk_freedom"
+msgid "{pct}% off mutant parts ({faction})"
+msgstr "скидка {pct}% на части мутантов ({faction})"
+
+msgctxt "st_fotz_perk_dolg"
+msgid "{pct}% off repair kits and tools ({faction})"
+msgstr "скидка {pct}% на ремкомплекты и инструменты ({faction})"
+
+msgctxt "st_fotz_perk_csky"
+msgid "{pct}% off weapon and armor parts ({faction})"
+msgstr "скидка {pct}% на детали оружия и брони ({faction})"
+
+msgctxt "st_fotz_perk_army"
+msgid "{pct}% off airlifts ({faction})"
+msgstr "скидка {pct}% на авиарейсы ({faction})"
+
+msgctxt "st_fotz_perk_killer"
+msgid "+{pct}% chance mercs take your contract ({faction})"
+msgstr "+{pct}% к шансу, что наёмники возьмутся за ваш контракт ({faction})"
+
+msgctxt "st_fotz_perk_bandit"
+msgid "their squads on your map ({faction})"
+msgstr "их отряды на вашей карте ({faction})"
+
+msgctxt "st_fotz_perk_renegade"
+msgid "+{pct}% chance outposts come over ({faction})"
+msgstr "+{pct}% к шансу, что аванпосты перейдут к вам ({faction})"
+
+msgctxt "st_fotz_perk_monolith"
+msgid "their radio chatter ({faction})"
+msgstr "их переговоры по радио ({faction})"
+
+msgctxt "st_fotz_perk_greh"
+msgid "their radio chatter ({faction})"
+msgstr "их переговоры по радио ({faction})"
+
+msgctxt "st_fotz_perk_isg"
+msgid "their radio chatter ({faction})"
+msgstr "их переговоры по радио ({faction})"
+
+msgctxt "ui_mcm_fotz_perks_trade_max"
+msgid "Perks: most off goods (%)"
+msgstr "Бонусы: наибольшая скидка на товары (%)"
+
+msgctxt "ui_mcm_fotz_perks_trade_max_desc"
+msgid "The most a trade perk takes off its faction's goods, reached with a full settlement's worth of members from that faction."
+msgstr "Наибольшая скидка торгового бонуса на товары группировки; её дают бойцы из группировки, когда их набирается на целое поселение."
+
+msgctxt "ui_mcm_fotz_perks_airlift_max"
+msgid "Perks: most off airlifts (%)"
+msgstr "Бонусы: наибольшая скидка на авиарейсы (%)"
+
+msgctxt "ui_mcm_fotz_perks_airlift_max_desc"
+msgid "The most the Military's perk takes off its airlifts."
+msgstr "Наибольшая скидка бонуса военных на их авиарейсы."
+
+msgctxt "ui_mcm_fotz_perks_merc_max"
+msgid "Perks: mercs' chance at most (%)"
+msgstr "Бонусы: наибольший шанс наёмников (%)"
+
+msgctxt "ui_mcm_fotz_perks_merc_max_desc"
+msgid "The highest chance that a merc squad which turned you down takes your contract after all."
+msgstr "Наибольший шанс, что отряд наёмников, отказавший вам, всё же возьмётся за контракт."
+
+msgctxt "ui_mcm_fotz_perks_outpost_max"
+msgid "Perks: outposts' chance at most (+%)"
+msgstr "Бонусы: наибольшая прибавка для аванпостов (+%)"
+
+msgctxt "ui_mcm_fotz_perks_outpost_max_desc"
+msgid "The most the Renegades' perk adds to a beaten outpost's chance of coming over to you."
+msgstr "Наибольшая прибавка бонуса ренегатов к шансу, что побеждённый аванпост перейдёт к вам."
+
+msgctxt "ui_mcm_fotz_perks_relations_max"
+msgid "Perks: relations move up to (+%)"
+msgstr "Бонусы: отношения меняются сильнее до (+%)"
+
+msgctxt "ui_mcm_fotz_perks_relations_max_desc"
+msgid "Members from a faction make your relations with it move more, for better or worse, up to this with a full settlement's worth of them."
+msgstr "Бойцы из группировки делают так, что ваши отношения с ней меняются сильнее, к лучшему или к худшему, до этого предела, когда их набирается на целое поселение."
+
+msgctxt "ui_mcm_fotz_footprint_max"
+msgid "Your footprint draws enemies, up to (+%)"
+msgstr "Ваше присутствие притягивает врагов, до (+%)"
+
+msgctxt "ui_mcm_fotz_footprint_max_desc"
+msgid "While you lead a faction, squads of factions hostile to it, or to the factions your members came from, are drawn to where your members are: more fighting near your settlements, and more the more members there are. Up to this much likelier to go there, with a full settlement's worth of members near."
+msgstr "Пока вы ведёте группировку, отряды группировок, враждебных ей или тем, откуда пришли ваши бойцы, тянутся туда, где ваши бойцы: больше боёв рядом с вашими поселениями, и тем больше, чем больше бойцов. Не больше этого, когда рядом их на целое поселение."
+
+msgctxt "st_fotz_tab_drawn"
+msgid "Your footprint here draws {list}."
+msgstr "Ваше присутствие здесь притягивает: {list}."
+
+msgctxt "ui_mcm_fotz_encroach_max"
+msgid "Settling on others' ground strains relations, up to (a day)"
+msgstr "Поселение на чужой земле портит отношения, до (в день)"
+
+msgctxt "ui_mcm_fotz_encroach_max_desc"
+msgid "While you lead a faction, your members settled where another faction holds the ground strain your faction's relation with it each day: more the more of the ground it holds and the more members you have there. Members who came from that faction don't count, and an ally doesn't mind."
+msgstr "Пока вы ведёте группировку, ваши бойцы, поселившиеся там, где землю держит другая группировка, каждый день портят отношения вашей группировки с ней: тем сильнее, чем больше земли она держит и чем больше там ваших бойцов. Бойцы, пришедшие из этой группировки, не в счёт, а союзник не возражает."
+
+msgctxt "ui_mcm_fotz_instigate_max"
+msgid "A kill on another faction's ground costs goodwill, up to"
+msgstr "Убийство на чужой земле стоит репутации, до"
+
+msgctxt "ui_mcm_fotz_instigate_max_desc"
+msgid "While you lead a faction, a stalker you kill where another faction holds the ground costs you some of its goodwill, unless it's at war with the victim's faction."
+msgstr "Пока вы ведёте группировку, сталкер, убитый вами там, где землю держит другая группировка, стоит вам части её расположения, если только она не воюет с группировкой убитого."
+
+msgctxt "st_fotz_tab_strains"
+msgid "Settling here strains {list}."
+msgstr "Поселение здесь портит отношения: {list}."
