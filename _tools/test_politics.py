@@ -30,7 +30,7 @@ MUTANTS = {
     # the cells' starts across loads, other scripts' changes, the base game's store (the 2026-10-31 sweep)
     "start_reread_at_load": ("    if s and live == s.w then\n", "    if false then\n"),
     "pair_rows_additive": ("                pair_rows = pair_rows or i <= 2", "                pair_rows = false"),
-    "restart_keeps_event": ('        if ev then\n            finish(p, st.day or today(), ev.kind .. "_over")\n        end\n', ""),
+    "restart_keeps_event": ('        if ev then\n            finish(p, st.day or today(), ev.kind .. "_over", "changed")\n        end\n', ""),
     "restart_keeps_drift": ("        st.drift[p.key], st.pending[p.key], st.trend[p.key] = nil, nil, nil\n", ""),
     "no_undo": ("        if o and r.live == o.w then", "        if false then"),
     "clamped_shift": ("            anchor[r.k] = r.live - (applied[r.k] or 0)",
@@ -50,9 +50,10 @@ MUTANTS = {
     "encroach_ignored": ("            if p and push < 0 then\n                note(t, p, \"settled\", push)", "            if false then\n                note(t, p, \"settled\", push)"),
     # a war your members' settling caused has its own cause and voice (the 2026-11-07 sweep, C3)
     "settled_as_ground": ('note(t, p, "settled", push)', 'note(t, p, "ground", push)'),
-    "settled_not_cause": ('for _, what in ipairs({ "front", "ground", "settled" }) do', 'for _, what in ipairs({ "front", "ground" }) do'),
-    "settled_not_kept": ('for _, what in ipairs({ "kills", "ground", "front", "settled" }) do',
-                         'for _, what in ipairs({ "kills", "ground", "front" }) do'),
+    "settled_not_cause": ('for _, what in ipairs({ "front", "ground", "settled", "incident" }) do',
+                          'for _, what in ipairs({ "front", "ground", "incident" }) do'),
+    "settled_not_kept": ('for _, what in ipairs({ "kills", "ground", "front", "settled", "incident" }) do',
+                         'for _, what in ipairs({ "kills", "ground", "front", "incident" }) do'),
     "settled_voice": ('    if best == "settled" then\n        voice = p.a == OWN and p.b or p.a\n    end\n', ""),
     "settled_old_save": ("                r.settled, r.ground = (r.settled or 0) + r.ground, nil", "                r.ground = r.ground"),
     # a parked faction keeps its state (M7)
@@ -85,7 +86,7 @@ MUTANTS = {
     "silent_kill": ("if owner and owner:id() == AC_ID then", "if false then"),
     "rank_weight": ("(cfg.rank_weight[rank] or 1)", "1"),
     "forward": ("        return orig(...)\n", "        return orig()\n"),
-    "ground_voice": ('note(t, p, "ground", cfg.ground, smart, was,', 'note(t, p, "ground", cfg.ground, smart, now,'),
+    "ground_voice": ('note(t, p, "ground", cfg.ground * w, smart, was,', 'note(t, p, "ground", cfg.ground * w, smart, now,'),
     "common_either": ("at_war(p.a, f) and at_war(p.b, f)", "at_war(p.a, f) or at_war(p.b, f)"),
     "no_lapse": ('elseif ev and ev.kind == "alliance" and after < FRIENDS then',
                  'elseif ev and ev.kind == "alliance" and false then'),
@@ -93,7 +94,35 @@ MUTANTS = {
     "first_ticks": ("if first or not active() then", "if not active() then"),
     "any_version": ('if type(d) == "table" and d.v == SAVE_VERSION then', 'if type(d) == "table" then'),
     "news_level": ('if lv == "off" or (level == "all" and lv ~= "all") then', 'if lv == "off" then'),
-    "news_cap": ("if shown < 3 and say(", "if say("),
+    "news_cap": ("if (place or shown < 3) and say(", "if say("),
+    # hooks for other mods (fotz_api, docs/HOOKS.md)
+    "hook_start_unsent": ('    send("fotz_on_politics", { kind = kind,', '    local _ = ({ kind = kind,'),
+    "hook_end_unsent": ("    send_end(p, day, how, ev, why)\n", "    local _ = why\n"),
+    "hook_why_lost": ("since = ev and ev.since, why = why })", "since = ev and ev.since })"),
+    "hook_reset_unsent": ('            send_end(PAIR[k], st.day or today(), ev.kind .. "_over", ev, "reset")\n', ""),
+    "hook_changed_why": ('ev.kind .. "_over", "changed")', 'ev.kind .. "_over")'),
+    "hook_disband_unsent": ('                        send_end(PAIR[k], st.day or today(), v.kind .. "_over", v, "disbanded")\n', ""),
+    "hook_truce_why": ('finish(p, day, "war_over", "truce")', 'finish(p, day, "war_over")'),
+    "taken_unsent_standing": ("        send_taken(c, not first and prev or nil, false)\n", ""),
+    "taken_unsent": ("    send_taken(c, prev, true)\n", ""),
+    "taken_counted_always": ("counted = counting and pair_of(was, now) ~= nil or false", "counted = true"),
+    "taken_abandoned": ("        if was and now and was ~= now then\n", "        if was and was ~= now then\n"),
+    "grievance_while_down": ("or amount == 0 or not active() then", "or amount == 0 then"),
+    "incident_ignored": ('note(t, p, "incident", inc.war, inc.at)', 'note(t, p, "incident", 0, inc.at)'),
+    "incident_kept": ("    st.incidents = {}\n    -- your members settled", "    -- your members settled"),
+    "incident_not_cause": ('for _, what in ipairs({ "front", "ground", "settled", "incident" }) do',
+                           'for _, what in ipairs({ "front", "ground", "settled" }) do'),
+    "incident_news_lost": ("t[key].incident_news = t[key].incident_news or inc.news", "t[key].incident_news = nil"),
+    "incident_default_news": ('news = at and "st_fotz_news_war_incident_at" or "st_fotz_news_war_incident"',
+                              'news = "st_fotz_news_war_incident"'),
+    "peace_ignored": ('            note(t, p, "goodwill", inc.peace)\n', ""),
+    "place_ground": ('note(t, p, "ground", cfg.ground * w,', 'note(t, p, "ground", cfg.ground,'),
+    "place_front_weight": ("        n = n + w\n", "        n = n + 1\n"),
+    "place_front_at": ("        if w > top then\n", "        if false then\n"),
+    "place_config_clamp": ("PLACES[id] = clamp(w, 1, PLACE_MAX)", "PLACES[id] = w"),
+    "place_set_clamp": ("placed[smart] = clamp(w, 1, PLACE_MAX)", "placed[smart] = w"),
+    "place_runtime_first": ("(placed[smart] or PLACES[smart])", "(PLACES[smart] or placed[smart])"),
+    "place_clear_config": ("    if placed[smart] == nil then\n        return false\n", "    if false then\n        return false\n"),
     # a place's name, never its raw id (STALKER's report on 1.0.0, 2026-11-07)
     "place_raw_kept": ('name ~= "" and name ~= smart then', 'name ~= "" then'),
     "place_no_warfare_name": ('    local key = "st_" .. smart .. "_name"\n', "    local key = smart\n"),
@@ -904,7 +933,7 @@ def strings(src):
     have = {s.get("id") for s in root.iter("string")}
     want = set(re.findall(r'"(st_fotz_news_\w+)"', src)) - {"st_fotz_news_war_"}
     want |= {"st_fotz_news_war_" + c for c in ("kills", "ground", "front", "settled")}
-    check(len(want) == 9, "%d news ids were looked for, not 9" % len(want))
+    check(len(want) == 11, "%d news ids were looked for, not 11" % len(want))
     mcm = open(os.path.join(GD, "scripts", "fotz_mcm.script"), encoding="utf-8").read()
     opts = re.findall(r'id = "(\w+)", type = "(?:check|list|track)"', mcm)
     for opt in opts:
@@ -917,6 +946,135 @@ def strings(src):
                                               "ecolog", "monolith", "renegade", "greh", "isg")}
     missing = sorted(want - have)
     check(not missing, "string ids missing from the English table: %s" % missing)
+
+
+HOOKS_LUA = ('SENT = {}\n'
+             'fotz_api = { send = function(name, t) SENT[#SENT + 1] = { name = name, t = t } end }')
+
+
+def py(v):
+    """A Lua value as Python: a table with keys 1..n as a list, any other as a dict."""
+    if L.lua_type(v) != "table":
+        return v
+    keys = list(v.keys())
+    if keys and sorted(k for k in keys if isinstance(k, int)) == list(range(1, len(keys) + 1)):
+        return [py(v[i]) for i in range(1, len(keys) + 1)]
+    return {k: py(v[k]) for k in keys}
+
+
+def sent(w, name):
+    s = w.g.SENT
+    return [py(s[i].t) for i in range(1, len(s) + 1) if s[i].name == name]
+
+
+def hooks(src):
+    """Other mods hear of each war, truce and alliance, and why it ended; of every smart one faction
+    took from another, counted or not; and their grievances and places of interest weigh in
+    (fotz_api, docs/HOOKS.md)."""
+    w = World(src, anchors=DK_ANCHORS, pre=HOOKS_LUA)
+    w.run('day("2012-05-01")')
+    w.run('kill("dolg", "killer", "veteran", 60)')
+    for d in range(2, 13):
+        w.run('day("2012-05-%02d")' % d)
+    pair = {"a": "dolg", "b": "killer"}
+    want = [dict(pair, kind="war", day="2012-05-04", cause="kills", voice="dolg"),
+            dict(pair, kind="war_over", day="2012-05-07", since="2012-05-04", why="truce"),
+            dict(pair, kind="truce", day="2012-05-07", voice="dolg", **{"until": "2012-05-12"}),
+            dict(pair, kind="truce_over", day="2012-05-12", since="2012-05-07", why="expired")]
+    got = sent(w, "fotz_on_politics")
+    check(got == want, "the war's callbacks: %s" % got)
+    # MCM's reset, and another script setting the pair, end an event too
+    w.env.S.events["dolg/killer"] = w.lua.eval('{ kind = "war", since = "2012-05-12", a = "dolg", b = "killer" }')
+    w.env.restore()
+    got = sent(w, "fotz_on_politics")[4:]
+    check(got == [dict(pair, kind="war_over", day="2012-05-12", since="2012-05-12", why="reset")], "the reset: %s" % got)
+    w.env.S.events["dolg/killer"] = w.lua.eval('{ kind = "war", since = "2012-05-12", a = "dolg", b = "killer" }')
+    w.run('REL["dolg>killer"] = 777')
+    w.cb["on_option_change"]()
+    got = sent(w, "fotz_on_politics")[5:]
+    check(got == [dict(pair, kind="war_over", day="2012-05-12", since="2012-05-12", why="changed")],
+          "a change by another script: %s" % got)
+
+    # every smart taken between two factions, whether politics counts the pair or not; never one
+    # abandoned; and on while politics stands down, where nothing counts
+    w = World(src, pre=HOOKS_LUA)
+    w.run('day("2012-05-01", { s1 = "freedom", s2 = "freedom", s3 = "monolith", s4 = "dolg" })')
+    w.run('day("2012-05-02", { s1 = "killer", s3 = "freedom", s4 = "freedom" })')
+    base = {"date": "2012-05-02 08:00", "weight": 1}
+    want = [dict(base, smart="s1", place="Place s1", by="killer", **{"from": "freedom", "counted": True}),
+            dict(base, smart="s3", place="Cordon", by="freedom", **{"from": "monolith", "counted": False}),
+            dict(base, smart="s4", place="Cordon", by="freedom", **{"from": "dolg", "counted": False})]
+    got = sent(w, "fotz_on_ground_taken")
+    check(got == want, "ground taken: %s" % got)
+    w.run('MCM["fotz/politics"] = false')
+    w.run('day("2012-05-03", { s1 = "freedom", s3 = "freedom", s4 = "freedom" })')
+    got = sent(w, "fotz_on_ground_taken")[3:]
+    check(got == [{"date": "2012-05-03 08:00", "weight": 1, "smart": "s1", "place": "Place s1", "by": "freedom",
+                   "from": "killer", "counted": False}], "ground taken while standing down: %s" % got)
+    check(w.env.grievance("dolg", "killer", -500) is False, "a grievance counted while standing down")
+
+    # grievances: refused for pairs Factions doesn't follow; a war they cause names its cause, its
+    # place and the mod's own news, or Factions' with or without a place; goodwill moves a pair up
+    w = World(src, anchors=DK_ANCHORS, pre=HOOKS_LUA)
+    w.run('STR["st_test_war"] = "{b} burned our stash at {place}."')
+    w.run('day("2012-05-01")')
+    opts = w.lua.eval
+    check(w.env.grievance("dolg", "killer", -1500, opts('{ at = "s1", news = "st_test_war" }')) is True and
+          w.env.grievance("freedom", "killer", -1500, opts('{ at = "s1" }')) is True and
+          w.env.grievance("csky", "killer", -1500) is True and w.env.grievance("bandit", "stalker", 300) is True,
+          "a grievance refused")
+    for a, b, amount in (("dolg", "freedom", -500), ("monolith", "dolg", -500), ("dolg", "killer", 0), ("dolg", "killer", "x")):
+        check(w.env.grievance(a, b, amount) is False, "a grievance counted: %s %s %s" % (a, b, amount))
+    w.run('day("2012-05-02")')
+    check(w.pending("dolg/killer") == -1100 and w.drift("bandit/stalker") == 300,
+          "day 2: pending %s, goodwill drift %s" % (w.pending("dolg/killer"), w.drift("bandit/stalker")))
+    w.run('day("2012-05-03")')
+    check(w.pending("dolg/killer") == -700, "day 3: pending %s (a grievance counted twice?)" % w.pending("dolg/killer"))
+    w.run('day("2012-05-04")')
+    wars = {e["a"]: e for e in sent(w, "fotz_on_politics") if e["kind"] == "war"}
+    check(set(wars) == {"csky", "dolg", "freedom"} and all(e["cause"] == "incident" for e in wars.values())
+          and wars["dolg"].get("at") == "s1" and wars["dolg"].get("place") == "Place s1" and "at" not in wars["csky"],
+          "the wars grievances made: %s" % wars)
+    news = w.news()
+    for line in ("dolg|Duty: Mercenaries burned our stash at Place s1.",
+                 "freedom|Freedom: Mercenaries crossed us at Place s1 once too often. From today we are at war with them.",
+                 "csky|Clear Sky: Mercenaries crossed us once too often. From today we are at war with them."):
+        check(line in news, "no news %r in %s" % (line, news))
+
+    # places of interest: the config's, clamped; another mod's, clamped, over the config's, and
+    # cleared; ground and fronts there weigh more, a front is named by its heaviest place, and every
+    # place taken makes the news
+    w = World(src, pre=HOOKS_LUA, config=TEST_CONFIG + "[places]\ns7 = 2\ns8 = 9\ns9 = x\n")
+    e = w.env
+    check((e.place_weight("s7"), e.place_weight("s8"), e.place_weight("s9"), e.place_weight("s1")) == (2, 3, 1, 1),
+          "the config's places: %s" % [e.place_weight(s) for s in ("s7", "s8", "s9", "s1")])
+    check(e.set_place("s2", 0.5) is True and e.set_place("s3", 5) is True and e.set_place("", 2) is False
+          and e.set_place("s7", 3) is True, "set_place refused")
+    check((e.place_weight("s2"), e.place_weight("s3"), e.place_weight("s7")) == (1, 3, 3),
+          "set places: %s" % [e.place_weight(s) for s in ("s2", "s3", "s7")])
+    check(e.clear_place("s3") is True and e.place_weight("s3") == 1 and e.clear_place("s3") is False
+          and e.clear_place("s7") is True and e.place_weight("s7") == 2 and e.clear_place("s8") is False,
+          "clear_place: %s" % [e.place_weight(s) for s in ("s3", "s7", "s8")])
+    check(e.set_place("s5", 2) is True and e.place_weight("s2") == 1, "a place")
+    held = '{ s1 = "%s", s2 = "%s", s3 = "%s", s4 = "%s", s5 = "%s" }'
+    w.run('MCM["fotz/news"] = "all"')
+    w.run('day("2012-05-01", %s)' % (held % (("freedom",) * 5)))
+    w.run('day("2012-05-02", %s)' % (held % (("killer",) * 5)))
+    check(w.pending("freedom/killer") == -500, "ground at a place: pending %s" % w.pending("freedom/killer"))
+    took = [n for n in w.news() if "We took" in n]
+    check(len(took) == 4, "ground news with a place: three a day and the place: %s" % took)
+    w.run('day("2012-05-03", %s, { ["freedom/killer"] = { n = 2, at = "s1", smarts = { "s1", "s5" } } })'
+          % (held % (("killer",) * 5)))
+    check(w.pending("freedom/killer") == -220 and w.env.S.recent["freedom/killer"].front_at == "s5",
+          "a front at a place: pending %s, named %s" % (w.pending("freedom/killer"), w.env.S.recent["freedom/killer"].front_at))
+
+    # disbanding ends your faction's events, and other mods hear why
+    w = World(src, anchors=DK_ANCHORS, pre=led_lua() + "\n" + HOOKS_LUA)
+    w.env.S.events["fotz_own/killer"] = w.lua.eval('{ kind = "war", since = "2012-05-04", a = "fotz_own", b = "killer" }')
+    w.run("fotz_faction.F = nil")
+    w.env.apply()
+    got = [(e["kind"], e["a"], e["b"], e.get("since"), e.get("why")) for e in sent(w, "fotz_on_politics")]
+    check(got == [("war_over", "fotz_own", "killer", "2012-05-04", "disbanded")], "disbanding: %s" % got)
 
 
 def run(src):
@@ -938,7 +1096,8 @@ def run(src):
     real_config(src)
     other_scripts(src)
     calendar(src)
-    return "17 scenarios, 16 pairs from the shipped config"
+    hooks(src)
+    return "18 scenarios, 16 pairs from the shipped config"
 
 
 def main():

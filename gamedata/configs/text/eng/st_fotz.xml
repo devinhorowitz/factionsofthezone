@@ -57,6 +57,12 @@
 	<string id="st_fotz_news_war_settled">
 		<text>{b} settled on our ground and stayed. From today we are at war with them.</text>
 	</string>
+	<string id="st_fotz_news_war_incident">
+		<text>{b} crossed us once too often. From today we are at war with them.</text>
+	</string>
+	<string id="st_fotz_news_war_incident_at">
+		<text>{b} crossed us at {place} once too often. From today we are at war with them.</text>
+	</string>
 	<string id="st_fotz_news_truce">
 		<text>The line with {b} has gone quiet. We hold our fire, for now.</text>
 	</string>

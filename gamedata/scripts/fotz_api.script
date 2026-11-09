@@ -1,0 +1,266 @@
+--[[
+Factions of the Zone: hooks for other mods (docs/HOOKS.md). This script is the contract: the rest
+of Factions can change between versions, this can only grow.
+
+VERSION counts the contract. Within a version, names and fields are only ever added. The callbacks
+are declared as this script loads (the game loads every script before it calls any
+on_game_start), so a mod registers them from its own on_game_start. Factions sends each one inside
+its own pcall: a handler's error is logged, and Factions' daily tick goes on. Everything is by
+name (factions, smarts, levels), never by object id, and every table handed out is a copy.
+
+The reads give the last census's picture: nil, or empty, before the first census after a load
+(about 30 s), except who holds what, which the save keeps. The nudges wait in a pair's pressure as
+kills do (fotz_politics). Nothing here is saved: a mod sets its places again after each load.
+--]]
+
+VERSION = 1
+
+CALLBACKS = { "fotz_on_census", "fotz_on_ground_taken", "fotz_on_front_shift", "fotz_on_politics" }
+
+local declared = {}
+for _, name in ipairs(CALLBACKS) do
+    if AddScriptCallback then
+        AddScriptCallback(name)
+        declared[name] = true
+    end
+end
+
+local LAST = nil -- the last census, as fotz_on_census gives it
+
+local function log(fmt, ...)
+    printf("[fotz-api] " .. fmt, ...)
+end
+
+-- a copy of a table of plain values, nested tables copied too
+local function copy(v)
+    if type(v) ~= "table" then
+        return v
+    end
+    local out = {}
+    for k, x in pairs(v) do
+        out[k] = copy(x)
+    end
+    return out
+end
+
+-- send a callback to every mod that registered it; never lets a handler's error out
+function send(name, t)
+    if not declared[name] then
+        return false
+    end
+    local ok, err = pcall(SendScriptCallback, name, t)
+    if not ok then
+        log("! a %s handler failed: %s", name, tostring(err))
+    end
+    return ok
+end
+
+-- the census as other mods get it: the date, why it ran, who holds what, what's contested, and
+-- each faction's squads, fighters and fighters by level
+local function census_view(c)
+    local factions = {}
+    for f, e in pairs(c.factions or {}) do
+        local levels = {}
+        for lv, at in pairs(e.levels or {}) do
+            levels[lv] = at.fighters or 0
+        end
+        factions[f] = { squads = e.squads or 0, fighters = e.fighters or 0, levels = levels }
+    end
+    return { date = c.date, cause = c.cause, smarts = copy(c.smarts or {}), contested = copy(c.contested or {}),
+             factions = factions }
+end
+
+-- from fotz_census, after its own listeners (politics, territory, the map) have used it
+function on_census(c)
+    LAST = census_view(c)
+    LAST.contested_set = {}
+    for _, s in ipairs(LAST.contested) do
+        LAST.contested_set[s] = true
+    end
+    local view = census_view(c)
+    send("fotz_on_census", view)
+end
+
+local function P()
+    return fotz_politics
+end
+
+-- reads ---------------------------------------------------------------------------------------
+
+-- true while the politics engine runs; else false and the reason it stands down
+function active()
+    local p = P()
+    if not (p and p.standing_down) then
+        return false, "Factions isn't loaded"
+    end
+    local why = p.standing_down()
+    return why == nil, why
+end
+
+-- the factions politics follows, yours included while you lead one
+function sides()
+    local p = P()
+    return copy(p and p.SIDES or {})
+end
+
+-- a faction's name as the news gives it
+function name(f)
+    local p = P()
+    return p and p.faction_name and p.faction_name(f) or f
+end
+
+-- a place's name as the news gives it
+function place_name(smart)
+    local p = P()
+    return p and p.place_name and p.place_name(smart) or smart
+end
+
+-- the faction holding a smart at the last census (the save's, before the first after a load)
+function holder(smart)
+    if LAST then
+        return LAST.smarts[smart]
+    end
+    local p = P()
+    local g = p and p.S and p.S.ground
+    return g and g[smart] or nil
+end
+
+-- whether two hostile factions were both at a smart at the last census
+function contested(smart)
+    return LAST ~= nil and LAST.contested_set[smart] == true
+end
+
+-- the smarts a faction held at the last census, by name
+function held(f)
+    local g = LAST and LAST.smarts
+    if not g then
+        local p = P()
+        g = p and p.S and p.S.ground or {}
+    end
+    local out = {}
+    for smart, h in pairs(g) do
+        if h == f then
+            out[#out + 1] = smart
+        end
+    end
+    table.sort(out)
+    return out
+end
+
+-- a faction's squads, fighters and fighters by level at the last census, or nil
+function strength(f)
+    local e = LAST and LAST.factions[f]
+    return e and copy(e) or nil
+end
+
+-- the fronts at the last census, the biggest first; leader is nil while it's close
+function fronts()
+    local T = fotz_territory
+    local out = {}
+    for _, f in ipairs(T and T.FRONTS or {}) do
+        local win = T.leader and T.leader(f) or nil
+        out[#out + 1] = { level = f.level, a = f.a, b = f.b, fa = f.fa, fb = f.fb, leader = win }
+    end
+    return out
+end
+
+local function event_view(ev)
+    return ev and { kind = ev.kind, a = ev.a, b = ev.b, since = ev.since, ["until"] = ev["until"], cause = ev.cause,
+                    at = ev.at, voice = ev.voice, enemy = ev.enemy } or nil
+end
+
+-- where a pair stands: nil for a pair Factions never moves; else the live relation of a toward b,
+-- its start (without Factions' drift), the drift, the pressure waiting, the day's move and the
+-- event in force
+function pair(a, b)
+    local p = P()
+    local pr = p and p.pair_of and p.pair_of(a, b)
+    if not pr then
+        return nil
+    end
+    local st = p.S or {}
+    local live = relation_registry.community_relation(a, b)
+    local drift = st.drift and st.drift[pr.key] or 0
+    local on = active()
+    return { relation = live, start = on and live - drift or live, drift = drift,
+             pending = st.pending and st.pending[pr.key] or 0, trend = st.trend and st.trend[pr.key] or 0,
+             event = event_view(st.events and st.events[pr.key]) }
+end
+
+-- the wars, truces and alliances in force
+function events()
+    local p = P()
+    local out = {}
+    for _, ev in pairs(p and p.S and p.S.events or {}) do
+        out[#out + 1] = event_view(ev)
+    end
+    table.sort(out, function(x, y)
+        return (x.since or "") .. x.a .. x.b < (y.since or "") .. y.a .. y.b
+    end)
+    return out
+end
+
+-- the last n events (all, without n), the newest first: the page's War log
+function history(n)
+    local p = P()
+    local h = p and p.S and p.S.history or {}
+    local out = {}
+    for i = #h, math.max(1, #h - (tonumber(n) or #h) + 1), -1 do
+        out[#out + 1] = copy(h[i])
+    end
+    return out
+end
+
+-- the last census, as fotz_on_census gives it, or nil
+function census()
+    if not LAST then
+        return nil
+    end
+    return { date = LAST.date, cause = LAST.cause, smarts = copy(LAST.smarts), contested = copy(LAST.contested),
+             factions = copy(LAST.factions) }
+end
+
+-- the faction the player leads: its id, name, the faction it came from, when it was founded and
+-- how many living members it has; or nil
+function own()
+    local F = fotz_faction and fotz_faction.F
+    if not (F and F.base) then
+        return nil
+    end
+    local n = 0
+    for _, m in pairs(F.members or {}) do
+        if not m.dead then
+            n = n + 1
+        end
+    end
+    return { id = F.uid, name = F.name, mother = F.mother, founded = F.founded, members = n }
+end
+
+-- nudges --------------------------------------------------------------------------------------
+
+-- pressure between two factions, in relation points (negative toward war); true when counted.
+-- opts.at names a smart for the war news; opts.news, a string id of the mod's own ({b}, {place}),
+-- is the war news if this grievance tips the pair into war
+function grievance(a, b, amount, opts)
+    local p = P()
+    return p and p.grievance and p.grievance(a, b, amount, opts) or false
+end
+
+-- a place of interest: ground taken and fighting there count weight times (1 to 3), squads at war
+-- with its holder lean toward it a little more, and its taking always makes the news. Not saved
+function set_place(smart, weight)
+    local p = P()
+    return p and p.set_place and p.set_place(smart, weight) or false
+end
+
+-- drop a place set_place made (the config's stays)
+function clear_place(smart)
+    local p = P()
+    return p and p.clear_place and p.clear_place(smart) or false
+end
+
+-- a smart's weight as a place of interest, 1 if it's none
+function place_weight(smart)
+    local p = P()
+    return p and p.place_weight and p.place_weight(smart) or 1
+end

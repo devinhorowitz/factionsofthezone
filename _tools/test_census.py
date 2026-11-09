@@ -44,6 +44,10 @@ MUTANTS = {
     "overwrite": ('io.open(path(), "a")', 'io.open(path(), "w")'),
     "no_front_count": ("                fr.n = fr.n + 1\n", ""),
     "listeners_need_log": ("if not (enabled() or #LISTENERS > 0) then", "if not enabled() then"),
+    # hooks for other mods (fotz_api): the census after Factions' listeners, a failing hook kept apart
+    "hooks_unsent": ("        if fotz_api and fotz_api.on_census then\n", "        if false then\n"),
+    "hooks_unguarded": ("local ok2, err2 = pcall(fotz_api.on_census, c)", "local ok2, err2 = true, fotz_api.on_census(c)"),
+    "front_smarts": ("                fr.smarts[#fr.smarts + 1] = name\n", ""),
     "write_when_off": ("        if enabled() then\n            local ok2, err2 = pcall",
                        "        if true then\n            local ok2, err2 = pcall"),
     "log_failure_stops_census": ("            local ok2, err2 = pcall(function()\n                local f = assert(io.open(path(), \"a\"))\n"
@@ -286,7 +290,7 @@ def run(src):
         check(c["smarts"] == {"bar_dolg_general": "dolg", "bar_zastava": "bandit", "bar_visitors": "dolg",
                               'esc_"odd"\\name': "stalker"}, "holders %s" % c["smarts"])
         check(c["contested"] == ["bar_zastava"], "contested %s" % c["contested"])
-        check(c["fronts"] == {"bandit/stalker": {"n": 1, "at": "bar_zastava"}}, "fronts %s" % c["fronts"])
+        check(c["fronts"] == {"bandit/stalker": {"n": 1, "at": "bar_zastava", "smarts": ["bar_zastava"]}}, "fronts %s" % c["fronts"])
         check(c["held"] == 4, "held %s" % c["held"])
         check(c["levels"]["l05_bar"] == {"smarts": 4, "held": {"dolg": 2, "bandit": 1}, "contested": 1},
               "the Bar %s" % c["levels"]["l05_bar"])
@@ -318,13 +322,17 @@ def run(src):
         check(none.smarts == 0 and not list(none.held.keys()), "ground on a level with no smarts")
 
         # with the log off, a listener still gets each census, and nothing is written
+        # other mods (fotz_api) hear of it after Factions' own listeners
         lua.execute("GOT = {}")
         env.listen(lua.eval("function(c) GOT[#GOT + 1] = c.date end"))
+        lua.execute('fotz_api = { on_census = function(c) GOT[#GOT + 1] = "api " .. c.date end }')
         g.MCM["fotz/census"] = False
         g.DATE[3] = 16
         g.NOW = 105000
         cb["actor_on_update"]()
-        check(list(g.GOT.values()) == ["2012-05-16 08:00"], "the listener got %s" % list(g.GOT.values()))
+        check(list(g.GOT.values()) == ["2012-05-16 08:00", "api 2012-05-16 08:00"],
+              "the listener and the hooks got %s" % list(g.GOT.values()))
+        lua.execute('fotz_api.on_census = function() error("a hook failed") end')
         check(len(lines()) == 2, "a census was written with the log off")
         g.MCM["fotz/census"] = None
 
@@ -347,6 +355,9 @@ def run(src):
         cb["actor_on_update"]()
         check(list(g.GOT.values())[-1:] == ["2012-05-18 08:00"] and len(lines()) == n,
               "an unwritable log: the listener got %s" % list(g.GOT.values()))
+        # a failing hook is logged on its own and costs nothing else
+        check(any(l.startswith("! [fotz-census] the hooks:") and "a hook failed" in l for l in g.LOG.values()),
+              "a failing hook wasn't logged as one")
         g.OUTDIR = out.replace("\\", "/")
 
         log = list(g.LOG.values())

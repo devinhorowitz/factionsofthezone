@@ -232,6 +232,11 @@ end
 Squads claimed in AlifePlus's owner registry (`ap_api.register_owner`), the squads Homestead
 holds, and Capture the Zone's campaign squads are left alone too.
 
+**Hooks.** `fotz_api.script` lets a mod hear what the factions do and weigh in: callbacks when
+ground changes hands, a front tips or a war, truce or alliance starts or ends; reads of who holds
+what, the fronts and where each pair stands; grievances between factions; and places of interest
+that count for more. [docs/HOOKS.md](docs/HOOKS.md) has all of it.
+
 ## Install
 
 With Claude Code, see [INSTALL-WITH-CLAUDE.md](INSTALL-WITH-CLAUDE.md). By hand: put the

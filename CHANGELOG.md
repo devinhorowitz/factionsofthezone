@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Added
+
+- **Hooks for other mods** (`fotz_api.script`, [docs/HOOKS.md](docs/HOOKS.md)), first for
+  charlies' Zone Civil War:
+  - callbacks when ground changes hands, a front tips, a war, truce or alliance starts or ends,
+    and each census is done;
+  - reads of who holds what, the fronts, where each pair stands, a faction's strength, the events
+    and the war log;
+  - grievances another mod puts on a pair, paced like kills, which can start a war with news of
+    their own;
+  - places of interest (`[places]` in the config, or set at run time): ground and fighting there
+    count up to three times, a front's squads lean toward them a little more, and their taking
+    always makes the news.
+
 ### Fixed
 
 - **News names every place.** "We took {place}" and a war over ground or a front named most places

@@ -53,6 +53,11 @@ local outside = {} -- "x>y" -> while another script's value holds a player row: 
                    -- written there before it, that value's drift and the row's start then
 local undone = {}  -- "x>y" -> a value another script put back on a row it had held: Factions' own
 local finish       -- ends a pair's event (with the events, below)
+local send_end     -- tells other mods an event ended (with the events, below)
+
+PLACE_MAX = 3      -- the most a place of interest weighs
+PLACES = {}        -- smart -> its weight as a place of interest, from the config's [places]
+local placed = {}  -- smart -> a weight another mod set this session (fotz_api.set_place), not saved
 
 local function log(fmt, ...)
     printf("[fotz-politics] " .. fmt, ...)
@@ -100,6 +105,13 @@ function load_config(ini)
     end
     lines("rank_weight", function(id, value) cfg.rank_weight[id] = tonumber(value) end)
     lines("caps", function(id, value) cfg.caps[id] = split_numbers(value) end)
+    PLACES = {}
+    lines("places", function(id, value)
+        local w = tonumber(value)
+        if id and id ~= "" and w then
+            PLACES[id] = clamp(w, 1, PLACE_MAX)
+        end
+    end)
     local fixed = {}
     lines("fixed_factions", function(id) fixed[id] = true end)
     local fixed_pair = {}
@@ -149,7 +161,7 @@ end
 
 local function fresh()
     return { v = SAVE_VERSION, drift = {}, pending = {}, kills = {}, hurt = {}, recent = {},
-             last_fight = {}, events = {}, history = {}, trend = {} }
+             last_fight = {}, events = {}, history = {}, trend = {}, incidents = {} }
 end
 
 local function state()
@@ -183,9 +195,13 @@ function sync_own()
     local FF = fotz_faction
     local parked = not F and FF and FF.parked_uid and FF.parked_uid()
     if st.own ~= uid and not parked then
-        for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend" }) do
-            for k in pairs(st[name]) do
+        for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend",
+                                "incidents" }) do
+            for k, v in pairs(st[name]) do
                 if string.find(k, OWN, 1, true) then
+                    if name == "events" and PAIR[k] then
+                        send_end(PAIR[k], st.day or today(), v.kind .. "_over", v, "disbanded")
+                    end
                     st[name][k] = nil
                 end
             end
@@ -223,7 +239,8 @@ function sync_own()
     end
     -- what a save kept for a pair of yours that's fixed now (0.5.0 moved them all) goes: the pair
     -- is back where founding put it at the next load
-    for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend" }) do
+    for _, name in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "trend",
+                            "incidents" }) do
         for k in pairs(st[name]) do
             if string.find(k, OWN, 1, true) and not PAIR[k] then
                 st[name][k] = nil
@@ -360,7 +377,7 @@ local function notice(p)
         end
         local ev = st.events[p.key]
         if ev then
-            finish(p, st.day or today(), ev.kind .. "_over")
+            finish(p, st.day or today(), ev.kind .. "_over", "changed")
         end
         st.drift[p.key], st.pending[p.key], st.trend[p.key] = nil, nil, nil
         log("%s was set by something else: the pair starts over from there", p.key)
@@ -549,7 +566,7 @@ end
 -- a place's name as the PDA map gives it ("Cordon - Rookie Village"): smart_names.ltx's, which
 -- names only 54, else G.A.M.M.A.'s st_<smart>_name (the Warfare convention, 525 of them), else its
 -- level's. The raw id only for a smart the game no longer has, which a census never holds.
-local function place_name(smart)
+function place_name(smart)
     local se = SIMBOARD and SIMBOARD.smarts_by_names[smart]
     local ok, name = pcall(function() return smart_terrain.get_smart_terrain_name(se) end)
     if ok and type(name) == "string" and name ~= "" and name ~= smart then
@@ -566,6 +583,81 @@ local function place_name(smart)
         return s ~= lv and s or nil
     end)
     return ok and name or smart
+end
+
+-- places of interest and other mods' grievances (fotz_api) ---------------------------------
+
+-- a smart's weight as a place of interest: what another mod set this session, else the config's,
+-- else 1
+function place_weight(smart)
+    return smart and (placed[smart] or PLACES[smart]) or 1
+end
+
+function set_place(smart, weight)
+    local w = tonumber(weight)
+    if type(smart) ~= "string" or smart == "" or not w or w ~= w then
+        return false
+    end
+    placed[smart] = clamp(w, 1, PLACE_MAX)
+    return true
+end
+
+function clear_place(smart)
+    if placed[smart] == nil then
+        return false
+    end
+    placed[smart] = nil
+    return true
+end
+
+-- a front's fighting as a count of smarts, each by its weight, and the place it's named by: the
+-- heaviest of its smarts, else the census's first by name
+local function front_weight(fr)
+    if type(fr.smarts) ~= "table" or #fr.smarts == 0 then
+        return fr.n or 0, fr.at
+    end
+    local n, at, top = 0, fr.at, 1
+    for _, s in ipairs(fr.smarts) do
+        local w = place_weight(s)
+        n = n + w
+        if w > top then
+            at, top = s, w
+        end
+    end
+    return n, at
+end
+
+-- pressure another mod puts on a pair, in relation points (negative toward war); it waits for the
+-- day's tick like kills. Refused for a pair Factions doesn't follow (fixed, or a faction that never
+-- changes) and while standing down. opts.at names a smart for the war news, and opts.news a string
+-- id of the mod's own for it ({b}, {place})
+function grievance(a, b, amount, opts)
+    amount = tonumber(amount)
+    if not amount or amount ~= amount or amount == 0 or not active() then
+        return false
+    end
+    local p = pair_of(a, b)
+    if not p then
+        return false
+    end
+    opts = type(opts) == "table" and opts or {}
+    amount = clamp(amount, -cfg.pending_max, cfg.pending_max)
+    local st = state()
+    st.incidents = st.incidents or {}
+    local inc = st.incidents[p.key] or {}
+    if amount < 0 then
+        inc.war = (inc.war or 0) + amount
+        if type(opts.at) == "string" then
+            inc.at = opts.at
+        end
+        if type(opts.news) == "string" then
+            inc.news = opts.news
+        end
+    else
+        inc.peace = (inc.peace or 0) + amount
+    end
+    st.incidents[p.key] = inc
+    return true
 end
 
 -- one PDA message in a faction's voice, with that faction's news icon
@@ -606,7 +698,7 @@ end
 local function war_cause(p)
     local r = state().recent[p.key] or {}
     local best, size = "kills", r.kills or 0
-    for _, what in ipairs({ "front", "ground", "settled" }) do
+    for _, what in ipairs({ "front", "ground", "settled", "incident" }) do
         if (r[what] or 0) > size then
             best, size = what, r[what]
         end
@@ -616,7 +708,21 @@ local function war_cause(p)
     if best == "settled" then
         voice = p.a == OWN and p.b or p.a
     end
-    return best, r[best .. "_at"], voice
+    return best, r[best .. "_at"], voice, best == "incident" and r.incident_news or nil
+end
+
+-- a callback to other mods (fotz_api), if it's there
+local function send(name, t)
+    local A = fotz_api
+    if A and A.send then
+        A.send(name, t)
+    end
+end
+
+-- an event's end, for other mods: why is "truce", "expired", "lapsed", "changed" (another script
+-- set the pair), "reset" (MCM) or "disbanded" (your faction is gone)
+send_end = function(p, day, how, ev, why)
+    send("fotz_on_politics", { kind = how, a = p.a, b = p.b, day = day, since = ev and ev.since, why = why })
 end
 
 local function start(p, kind, day, ev)
@@ -625,13 +731,17 @@ local function start(p, kind, day, ev)
     remember({ kind = kind, a = p.a, b = p.b, day = day, voice = ev.voice, cause = ev.cause, at = ev.at,
                enemy = ev.enemy })
     log("%s: %s between %s and %s (%s)", day, kind, p.a, p.b, ev.cause or ev.enemy or "-")
+    send("fotz_on_politics", { kind = kind, a = p.a, b = p.b, day = day, cause = ev.cause, at = ev.at,
+                               place = ev.at and place_name(ev.at) or nil, voice = ev.voice, enemy = ev.enemy,
+                               ["until"] = ev["until"] })
 end
 
-finish = function(p, day, how)
+finish = function(p, day, how, why)
     local ev = state().events[p.key]
     state().events[p.key] = nil
     remember({ kind = how, a = p.a, b = p.b, day = day, since = ev and ev.since })
     log("%s: %s between %s and %s", day, how, p.a, p.b)
+    send_end(p, day, how, ev, why)
 end
 
 local function at_war(x, y)
@@ -680,7 +790,8 @@ local function grievances(c, prev, day)
         local was, now = prev[smart], c.smarts[smart]
         local p = now and now ~= was and pair_of(was, now)
         if p then
-            note(t, p, "ground", cfg.ground, smart, was, math.abs(cfg.ground))
+            local w = place_weight(smart)
+            note(t, p, "ground", cfg.ground * w, smart, was, math.abs(cfg.ground) * w)
             st.last_fight[p.key] = day
             if not t.taken then
                 t.taken = {}
@@ -691,10 +802,22 @@ local function grievances(c, prev, day)
     for key, fr in pairs(c.fronts or {}) do
         local p = PAIR[key]
         if p then
-            note(t, p, "front", cfg.front * fr.n, fr.at)
+            local n, at = front_weight(fr)
+            note(t, p, "front", cfg.front * n, at)
             st.last_fight[p.key] = day
         end
     end
+    for key, inc in pairs(st.incidents or {}) do
+        local p = PAIR[key]
+        if p and (inc.war or 0) < 0 then
+            note(t, p, "incident", inc.war, inc.at)
+            t[key].incident_news = t[key].incident_news or inc.news
+        end
+        if p and (inc.peace or 0) > 0 then
+            note(t, p, "goodwill", inc.peace)
+        end
+    end
+    st.incidents = {}
     -- your members settled on ground other factions hold strain your faction's pair with each
     -- (fotz_territory): a grievance of its own, which names a war it causes
     local T = fotz_territory
@@ -732,7 +855,10 @@ local function remember_grievances(k, g)
         return
     end
     r = r or { hurt = {} }
-    for _, what in ipairs({ "kills", "ground", "front", "settled" }) do
+    if g and g.incident_news then
+        r.incident_news = g.incident_news
+    end
+    for _, what in ipairs({ "kills", "ground", "front", "settled", "incident" }) do
         r[what] = (r[what] or 0) / 2 + (g and g[what] or 0)
         if g and g[what .. "_at"] then
             r[what .. "_at"] = g[what .. "_at"]
@@ -799,16 +925,16 @@ local function step(p, g, day)
 
     -- events end, then begin
     if ev and ev.kind == "truce" and days_between(ev["until"], day) >= 0 then
-        finish(p, day, "truce_over")
+        finish(p, day, "truce_over", "expired")
         ev = nil
     elseif ev and ev.kind == "alliance" and after < FRIENDS then
-        finish(p, day, "alliance_over")
+        finish(p, day, "alliance_over", "lapsed")
         say("events", "st_fotz_news_alliance_over", p.a, { b = faction_name(p.b) })
         ev = nil
     elseif ev and ev.kind == "war" and days_between(ev.since, day) >= cfg.min_war_days
             and (days_between(st.last_fight[k] or ev.since, day) >= cfg.quiet_days
                  or days_between(ev.since, day) >= cfg.max_war_days) then
-        finish(p, day, "war_over")
+        finish(p, day, "war_over", "truce")
         st.drift[k] = cfg.truce_relation - base
         st.trend[k] = cfg.truce_relation - before
         st.pending[k] = nil
@@ -818,9 +944,12 @@ local function step(p, g, day)
         return
     end
     if not ev and before > ENEMIES and after <= ENEMIES then
-        local cause, at, voice = war_cause(p)
+        local cause, at, voice, news = war_cause(p)
         start(p, "war", day, { voice = voice, cause = cause, at = at })
-        say("events", "st_fotz_news_war_" .. cause, voice,
+        if cause == "incident" and not news then
+            news = at and "st_fotz_news_war_incident_at" or "st_fotz_news_war_incident"
+        end
+        say("events", news or ("st_fotz_news_war_" .. cause), voice,
             { b = faction_name(other(p, voice)), place = at and place_name(at) or "" })
     elseif not ev and before < FRIENDS and after >= FRIENDS then
         local enemy = g and g.enemy
@@ -829,6 +958,30 @@ local function step(p, g, day)
             say("events", "st_fotz_news_alliance", p.a, { b = faction_name(p.b), enemy = faction_name(enemy) })
         else
             say("events", "st_fotz_news_alliance_plain", p.a, { b = faction_name(p.b) })
+        end
+    end
+end
+
+-- every smart one faction took from another since the last tick, for other mods: every faction,
+-- not only the pairs politics follows; counted says whether politics counted it
+local function send_taken(c, prev, counting)
+    if not (fotz_api and fotz_api.send) then
+        return
+    end
+    local names = {}
+    for smart in pairs(prev or {}) do
+        names[#names + 1] = smart
+    end
+    table.sort(names)
+    for _, smart in ipairs(names) do
+        local was, now = prev[smart], c.smarts[smart]
+        if was and now and was ~= now then
+            local ok, lv = pcall(function()
+                return fotz_census.level_of(SIMBOARD.smarts_by_names[smart])
+            end)
+            send("fotz_on_ground_taken", { smart = smart, place = place_name(smart), level = ok and lv or nil,
+                by = now, from = was, date = c.date, counted = counting and pair_of(was, now) ~= nil or false,
+                weight = place_weight(smart) })
         end
     end
 end
@@ -844,20 +997,25 @@ function on_census(c)
     local prev, first = st.ground, st.day == nil
     st.ground, st.day = c.smarts, day
     if first or not active() then
-        st.kills, st.hurt = {}, {}
+        st.kills, st.hurt, st.incidents = {}, {}, {}
         apply()
+        send_taken(c, not first and prev or nil, false)
         return
     end
     local g = grievances(c, prev, day)
     for _, p in ipairs(PAIRS) do
         step(p, g[p.key], day)
     end
+    -- three a day, and every place of interest taken
     local shown = 0
     for _, tk in ipairs(g.taken or {}) do
-        if shown < 3 and say("all", "st_fotz_news_ground", tk.by, { b = faction_name(tk.from), place = place_name(tk.at) }) then
+        local place = place_weight(tk.at) > 1
+        if (place or shown < 3) and say("all", "st_fotz_news_ground", tk.by, { b = faction_name(tk.from), place = place_name(tk.at) })
+                and not place then
             shown = shown + 1
         end
     end
+    send_taken(c, prev, true)
     local moved, wars = 0, {}
     for _, p in ipairs(PAIRS) do
         if st.drift[p.key] then
@@ -877,7 +1035,13 @@ end
 -- "Restore relations"
 function restore()
     local st = state()
+    for k, ev in pairs(st.events) do
+        if PAIR[k] then
+            send_end(PAIR[k], st.day or today(), ev.kind .. "_over", ev, "reset")
+        end
+    end
     st.drift, st.pending, st.kills, st.hurt, st.recent, st.events, st.trend = {}, {}, {}, {}, {}, {}, {}
+    st.incidents = {}
     remember({ kind = "restored", day = st.day or today() })
     log("relations restored to where they started")
     return apply()
@@ -918,7 +1082,8 @@ local function load_state(m_data)
     local d = m_data.fotz
     if type(d) == "table" and d.v == SAVE_VERSION then
         S = d
-        for _, k in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "history", "trend" }) do
+        for _, k in ipairs({ "drift", "pending", "kills", "hurt", "recent", "last_fight", "events", "history", "trend",
+                             "incidents" }) do
             S[k] = S[k] or {}
         end
         -- 0.6.0 kept your members' settling as ground, with no place: it's its own grievance now

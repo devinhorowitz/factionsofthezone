@@ -57,6 +57,12 @@
 	<string id="st_fotz_news_war_settled">
 		<text>Группировка «{b}» обосновалась на нашей земле и не уходит. С сегодняшнего дня мы с ними воюем.</text>
 	</string>
+	<string id="st_fotz_news_war_incident">
+		<text>Группировка «{b}» перешла нам дорогу в последний раз. С сегодняшнего дня мы с ними воюем.</text>
+	</string>
+	<string id="st_fotz_news_war_incident_at">
+		<text>Группировка «{b}» перешла нам дорогу у позиции «{place}» в последний раз. С сегодняшнего дня мы с ними воюем.</text>
+	</string>
 	<string id="st_fotz_news_truce">
 		<text>На линии с группировкой «{b}» стало тихо. Пока не стреляем.</text>
 	</string>

@@ -35,6 +35,7 @@ footprint       = 0.5   ; your members draw squads hostile to them: up to this m
 footprint_reach = 0.4   ; ... squads on the level, or on one at least this near (fotz_perks' nearness: about a level over)
 encroach        = 40    ; your members settled on a faction's ground push your pair with it down up to this a day (not companions)
 instigate       = 15    ; a stalker you kill on a faction's ground costs up to this of its goodwill (not its enemies')
+place_pull      = 0.2   ; a place of interest (below) raises a front's weight there by this per weight above 1, within lo and hi
 
 ; the victim's rank, for kills
 [rank_weight]
@@ -46,6 +47,12 @@ veteran         = 2
 expert          = 2.5
 master          = 3
 legend          = 4
+
+; places of interest, as smart = weight (1 to 3): ground taken there and fighting there count weight
+; times, squads at war with the holder lean toward it a little more (place_pull), and its taking always
+; makes the news. Another mod adds its own with a DLTX file, configs\plugins\mod_fotz_politics_<mod>.ltx,
+; holding ![places] and its lines (docs/HOOKS.md)
+[places]
 
 ; how far each pair may move from where the game starts it, as lowest, highest
 ; a pair's own line is the two faction names in name order, joined by "_": csky_killer = -4000, 1000

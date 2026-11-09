@@ -65,8 +65,14 @@ MUTANTS = {
     "front_sort": ("            return x.fa + x.fb > y.fa + y.fb", "            return x.fa + x.fb < y.fa + y.fb"),
     "upper_strict": ("    if f.fa >= UPPER * total then", "    if f.fa > UPPER * total then"),
     "upper_b": ("    elseif f.fb >= UPPER * total then\n        return f.b, f.a\n", ""),
-    "news_on_load": ("if was ~= nil and win and was ~= win", "if win and was ~= win"),
-    "news_same": ("if was ~= nil and win and was ~= win", "if was ~= nil and win"),
+    "news_on_load": ("if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN and said",
+                     "if win and was ~= win and f.fa + f.fb >= FRONT_MIN and said"),
+    "news_same": ("if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN and said",
+                  "if was ~= nil and win and f.fa + f.fb >= FRONT_MIN and said"),
+    "shift_on_load": ("if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN then",
+                      "if win and was ~= win and f.fa + f.fb >= FRONT_MIN then"),
+    "shift_same": ("if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN then",
+                   "if was ~= nil and win and f.fa + f.fb >= FRONT_MIN then"),
     "news_small": ("and f.fa + f.fb >= FRONT_MIN and said < NEWS_PER_DAY", "and said < NEWS_PER_DAY"),
     "news_uncapped": ("and f.fa + f.fb >= FRONT_MIN and said < NEWS_PER_DAY", "and f.fa + f.fb >= FRONT_MIN"),
     "news_uncounted": ("                said = said + 1\n", ""),
@@ -137,6 +143,17 @@ MUTANTS = {
     "ground_uncached": ("        INFLUENCE[lv] = t\n", ""),
     "ground_unguarded": ("        local ok, l = pcall(fotz_census.level_ground, lv)",
                          "        local ok, l = true, fotz_census.level_ground(lv)"),
+    # hooks for other mods (fotz_api, docs/HOOKS.md): every front shift, and places of interest
+    "shift_unsent": ('        A.send("fotz_on_front_shift", s)\n', ""),
+    "shift_capped": ("f.fa + f.fb >= FRONT_MIN then\n            shifts[#shifts + 1]",
+                     "f.fa + f.fb >= FRONT_MIN and #shifts < NEWS_PER_DAY then\n            shifts[#shifts + 1]"),
+    "shift_small": ("if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN then",
+                    "if was ~= nil and win and was ~= win then"),
+    "shift_fighters": ("by_fighters = win == f.a and f.fa or f.fb", "by_fighters = f.fa"),
+    "place_pull_ignored": ("                if w > 1 then\n                    m = math.max", "                if false then\n                    m = math.max"),
+    "place_pull_unbounded": ("m = math.max(cfg.lo, math.min(cfg.hi, m * (1 + cfg.place_pull * (w - 1))))",
+                             "m = m * (1 + cfg.place_pull * (w - 1))"),
+    "place_pull_deep": ("local w = mine > 0 and P and", "local w = P and"),
 }
 
 WORLD = r"""
@@ -410,8 +427,30 @@ def upper(win, lose, place):
     return ("all", "st_fotz_news_front_upper", win, "N:" + lose, "T:" + place)
 
 
+HOOK = ('SHIFTS = {}\n'
+        'fotz_api = { send = function(name, t) if name == "fotz_on_front_shift" then SHIFTS[#SHIFTS + 1] = t end end }')
+
+
+def shifts(w):
+    S = w.g.SHIFTS
+    return [(S[i].level, S[i].by, S[i]["from"], S[i].by_fighters, S[i].from_fighters, S[i].date) for i in range(1, len(S) + 1)]
+
+
+def places(src):
+    """A place of interest (fotz_politics.place_weight) draws a front's squads a little more, within
+    the same bounds, and only on a front."""
+    w = World(src, SETUP + '\nPLACEW = { s1 = 3, s4 = 2, s6 = 3 }\n'
+                           'fotz_politics.place_weight = function(name) return PLACEW[name] or 1 end')
+    w.census(CENSUS)
+    S = w.env.STEER
+    check(S["dolg"][101] == 1.5 and abs(S["dolg"][104] - 0.9) < 1e-9 and S["dolg"][106] is None
+          and S["killer"][102] == 1.25, "places: Duty on s1 %s, s4 %s, s6 %s; the Mercenaries on s2 %s"
+          % (S["dolg"][101], S["dolg"][104], S["dolg"][106], S["killer"][102]))
+
+
 def fronts(src):
     w = World(src, SETUP)
+    w.run(HOOK)
     lead = w.env.leader
     check(w.env.COUNTED is False, "counted before a census")
 
@@ -445,6 +484,11 @@ def fronts(src):
     w.census(census_of(c3))
     check(news(w) == [upper("killer", "dolg", "l02_garbage"), upper("dolg", "killer", "l03_agroprom")],
           "the day's news %s" % news(w))
+    # other mods hear of every one (fotz_api), not only the two the news has room for, and not of
+    # Dark Valley's, too small
+    d = "2012-05-02 08:00"
+    check(shifts(w) == [("l02_garbage", "killer", "dolg", 30, 10, d), ("l03_agroprom", "dolg", "killer", 30, 10, d),
+                        ("l02_garbage", "bandit", "army", 15, 5, d)], "the day's front shifts %s" % shifts(w))
 
     # Duty takes Dark Valley, too small for news; a new front on the Bar already won isn't news
     c4 = dict(c3, l04_darkvalley={"dolg": 6, "killer": 1}, l05_bar={"dolg": 30, "killer": 5})
@@ -455,6 +499,7 @@ def fronts(src):
     c5 = dict(c4, l02_garbage=dict(c3["l02_garbage"], bandit=5, army=15))
     w.census(census_of(c5))
     check(news(w)[2:] == [upper("army", "bandit", "l02_garbage")], "the Military's news %s" % news(w)[2:])
+    check(shifts(w)[3:] == [("l02_garbage", "army", "bandit", 15, 5, d)], "later front shifts %s" % shifts(w)[3:])
 
     # the news failing doesn't stop the steer
     w = World(src, SETUP)
@@ -729,7 +774,7 @@ def shipped_config(src):
     sec = re.search(r"(?ms)^\[territory\](.*?)(^\[|\Z)", text).group(1)
     vals = {k: float(v) for k, v in re.findall(r"(?m)^(\w+)\s*=\s*([-\d.]+)", sec)}
     check(vals == {"k": 0.5, "lo": 0.6, "hi": 1.5, "footprint": 0.5, "footprint_reach": 0.4, "encroach": 40,
-                   "instigate": 15},
+                   "instigate": 15, "place_pull": 0.2},
           "the shipped [territory]: %s" % vals)
     c = World(src).env.cfg
     check((vals["footprint"], vals["footprint_reach"], vals["encroach"], vals["instigate"])
@@ -757,7 +802,8 @@ def run(src):
     strain_companions(src)
     instigation_scope(src)
     shipped_config(src)
-    return "12 scenarios"
+    places(src)
+    return "13 scenarios"
 
 
 def main():
