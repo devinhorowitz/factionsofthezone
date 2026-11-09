@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-11-08
+
+Hooks for other mods, and every place in the news named. Install it over 1.0.0; saves carry on
+as they are.
 
 ### Added
 

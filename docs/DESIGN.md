@@ -907,7 +907,9 @@ From the Homestead thread on Discord (June to October 2026), asks that land on F
    growing with them, their ranks and their nearness, and the footprint that draws their enemies.
 7. **1.0.0** (2026-11-07): a deep bug check of everything above, and the Factions page rebuilt
    into subpages that list everything; Reset relations moved to MCM.
-8. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
+8. **1.1.0** (2026-11-08): hooks for other mods (`fotz_api`, docs/HOOKS.md), first for Zone Civil
+   War, and every place in the news named.
+9. **Partners.** Seasons, Homestead's hooks, Capture the Zone.
 
 ## Later
 
