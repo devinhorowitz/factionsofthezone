@@ -483,6 +483,14 @@ its player twin `actor_fotz_own`, team 37).
   faction's patch joins that table on the first update, found through `is_patch`'s upvalues (and
   any wrapper's, three deep), so a fallen member's patch is tagged, and with "You join it" yours is
   your own.
+- **Hooks for other mods** (`fotz_api.script`, after 1.0.0): the one script other mods can rely on,
+  versioned, its callbacks declared as it loads and each send in its own `pcall`. Callbacks for
+  ground taken (every faction's, not only politics' pairs), front shifts, politics events and
+  their reasons for ending, and each census; reads that hand out copies; grievances that wait in a
+  pair's pressure as cause "incident" (kept in the save until the tick), and places of interest
+  (`[places]`, weights 1 to 3) that weigh ground and fronts, lean the steer within its bounds and
+  always make the news. Built first for charlies' Zone Civil War, whose all-war matrix leaves
+  politics' events quiet: the reference is docs/HOOKS.md.
 - **Seasons of the Zone:** winter shortages and quiet fronts, spring offensives, autumn supply
   runs, truces through emissions, ceasefires on the marked days (Apr 26, Dec 14). Its scheduler
   can switch Factions' options by date.

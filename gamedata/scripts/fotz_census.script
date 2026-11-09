@@ -184,10 +184,11 @@ function take(cause)
             for _, pair in ipairs(hostile) do
                 local fr = c.fronts[pair]
                 if not fr then
-                    fr = { n = 0, at = name }
+                    fr = { n = 0, at = name, smarts = {} }
                     c.fronts[pair] = fr
                 end
                 fr.n = fr.n + 1
+                fr.smarts[#fr.smarts + 1] = name
                 if name < fr.at then
                     fr.at = name
                 end
@@ -195,6 +196,9 @@ function take(cause)
         end
     end
     table.sort(c.contested)
+    for _, fr in pairs(c.fronts) do
+        table.sort(fr.smarts)
+    end
     local actor_comm = db.actor and db.actor:character_community()
     c.actor = actor_comm
     for _, a in ipairs(FACTIONS) do
@@ -333,6 +337,13 @@ function run(cause)
             local ok2, err2 = pcall(fn, c)
             if not ok2 then
                 printf("! [fotz-census] a listener failed: %s", tostring(err2))
+            end
+        end
+        -- other mods hear of it last, once Factions has used it (fotz_api)
+        if fotz_api and fotz_api.on_census then
+            local ok2, err2 = pcall(fotz_api.on_census, c)
+            if not ok2 then
+                printf("! [fotz-census] the hooks: %s", tostring(err2))
             end
         end
     end)

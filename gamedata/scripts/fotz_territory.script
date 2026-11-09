@@ -73,7 +73,8 @@ function load_config(ini)
         return ini:r_float_ex("territory", k) or d
     end
     cfg = { k = num("k", 0.5), lo = num("lo", 0.6), hi = num("hi", 1.5), footprint = num("footprint", 0.5),
-            encroach = num("encroach", 40), instigate = num("instigate", 15), reach = num("footprint_reach", 0.4) }
+            encroach = num("encroach", 40), instigate = num("instigate", 15), reach = num("footprint_reach", 0.4),
+            place_pull = num("place_pull", 0.2) }
 end
 
 -- the multiplier for a front where one side has `mine` fighters on the level and the other `theirs`
@@ -184,6 +185,7 @@ function rebuild(c)
         end
     end
     local n = 0
+    local P = fotz_politics
     for name, holder in pairs(c and c.smarts or {}) do
         local enemies = wars[holder]
         local se = enemies and SIMBOARD.smarts_by_names[name]
@@ -194,6 +196,11 @@ function rebuild(c)
                 -- own there, a faction's squads choose as the game would
                 local mine = fighters(c, f, lv)
                 local m = mine > 0 and multiplier(mine, fighters(c, holder, lv)) or 1
+                -- a place of interest (fotz_politics) draws a little more, within the same bounds
+                local w = mine > 0 and P and P.place_weight and P.place_weight(name) or 1
+                if w > 1 then
+                    m = math.max(cfg.lo, math.min(cfg.hi, m * (1 + cfg.place_pull * (w - 1))))
+                end
                 if m ~= 1 then
                     STEER[f] = STEER[f] or {}
                     STEER[f][se.id] = m
@@ -257,13 +264,17 @@ end
 local function take_fronts(c)
     FRONTS = fronts(c)
     COUNTED = true
-    local now, said = {}, 0
+    local now, said, shifts = {}, 0, {}
     for _, f in ipairs(FRONTS) do
         local key = f.a .. "|" .. f.b .. "|" .. f.level
         local win, lose = leader(f)
         now[key] = win or false
         -- only a front that was there last time: fronts come and go as squads move
         local was = upper and upper[key]
+        if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN then
+            shifts[#shifts + 1] = { level = f.level, by = win, from = lose, by_fighters = win == f.a and f.fa or f.fb,
+                                    from_fighters = win == f.a and f.fb or f.fa, date = c and c.date }
+        end
         if was ~= nil and win and was ~= win and f.fa + f.fb >= FRONT_MIN and said < NEWS_PER_DAY then
             local P = fotz_politics
             if P and P.say and P.say("all", "st_fotz_news_front_upper", win,
@@ -273,6 +284,11 @@ local function take_fronts(c)
         end
     end
     upper = now
+    -- every one, for other mods (fotz_api): not only the ones the news has room for
+    local A = fotz_api
+    for _, s in ipairs(A and A.send and shifts or {}) do
+        A.send("fotz_on_front_shift", s)
+    end
 end
 
 -- your faction's footprint --------------------------------------------------------------------
