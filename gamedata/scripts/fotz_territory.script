@@ -42,7 +42,7 @@ a kill counts the level's ground there and then. Both while you lead a faction; 
 them.
 --]]
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 CONFIG = "plugins\\fotz_politics.ltx"
 ENEMIES = -1000           -- the game's line: a faction at or below it toward another is at war
 
