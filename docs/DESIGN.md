@@ -444,7 +444,8 @@ its player twin `actor_fotz_own`, team 37).
   atlas would break under HD Faction Patches, which moves every icon in it.
 - **News in the factions' own voices,** signed with portraits, on the PDA only; the player plays
   nearly HUD-less. MCM sets how much. Never an internal id ("dolg", "killer") in a message.
-- English and Russian.
+- English and Russian, and Brazilian Portuguese by cuph0332. Russian is kept whole with every
+  release; a Portuguese string not yet translated shows in English.
 
 ## 5. Partners
 

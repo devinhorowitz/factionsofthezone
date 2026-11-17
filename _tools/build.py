@@ -1,7 +1,7 @@
 """Check Factions of the Zone and install it as an MO2 mod.
 
-Writes the Russian string tables (build_text.py), then checks: every XML parses (string tables as
-windows-1251), every script compiles under LuaJIT 2.0, the scripts' VERSION matches this build's,
+Writes the translated string tables (build_text.py), then checks: every XML parses (string tables
+in their language's code page), every script compiles under LuaJIT 2.0, the scripts' VERSION matches this build's,
 and the tests pass. Only then mirrors gamedata/ into <mods>\\Factions of the Zone\\gamedata (files
 no longer in the source are removed there) and writes its meta.ini.
 
@@ -53,7 +53,7 @@ def check():
         for f in files:
             p = os.path.join(root, f)
             if f.endswith(".xml"):
-                text = open(p, "rb").read().decode("cp1251")
+                text = open(p, "rb").read().decode("cp1252" if os.path.basename(root) == "ptb" else "cp1251")
                 # the engine's UI parser gives up on a file with anything before its root element,
                 # and every widget it hands back is then nil: a fatal at the first use
                 if os.path.basename(root) == "ui" and not text.lstrip().startswith("<w>"):

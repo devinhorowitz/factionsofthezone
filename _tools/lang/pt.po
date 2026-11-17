@@ -1,0 +1,822 @@
+# Brazilian Portuguese for Factions of the Zone's string tables, by cuph0332 (2026-11-17).
+# msgctxt is the string id, msgid the English text it was translated from, msgstr the Portuguese.
+# build_text.py writes gamedata/configs/text/ptb/ from this file and the English table, in
+# windows-1252: ptb is the language GAMMA's Brazilian Portuguese pack sets. An id with no
+# Portuguese yet, or whose English changed since it was translated, is left out of the table,
+# and the game shows its English. Written without accents, so it reads in any font.
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: pt_BR\n"
+
+msgctxt "ui_mcm_menu_fotz"
+msgid "Factions of the Zone"
+msgstr "Factions of the Zone"
+
+msgctxt "ui_mcm_fotz_politics"
+msgid "Factions change their relations"
+msgstr "As faccoes mudam suas relacoes"
+
+msgctxt "ui_mcm_fotz_politics_desc"
+msgid "Once a game day, kills, ground taken and fronts move the relations between factions, and wars, truces and alliances follow. Turned off, every faction goes back to the relations the game gave it."
+msgstr "Uma vez por dia de jogo, mortes, territorio conquistado e frentes de batalha movem as relacoes entre as faccoes, e guerras, treguas e aliancas surgem dai. Se desativado, cada faccao volta as relacoes que o jogo lhe deu."
+
+msgctxt "ui_mcm_fotz_territory"
+msgid "Squads lean toward winning fronts"
+msgstr "Esquadroes tendem a ir as frentes vencedoras"
+
+msgctxt "ui_mcm_fotz_territory_desc"
+msgid "A faction sends its squads toward ground its enemies hold where it outnumbers them on that level, and less often where it is outnumbered. Only a bias in the game's own choice of where squads go: no orders, no new squads. Off in Warfare mode, which runs the squads itself."
+msgstr "Uma faccao envia seus esquadroes para o territorio que seus inimigos controlam quando esta em maior numero nesse nivel, e com menos frequencia quando esta em menor numero. E apenas uma inclinacao na escolha que o proprio jogo faz de para onde os esquadroes vao: sem ordens, sem novos esquadroes. Desativado no modo Warfare, que controla os esquadroes por conta propria."
+
+msgctxt "ui_mcm_fotz_map"
+msgid "Fronts on the PDA map"
+msgstr "Frentes no mapa do PDA"
+
+msgctxt "ui_mcm_fotz_map_desc"
+msgid "A marker on each level where hostile factions fight, 10 fighters or more and at least 3 a side: red when the fight is your side's, amber otherwise, with the two sides named under it. Hover it to see who is winning and which factions there are hostile to you. The markers are never saved."
+msgstr "Um marcador em cada nivel onde faccoes hostis lutam, com 10 combatentes ou mais e pelo menos 3 de cada lado: vermelho quando a luta e do seu lado, ambar nos demais casos, com os dois lados nomeados embaixo. Passe o mouse sobre ele para ver quem esta vencendo e quais faccoes ali sao hostis a voce. Os marcadores nunca sao salvos."
+
+msgctxt "ui_mcm_fotz_news"
+msgid "News on the PDA"
+msgstr "Noticias no PDA"
+
+msgctxt "ui_mcm_fotz_news_desc"
+msgid "Factions announce wars, truces and alliances on the PDA. With Everything, they also report the ground they take."
+msgstr "As faccoes anunciam guerras, treguas e aliancas no PDA. Com a opcao Tudo, tambem relatam o territorio que conquistam."
+
+msgctxt "ui_mcm_lst_fotz_news_off"
+msgid "Off"
+msgstr "Desligado"
+
+msgctxt "ui_mcm_lst_fotz_news_events"
+msgid "Wars, truces and alliances"
+msgstr "Guerras, treguas e aliancas"
+
+msgctxt "ui_mcm_lst_fotz_news_all"
+msgid "Everything"
+msgstr "Tudo"
+
+msgctxt "ui_mcm_fotz_census"
+msgid "Keep a census"
+msgstr "Manter um censo"
+
+msgctxt "ui_mcm_fotz_census_desc"
+msgid "Once a game day, and once after each load, count every faction's squads and the ground they hold, and write it to fotz_census.jsonl in the game's appdata folder. It changes nothing in the game."
+msgstr "Uma vez por dia de jogo, e uma vez apos cada carregamento, conta os esquadroes de cada faccao e o territorio que elas controlam, e grava o resultado em fotz_census.jsonl na pasta appdata do jogo. Nao altera nada no jogo."
+
+msgctxt "ui_mcm_fotz_about"
+msgid "Relations change only between factions the base game lets change, within lore limits. Factions of the Zone steps aside while the base game's dynamic relations, Fluid Relations, Dynamic Faction Relations Customizer, or Warfare mode handle relations."
+msgstr "As relacoes so mudam entre faccoes que o jogo base permite mudar, dentro dos limites do lore. Factions of the Zone fica de lado enquanto as relacoes dinamicas do jogo base, o Fluid Relations, o Dynamic Faction Relations Customizer ou o modo Warfare cuidam das relacoes."
+
+msgctxt "st_fotz_news_war_kills"
+msgid "Too many of ours have died at the hands of {b}. From today we are at war with them."
+msgstr "Gente demais dos nossos morreu nas maos de {b}. A partir de hoje, estamos em guerra com eles."
+
+msgctxt "st_fotz_news_war_ground"
+msgid "{b} took {place} from us. From today we are at war with them."
+msgstr "Perdemos {place} para {b}. A partir de hoje, estamos em guerra com eles."
+
+msgctxt "st_fotz_news_war_front"
+msgid "We have fought {b} at {place} for days. From today we are at war with them."
+msgstr "Lutamos contra {b} em {place} por dias. A partir de hoje, estamos em guerra com eles."
+
+msgctxt "st_fotz_news_war_settled"
+msgid "{b} settled on our ground and stayed. From today we are at war with them."
+msgstr "Nosso territorio foi ocupado por {b}, que veio para ficar. A partir de hoje, estamos em guerra com eles."
+
+msgctxt "st_fotz_news_war_incident"
+msgid "{b} crossed us once too often. From today we are at war with them."
+msgstr "Chega das provocacoes de {b}. A partir de hoje, estamos em guerra com eles."
+
+msgctxt "st_fotz_news_war_incident_at"
+msgid "{b} crossed us at {place} once too often. From today we are at war with them."
+msgstr "Chega das provocacoes de {b} em {place}. A partir de hoje, estamos em guerra com eles."
+
+msgctxt "st_fotz_news_truce"
+msgid "The line with {b} has gone quiet. We hold our fire, for now."
+msgstr "A linha com {b} ficou quieta. Seguramos o fogo, por enquanto."
+
+msgctxt "st_fotz_news_alliance"
+msgid "We stand with {b} against {enemy}. Treat them as friends."
+msgstr "Estamos ao lado de {b} contra {enemy}. Tratem-nos como amigos."
+
+msgctxt "st_fotz_news_alliance_plain"
+msgid "We are allies of {b} now. Treat them as friends."
+msgstr "Agora somos aliados de {b}. Tratem-nos como amigos."
+
+msgctxt "st_fotz_news_alliance_over"
+msgid "Our alliance with {b} is over."
+msgstr "Nossa alianca com {b} acabou."
+
+msgctxt "st_fotz_news_ground"
+msgid "We took {place} from {b}."
+msgstr "Tomamos {place} de {b}."
+
+msgctxt "st_fotz_news_front_upper"
+msgid "In {place} the upper hand over {b} is ours now."
+msgstr "Em {place}, agora a vantagem sobre {b} e nossa."
+
+msgctxt "fotz_own"
+msgid "Your faction"
+msgstr "Sua faccao"
+
+msgctxt "actor_fotz_own"
+msgid "Your faction"
+msgstr "Sua faccao"
+
+msgctxt "st_fotz_default_name"
+msgid "Your faction"
+msgstr "Sua faccao"
+
+msgctxt "ui_mcm_fotz_faction"
+msgid "Lead a faction of your own"
+msgstr "Liderar uma faccao propria"
+
+msgctxt "ui_mcm_fotz_faction_desc"
+msgid "Found a faction of your own. It starts with the friends and enemies of the faction you came from, and your companions join it. Turned off, it is disbanded and everyone goes back to their old faction. No save ever holds it, so removing the mod later needs nothing."
+msgstr "Funde uma faccao propria. Ela comeca com os amigos e inimigos da faccao da qual voce veio, e seus companheiros entram nela. Se desativado, ela e dissolvida e todos voltam a sua faccao anterior. Nenhum save a guarda, entao remover o mod depois nao exige nada."
+
+msgctxt "ui_mcm_fotz_faction_name"
+msgid "Its name"
+msgstr "Nome da faccao"
+
+msgctxt "ui_mcm_fotz_faction_name_desc"
+msgid "What your faction is called in the news."
+msgstr "Como sua faccao e chamada nas noticias."
+
+msgctxt "ui_mcm_fotz_faction_join"
+msgid "You join it"
+msgstr "Voce entra nela"
+
+msgctxt "ui_mcm_fotz_faction_join_desc"
+msgid "Off unless you choose it: you lead your faction from your old one and keep its traders, tasks and dialogs. On, you stand in your faction yourself and its friends and enemies are yours, but G.A.M.M.A. doesn't know your faction: the disguise system thinks you're in disguise, and traders, tasks, dialogs and fast travel tied to your old faction treat you as an outsider."
+msgstr "Desligado, a menos que voce escolha: voce lidera sua faccao a partir da antiga e mantem os comerciantes, tarefas e dialogos dela. Ligado, voce passa a fazer parte da sua faccao e os amigos e inimigos dela sao seus, mas o G.A.M.M.A. nao conhece sua faccao: o sistema de disfarce acha que voce esta disfarcado, e comerciantes, tarefas, dialogos e viagem rapida ligados a sua faccao antiga tratam voce como um estranho."
+
+msgctxt "ui_mcm_fotz_faction_companions"
+msgid "Companions join it"
+msgstr "Companheiros entram nela"
+
+msgctxt "ui_mcm_fotz_faction_companions_desc"
+msgid "Your companions join your faction, and leave it when they leave you."
+msgstr "Seus companheiros entram na sua faccao e saem dela quando deixam voce."
+
+msgctxt "st_fotz_news_founded"
+msgid "{name} is founded. Its friends and enemies start as your old faction's."
+msgstr "{name} foi fundada. Seus amigos e inimigos comecam como os da sua faccao antiga."
+
+msgctxt "st_fotz_news_joined"
+msgid "{who} has joined {name}."
+msgstr "{who} entrou em {name}."
+
+msgctxt "st_fotz_news_left"
+msgid "{who} has left {name}."
+msgstr "{who} saiu de {name}."
+
+msgctxt "st_fotz_news_disbanded"
+msgid "{name} is disbanded. Everyone goes back to their old faction."
+msgstr "{name} foi dissolvida. Todos voltam a sua faccao antiga."
+
+msgctxt "st_fotz_faction_stalker"
+msgid "Loners"
+msgstr "Solitarios"
+
+msgctxt "st_fotz_faction_bandit"
+msgid "Bandits"
+msgstr "Bandidos"
+
+msgctxt "st_fotz_faction_csky"
+msgid "Clear Sky"
+msgstr "Ceu Limpo"
+
+msgctxt "st_fotz_faction_dolg"
+msgid "Duty"
+msgstr "Dever"
+
+msgctxt "st_fotz_faction_freedom"
+msgid "Freedom"
+msgstr "Liberdade"
+
+msgctxt "st_fotz_faction_killer"
+msgid "Mercenaries"
+msgstr "Mercenarios"
+
+msgctxt "st_fotz_faction_army"
+msgid "Military"
+msgstr "Militares"
+
+msgctxt "st_fotz_faction_ecolog"
+msgid "Ecologists"
+msgstr "Ecologistas"
+
+msgctxt "st_fotz_faction_monolith"
+msgid "Monolith"
+msgstr "Monolito"
+
+msgctxt "st_fotz_faction_renegade"
+msgid "Renegades"
+msgstr "Renegados"
+
+msgctxt "st_fotz_faction_greh"
+msgid "Sin"
+msgstr "Pecado"
+
+msgctxt "st_fotz_faction_isg"
+msgid "UNISG"
+msgstr "UNISG"
+
+msgctxt "st_fotz_tab"
+msgid "Factions"
+msgstr "Faccoes"
+
+msgctxt "st_fotz_tab_yours"
+msgid "Your faction · founded {date} · came from: {from} · members: {n}"
+msgstr "Sua faccao - fundada em {date} - veio de: {from} - membros: {n}"
+
+msgctxt "st_fotz_tab_no_faction"
+msgid "You lead no faction of your own. Found one in MCM, under Factions of the Zone."
+msgstr "Voce nao lidera nenhuma faccao propria. Funde uma no MCM, em Factions of the Zone."
+
+msgctxt "st_fotz_tab_in_charge"
+msgid "Relations change as the factions fight."
+msgstr "As relacoes mudam conforme as faccoes lutam."
+
+msgctxt "st_fotz_tab_down_off"
+msgid "Relations stand still: turned off in MCM."
+msgstr "As relacoes estao paradas: desativado no MCM."
+
+msgctxt "st_fotz_tab_down_dynamic"
+msgid "Relations are left to the base game's dynamic relations."
+msgstr "As relacoes ficam a cargo das relacoes dinamicas do jogo base."
+
+msgctxt "st_fotz_tab_down_warfare"
+msgid "Relations are left to Warfare mode."
+msgstr "As relacoes ficam a cargo do modo Warfare."
+
+msgctxt "st_fotz_tab_down_dfrc"
+msgid "Relations are left to Dynamic Faction Relations Customizer."
+msgstr "As relacoes ficam a cargo do Dynamic Faction Relations Customizer."
+
+msgctxt "st_fotz_tab_down_fluid"
+msgid "Relations are left to Fluid Relations."
+msgstr "As relacoes ficam a cargo do Fluid Relations."
+
+msgctxt "st_fotz_tab_standing"
+msgid "Relations"
+msgstr "Relacoes"
+
+msgctxt "st_fotz_tab_band_war"
+msgid "At war"
+msgstr "Em guerra"
+
+msgctxt "st_fotz_tab_band_enemies"
+msgid "Hostile"
+msgstr "Hostil"
+
+msgctxt "st_fotz_tab_band_truce"
+msgid "Truce"
+msgstr "Tregua"
+
+msgctxt "st_fotz_tab_band_neutral"
+msgid "Neutral"
+msgstr "Neutro"
+
+msgctxt "st_fotz_tab_band_friends"
+msgid "Friendly"
+msgstr "Amigavel"
+
+msgctxt "st_fotz_tab_band_alliance"
+msgid "Allied"
+msgstr "Aliado"
+
+msgctxt "st_fotz_tab_trend_up"
+msgid "getting better"
+msgstr "melhorando"
+
+msgctxt "st_fotz_tab_trend_down"
+msgid "getting worse"
+msgstr "piorando"
+
+msgctxt "st_fotz_tab_war_since"
+msgid "at war since {date}"
+msgstr "em guerra desde {date}"
+
+msgctxt "st_fotz_tab_truce_until"
+msgid "truce until {date}"
+msgstr "tregua ate {date}"
+
+msgctxt "st_fotz_tab_alliance_since"
+msgid "allied since {date}"
+msgstr "aliados desde {date}"
+
+msgctxt "st_fotz_tab_fixed_enemies"
+msgid "Permanent enemies: {list}."
+msgstr "Inimigos permanentes: {list}."
+
+msgctxt "st_fotz_tab_fixed_neutral"
+msgid "Always neutral: {list}."
+msgstr "Sempre neutros: {list}."
+
+msgctxt "st_fotz_tab_fixed_friends"
+msgid "Permanent friends: {list}."
+msgstr "Amigos permanentes: {list}."
+
+msgctxt "st_fotz_tab_log"
+msgid "War log"
+msgstr "Registro de guerra"
+
+msgctxt "st_fotz_tab_log_war"
+msgid "{a} and {b} went to war"
+msgstr "{a} e {b} entraram em guerra"
+
+msgctxt "st_fotz_tab_log_war_over"
+msgid "{a} and {b} stopped fighting"
+msgstr "{a} e {b} pararam de lutar"
+
+msgctxt "st_fotz_tab_log_truce"
+msgid "{a} and {b} made a truce"
+msgstr "{a} e {b} fizeram uma tregua"
+
+msgctxt "st_fotz_tab_log_truce_over"
+msgid "The truce between {a} and {b} ended"
+msgstr "A tregua entre {a} e {b} acabou"
+
+msgctxt "st_fotz_tab_log_alliance"
+msgid "{a} and {b} became allies"
+msgstr "{a} e {b} se tornaram aliados"
+
+msgctxt "st_fotz_tab_log_alliance_over"
+msgid "{a} and {b} are allies no more"
+msgstr "{a} e {b} nao sao mais aliados"
+
+msgctxt "st_fotz_tab_log_restored"
+msgid "Relations reset to their start"
+msgstr "Relacoes redefinidas para o inicio"
+
+msgctxt "st_fotz_tab_log_none"
+msgid "Nothing yet: wars, truces and alliances show here."
+msgstr "Nada ainda: guerras, treguas e aliancas aparecem aqui."
+
+msgctxt "st_fotz_tab_fighting"
+msgid "Fighting"
+msgstr "Combates"
+
+msgctxt "st_fotz_tab_fighting_wait"
+msgid "Not counted yet: the census comes shortly after a load."
+msgstr "Ainda nao contado: o censo vem logo apos o carregamento."
+
+msgctxt "st_fotz_tab_fighting_none"
+msgid "No fighting: no two hostile factions share a level."
+msgstr "Sem combates: duas faccoes hostis nao dividem nenhum nivel."
+
+msgctxt "st_fotz_fight_control"
+msgid "{place}: {w} in control, {l} nearly gone"
+msgstr "{place}: {w} no controle, {l} quase sem forcas"
+
+msgctxt "st_fotz_fight_winning"
+msgid "{place}: {w} winning, {l} losing"
+msgstr "{place}: {w} vencendo, {l} perdendo"
+
+msgctxt "st_fotz_fight_ahead"
+msgid "{place}: {w} ahead, {l} holding on"
+msgstr "{place}: {w} na frente, {l} resistindo"
+
+msgctxt "st_fotz_fight_even"
+msgid "{place}: {w} and {l} evenly matched"
+msgstr "{place}: {w} e {l} equilibrados"
+
+msgctxt "st_fotz_your"
+msgid "your {name}"
+msgstr "sua {name}"
+
+msgctxt "st_fotz_and"
+msgid "and"
+msgstr "e"
+
+msgctxt "st_fotz_map_label"
+msgid "{a} vs {b}"
+msgstr "{a} x {b}"
+
+msgctxt "st_fotz_map_hostile"
+msgid "Hostile to you here: {list}"
+msgstr "Hostis a voce aqui: {list}"
+
+msgctxt "st_fotz_tab_members"
+msgid "Members"
+msgstr "Membros"
+
+msgctxt "st_fotz_tab_members_asking"
+msgid "Members ({n} asking)"
+msgstr "Membros ({n} pedindo)"
+
+msgctxt "st_fotz_tab_member_near"
+msgid "{name} ({from}), with you"
+msgstr "{name} ({from}), com voce"
+
+msgctxt "st_fotz_tab_member_away"
+msgid "{name} ({from}), away"
+msgstr "{name} ({from}), ausente"
+
+msgctxt "st_fotz_tab_member_dead"
+msgid "{name} ({from}), dead"
+msgstr "{name} ({from}), morto"
+
+msgctxt "st_fotz_tab_members_none"
+msgid "No members yet: your companions join."
+msgstr "Nenhum membro ainda: seus companheiros entram."
+
+msgctxt "ui_mcm_fotz_reset_relations"
+msgid "Reset relations to a new game's"
+msgstr "Redefinir relacoes para as de um jogo novo"
+
+msgctxt "ui_mcm_fotz_reset_relations_desc"
+msgid "Once, in a loaded game: every faction's relations go back to a new game's, your faction's to its founding, and every war, truce and alliance ends. The switch then sets itself back. Set from the main menu, it's cleared at the next load without resetting anything."
+msgstr "Uma vez, em um jogo carregado: as relacoes de cada faccao voltam as de um jogo novo, as da sua faccao as de sua fundacao, e toda guerra, tregua e alianca termina. Depois o interruptor se desliga sozinho. Se ativado no menu principal, e limpo no proximo carregamento sem redefinir nada."
+
+msgctxt "ui_mcm_fotz_reset_relations_warn"
+msgid "Warning: the switch below puts every faction's relations back to a new game's (your faction's to its founding) and ends every war, truce and alliance. It can't be undone."
+msgstr "Aviso: o interruptor abaixo devolve as relacoes de cada faccao as de um jogo novo (as da sua faccao as de sua fundacao) e encerra toda guerra, tregua e alianca. Nao da para desfazer."
+
+msgctxt "st_fotz_relations_reset"
+msgid "Relations are back to a new game's, and every war, truce and alliance has ended."
+msgstr "As relacoes voltaram as de um jogo novo, e toda guerra, tregua e alianca terminou."
+
+msgctxt "st_fotz_tab_numbers"
+msgid "Relation numbers"
+msgstr "Numeros das relacoes"
+
+msgctxt "st_fotz_tab_leader_dead"
+msgid "{name} (dead)"
+msgstr "{name} (morto)"
+
+msgctxt "st_fotz_tab_back"
+msgid "Back"
+msgstr "Voltar"
+
+msgctxt "ui_mcm_fotz_pda_tab"
+msgid "Its own PDA tab"
+msgstr "Aba propria no PDA"
+
+msgctxt "ui_mcm_fotz_pda_tab_desc"
+msgid "The Factions page opens your way: from its tile in Mod App Creator's launcher, from a PDA tab of its own (check this), or in a window of its own with the key below. Without Mod App Creator it always has its tab."
+msgstr "A pagina Faccoes abre do seu jeito: pelo atalho no launcher do Mod App Creator, por uma aba propria no PDA (marque esta opcao) ou em uma janela propria com a tecla abaixo. Sem o Mod App Creator, ela sempre tem sua aba."
+
+msgctxt "st_fotz_tab_sep"
+msgid "·"
+msgstr "-"
+
+msgctxt "st_fotz_tab_credit"
+msgid "Factions of the Zone {v} · Windwalker"
+msgstr "Factions of the Zone {v} - Windwalker"
+
+msgctxt "ui_mcm_fotz_tab_key"
+msgid "Factions page key"
+msgstr "Tecla da pagina Faccoes"
+
+msgctxt "ui_mcm_fotz_tab_key_desc"
+msgid "Opens the Factions page in a window of its own, sharper than in the 3D PDA. The page also opens from its own PDA tab, or from its tile in Mod App Creator's launcher."
+msgstr "Abre a pagina Faccoes em uma janela propria, mais nitida que no PDA 3D. A pagina tambem abre pela aba propria no PDA ou pelo atalho no launcher do Mod App Creator."
+
+msgctxt "st_dyn_news_comm_fotz_own_1"
+msgid "a stalker"
+msgstr "um stalker"
+
+msgctxt "st_dyn_news_comm_fotz_own_2"
+msgid "a fighter"
+msgstr "um combatente"
+
+msgctxt "st_dyn_news_comm_fotz_own_3"
+msgid "some stalker"
+msgstr "algum stalker"
+
+msgctxt "st_dyn_news_comm_fotz_own_4"
+msgid "some fighter"
+msgstr "algum combatente"
+
+msgctxt "st_dyn_news_comm_fotz_own_5"
+msgid "stalker"
+msgstr "stalker"
+
+msgctxt "st_dyn_news_comm_fotz_own_6"
+msgid "Stalker"
+msgstr "Stalker"
+
+msgctxt "st_dyn_news_comm_fotz_own_7"
+msgid "stalkers"
+msgstr "stalkers"
+
+msgctxt "st_dyn_news_comm_fotz_own_8"
+msgid "fighters"
+msgstr "combatentes"
+
+msgctxt "st_dyn_news_comm_fotz_own_9"
+msgid "some stalkers"
+msgstr "uns stalkers"
+
+msgctxt "st_dyn_news_comm_fotz_own_10"
+msgid "fighters"
+msgstr "combatentes"
+
+msgctxt "st_dyn_news_comm_fotz_own_11"
+msgid "Guys, we need some help!"
+msgstr "Pessoal, precisamos de ajuda!"
+
+msgctxt "st_dyn_news_comm_fotz_own_12"
+msgid "Help us!"
+msgstr "Nos ajudem!"
+
+msgctxt "st_dyn_news_comm_fotz_own_13"
+msgid "Help us out!"
+msgstr "Deem uma forca aqui!"
+
+msgctxt "st_dyn_news_comm_fotz_own_14"
+msgid "Brothers, help!"
+msgstr "Irmaos, ajudem!"
+
+msgctxt "st_fotz_patch"
+msgid "Patch (Your faction)"
+msgstr "Emblema (Sua faccao)"
+
+msgctxt "st_fotz_patch_descr"
+msgid "Your own faction's insignia, sewn to order. Your members wear it, and a fallen one leaves it behind."
+msgstr "A insignia da sua propria faccao, costurada sob encomenda. Seus membros a usam, e quem cai a deixa para tras."
+
+msgctxt "st_fotz_patch_ask"
+msgid "Can you get patches sewn for my faction?"
+msgstr "Voce consegue mandar costurar emblemas para a minha faccao?"
+
+msgctxt "st_fotz_patch_offer"
+msgid "Patches with your own emblem? I know someone who sews. {price} RU apiece. How many?"
+msgstr "Emblemas com o seu proprio simbolo? Conheco alguem que costura. {price} RU cada. Quantos?"
+
+msgctxt "st_fotz_patch_buy_one"
+msgid "One, for {total} RU."
+msgstr "Um, por {total} RU."
+
+msgctxt "st_fotz_patch_buy"
+msgid "{n}, for {total} RU."
+msgstr "{n}, por {total} RU."
+
+msgctxt "st_fotz_patch_done"
+msgid "There, fresh off the needle. Anything else?"
+msgstr "Pronto, saindo da agulha. Mais alguma coisa?"
+
+msgctxt "st_fotz_patch_not_now"
+msgid "That's all for now."
+msgstr "Por enquanto e so."
+
+msgctxt "ui_mcm_fotz_remove_patches"
+msgid "Remove your faction's patches"
+msgstr "Remover os emblemas da sua faccao"
+
+msgctxt "ui_mcm_fotz_remove_patches_desc"
+msgid "Takes every patch of your faction out of the game, wherever it is: on you, in stashes, on the fallen. Do this before removing Factions of the Zone: a save that holds one can't load without it."
+msgstr "Tira do jogo todos os emblemas da sua faccao, onde quer que estejam: com voce, em esconderijos, nos caidos. Faca isso antes de remover Factions of the Zone: um save que contenha um deles nao carrega sem o mod."
+
+msgctxt "st_fotz_patch_removed"
+msgid "Your faction's patches taken out of the game: {n}."
+msgstr "Emblemas da sua faccao retirados do jogo: {n}."
+
+msgctxt "ui_mcm_fotz_loyalty"
+msgid "Residents can join"
+msgstr "Residentes podem entrar"
+
+msgctxt "ui_mcm_fotz_loyalty_desc"
+msgid "With Homestead: while you lead a faction, the residents of your camps grow loyal to it, and at 70 one asks to join. You answer on the Factions page."
+msgstr "Com o Homestead: enquanto voce lidera uma faccao, os residentes dos seus acampamentos ficam leais a ela, e aos 70 um pede para entrar. Voce responde na pagina Faccoes."
+
+msgctxt "ui_mcm_fotz_loyalty_accept"
+msgid "Accept join requests"
+msgstr "Aceitar pedidos de entrada"
+
+msgctxt "ui_mcm_fotz_loyalty_accept_desc"
+msgid "Every resident who asks to join is accepted at once, so no request waits on the Factions page."
+msgstr "Todo residente que pede para entrar e aceito na hora, entao nenhum pedido fica esperando na pagina Faccoes."
+
+msgctxt "ui_mcm_fotz_outposts"
+msgid "Beaten outposts can give up"
+msgstr "Postos derrotados podem desistir"
+
+msgctxt "ui_mcm_fotz_outposts_desc"
+msgid "With Homestead: a rival outpost you beat may surrender, a ceasefire of a few days, or come over to your faction; both more often the lower its fighters' rank."
+msgstr "Com o Homestead: um posto rival que voce derrotou pode se render, em um cessar-fogo de alguns dias, ou passar para a sua faccao; ambos com mais frequencia quanto menor o rank de seus combatentes."
+
+msgctxt "st_fotz_news_asks"
+msgid "{who}, a resident of {camp}, asks to join {name}. Answer on the Factions page."
+msgstr "{who}, residente de {camp}, pede para entrar em {name}. Responda na pagina Faccoes."
+
+msgctxt "st_fotz_news_settler_joined"
+msgid "{who}, a resident of {camp}, has joined {name}."
+msgstr "{who}, residente de {camp}, entrou em {name}."
+
+msgctxt "st_fotz_news_settler_left"
+msgid "{who} has left {name} and rejoined {to}."
+msgstr "{who} saiu de {name} e voltou para {to}."
+
+msgctxt "st_fotz_news_sworn"
+msgid "{who} is sworn to {name} for life."
+msgstr "{who} jurou lealdade a {name} para a vida toda."
+
+msgctxt "st_fotz_tab_request"
+msgid "{name} asks to join"
+msgstr "{name} pede para entrar"
+
+msgctxt "st_fotz_tab_accept"
+msgid "Accept"
+msgstr "Aceitar"
+
+msgctxt "st_fotz_tab_decline"
+msgid "Decline"
+msgstr "Recusar"
+
+msgctxt "st_fotz_tab_member_settler"
+msgid "{name}, loyalty {loyalty} ({camp})"
+msgstr "{name}, lealdade {loyalty} ({camp})"
+
+msgctxt "st_fotz_tab_member_sworn"
+msgid "{name}, sworn for life ({camp})"
+msgstr "{name}, juramento vitalicio ({camp})"
+
+msgctxt "st_fotz_tab_member_between"
+msgid "{name}, sworn for life, waiting for a camp"
+msgstr "{name}, juramento vitalicio, aguardando um acampamento"
+
+msgctxt "st_fotz_tab_resident"
+msgid "{name}, resident, loyalty {loyalty} ({camp})"
+msgstr "{name}, residente, lealdade {loyalty} ({camp})"
+
+msgctxt "st_fotz_loyalty_camp"
+msgid "your camp"
+msgstr "seu acampamento"
+
+msgctxt "st_fotz_news_heading"
+msgid "{who} is heading for a new camp: {camp}."
+msgstr "{who} esta indo para um novo acampamento: {camp}."
+
+msgctxt "st_fotz_news_arrived"
+msgid "{who} has moved into {camp}."
+msgstr "{who} se mudou para {camp}."
+
+msgctxt "st_fotz_news_fell_left"
+msgid "{who} has left {name} after {camp} fell, and rejoined {to}."
+msgstr "{who} saiu de {name} apos a queda de {camp} e voltou para {to}."
+
+msgctxt "st_fotz_news_nowhere_left"
+msgid "{who} has left {name} with no camp of yours to take them in, and rejoined {to}."
+msgstr "{who} saiu de {name} porque nao havia nenhum acampamento seu para acolher, e voltou para {to}."
+
+msgctxt "st_fotz_tab_member_heading"
+msgid "{name}, loyalty {loyalty} (to {camp})"
+msgstr "{name}, lealdade {loyalty} (rumo a {camp})"
+
+msgctxt "st_fotz_tab_member_sworn_heading"
+msgid "{name}, sworn for life (to {camp})"
+msgstr "{name}, juramento vitalicio (rumo a {camp})"
+
+msgctxt "st_fotz_news_outpost_surrendered"
+msgid "{faction} at {outpost} have surrendered. They'll hold their fire, for now."
+msgstr "{faction} em {outpost} se renderam. Vao segurar o fogo, por enquanto."
+
+msgctxt "st_fotz_news_outpost_defected"
+msgid "{faction} at {outpost} have come over to {name}."
+msgstr "{faction} em {outpost} passaram para {name}."
+
+msgctxt "st_fotz_news_outpost_truce_over"
+msgid "The ceasefire at {outpost} is over: {faction} there are hostile again."
+msgstr "O cessar-fogo em {outpost} acabou: {faction} ali voltaram a ser hostis."
+
+msgctxt "st_fotz_news_outpost_truce_broken"
+msgid "You broke the ceasefire at {outpost}: {faction} there are hostile again."
+msgstr "Voce quebrou o cessar-fogo em {outpost}: {faction} ali voltaram a ser hostis."
+
+msgctxt "ui_mcm_fotz_perks"
+msgid "Faction perks"
+msgstr "Vantagens de faccao"
+
+msgctxt "ui_mcm_fotz_perks_desc"
+msgid "A member who came from another faction brings a small perk of theirs while you're not at war with it, growing faster with each member from that faction, more for higher ranks, and strongest near them, so settlements all over pay: a discount on one kind of goods at their traders or on airlifts, mercs likelier to take your contract, outposts likelier to come over, Bandit squads on your map, or radio chatter. The Factions page lists the perks where you are. Members from a faction also make your relations with it move more, for better or worse."
+msgstr "Um membro vindo de outra faccao traz uma pequena vantagem dela enquanto voce nao estiver em guerra com ela, que cresce mais rapido a cada membro dessa faccao, mais para ranks mais altos, e e mais forte perto deles, de modo que assentamentos por toda parte contribuem: um desconto em um tipo de mercadoria nos comerciantes deles ou em transportes aereos, mercenarios mais propensos a aceitar seu contrato, postos mais propensos a passar para o seu lado, esquadroes de Bandidos no seu mapa ou conversa de radio. A pagina Faccoes lista as vantagens onde voce esta. Membros de uma faccao tambem fazem suas relacoes com ela se moverem mais, para melhor ou pior."
+
+msgctxt "ui_mcm_fotz_perks_trade_max"
+msgid "Perks: most off goods (%)"
+msgstr "Vantagens: maior desconto em mercadorias (%)"
+
+msgctxt "ui_mcm_fotz_perks_trade_max_desc"
+msgid "The most a trade perk takes off its faction's goods, reached with a full settlement's worth of members from that faction."
+msgstr "O maximo que uma vantagem de comercio tira do preco das mercadorias de sua faccao, alcancado com membros dessa faccao equivalentes a um assentamento cheio."
+
+msgctxt "ui_mcm_fotz_perks_airlift_max"
+msgid "Perks: most off airlifts (%)"
+msgstr "Vantagens: maior desconto em transportes aereos (%)"
+
+msgctxt "ui_mcm_fotz_perks_airlift_max_desc"
+msgid "The most the Military's perk takes off its airlifts."
+msgstr "O maximo que a vantagem dos Militares tira de seus transportes aereos."
+
+msgctxt "ui_mcm_fotz_perks_merc_max"
+msgid "Perks: mercs' chance at most (%)"
+msgstr "Vantagens: chance maxima dos mercenarios (%)"
+
+msgctxt "ui_mcm_fotz_perks_merc_max_desc"
+msgid "The highest chance that a merc squad which turned you down takes your contract after all."
+msgstr "A maior chance de um esquadrao de mercenarios que recusou voce aceitar seu contrato mesmo assim."
+
+msgctxt "ui_mcm_fotz_perks_outpost_max"
+msgid "Perks: outposts' chance at most (+%)"
+msgstr "Vantagens: chance maxima dos postos (+%)"
+
+msgctxt "ui_mcm_fotz_perks_outpost_max_desc"
+msgid "The most the Renegades' perk adds to a beaten outpost's chance of coming over to you."
+msgstr "O maximo que a vantagem dos Renegados soma a chance de um posto derrotado passar para o seu lado."
+
+msgctxt "ui_mcm_fotz_perks_relations_max"
+msgid "Perks: relations move up to (+%)"
+msgstr "Vantagens: as relacoes se movem ate (+%)"
+
+msgctxt "ui_mcm_fotz_perks_relations_max_desc"
+msgid "Members from a faction make your relations with it move more, for better or worse, up to this with a full settlement's worth of them."
+msgstr "Membros de uma faccao fazem suas relacoes com ela se moverem mais, para melhor ou pior, ate este valor com membros equivalentes a um assentamento cheio."
+
+msgctxt "ui_mcm_fotz_footprint_max"
+msgid "Your footprint draws enemies, up to (+%)"
+msgstr "Sua presenca atrai inimigos, ate (+%)"
+
+msgctxt "ui_mcm_fotz_footprint_max_desc"
+msgid "While you lead a faction, squads of factions hostile to it, or to the factions your members came from, are drawn to where your members are: more fighting near your settlements, and more the more members there are. Up to this much likelier to go there, with a full settlement's worth of members near."
+msgstr "Enquanto voce lidera uma faccao, esquadroes de faccoes hostis a ela, ou as faccoes das quais seus membros vieram, sao atraidos para onde seus membros estao: mais combate perto dos seus assentamentos, e mais quanto mais membros houver. Ate este valor mais provaveis de ir para la, com membros equivalentes a um assentamento cheio por perto."
+
+msgctxt "st_fotz_tab_drawn"
+msgid "Your footprint here draws {list}."
+msgstr "Sua presenca aqui atrai {list}."
+
+msgctxt "ui_mcm_fotz_encroach_max"
+msgid "Settling on others' ground strains relations, up to (a day)"
+msgstr "Assentar em terra alheia abala as relacoes, ate (por dia)"
+
+msgctxt "ui_mcm_fotz_encroach_max_desc"
+msgid "While you lead a faction, your members settled where another faction holds the ground strain your faction's relation with it each day: more the more of the ground it holds and the more members you have there. Your companions and the members who came from that faction don't count; an ally doesn't mind, and nor does a faction whose relation with yours is permanent."
+msgstr "Enquanto voce lidera uma faccao, seus membros assentados onde outra faccao controla o territorio abalam a cada dia a relacao da sua faccao com ela: mais quanto maior o territorio que ela controla e quanto mais membros voce tiver ali. Seus companheiros e os membros vindos dessa faccao nao contam; um aliado nao se importa, nem uma faccao cuja relacao com a sua e permanente."
+
+msgctxt "ui_mcm_fotz_instigate_max"
+msgid "A kill on another faction's ground costs goodwill, up to"
+msgstr "Uma morte em territorio de outra faccao custa boa vontade, ate"
+
+msgctxt "ui_mcm_fotz_instigate_max_desc"
+msgid "While you lead a faction, a stalker you kill where another faction holds the ground costs you some of its goodwill, unless it's at war with the victim's faction."
+msgstr "Enquanto voce lidera uma faccao, um stalker que voce mata onde outra faccao controla o territorio custa a voce um pouco da boa vontade dela, a menos que ela esteja em guerra com a faccao da vitima."
+
+msgctxt "st_fotz_tab_strains"
+msgid "Settling here strains {list}."
+msgstr "Assentar aqui abala {list}."
+
+msgctxt "st_fotz_tab_perks"
+msgid "Perks here: {list}."
+msgstr "Vantagens aqui: {list}."
+
+msgctxt "st_fotz_perk_stalker"
+msgid "{pct}% off food and drink ({faction})"
+msgstr "{pct}% de desconto em comida e bebida ({faction})"
+
+msgctxt "st_fotz_perk_ecolog"
+msgid "{pct}% off medicine ({faction})"
+msgstr "{pct}% de desconto em remedios ({faction})"
+
+msgctxt "st_fotz_perk_freedom"
+msgid "{pct}% off mutant meat ({faction})"
+msgstr "{pct}% de desconto em carne de mutante ({faction})"
+
+msgctxt "st_fotz_perk_dolg"
+msgid "{pct}% off repair kits and tools ({faction})"
+msgstr "{pct}% de desconto em kits de reparo e ferramentas ({faction})"
+
+msgctxt "st_fotz_perk_csky"
+msgid "{pct}% off detectors and devices ({faction})"
+msgstr "{pct}% de desconto em detectores e dispositivos ({faction})"
+
+msgctxt "st_fotz_perk_army"
+msgid "{pct}% off airlifts ({faction})"
+msgstr "{pct}% de desconto em transportes aereos ({faction})"
+
+msgctxt "st_fotz_perk_killer"
+msgid "+{pct}% chance mercs take your contract ({faction})"
+msgstr "+{pct}% de chance de mercenarios aceitarem seu contrato ({faction})"
+
+msgctxt "st_fotz_perk_bandit"
+msgid "their squads on your map ({faction})"
+msgstr "esquadroes deles no seu mapa ({faction})"
+
+msgctxt "st_fotz_perk_renegade"
+msgid "+{pct}% chance outposts come over ({faction})"
+msgstr "+{pct}% de chance de postos passarem para o seu lado ({faction})"
+
+msgctxt "st_fotz_perk_monolith"
+msgid "their radio chatter ({faction})"
+msgstr "conversa de radio deles ({faction})"
+
+msgctxt "st_fotz_perk_greh"
+msgid "their radio chatter ({faction})"
+msgstr "conversa de radio deles ({faction})"
+
+msgctxt "st_fotz_perk_isg"
+msgid "their radio chatter ({faction})"
+msgstr "conversa de radio deles ({faction})"
