@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Brazilian Portuguese,** translated by cuph0332, in `text/ptb/`: the language GAMMA's
+  Brazilian Portuguese pack sets, so its players get it with nothing to switch. Everyone else
+  keeps English. It's written without accents, so it reads in any font. A string it doesn't cover
+  yet shows in English.
+
 ## 1.1.0 — 2026-11-08
 
 Hooks for other mods, and every place in the news named. Install it over 1.0.0; saves carry on

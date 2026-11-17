@@ -2,7 +2,7 @@
 "Factions of the Zone" holding gamedata/ (the mod, as build.py would install it), README.md,
 CHANGELOG.md and LICENSE, so MO2's quick installer finds gamedata/ and installs it like any mod.
 
-It refuses to package unless build.py --check passes (the Russian tables, every script compiling,
+It refuses to package unless build.py --check passes (the translated tables, every script compiling,
 every test), the changelog has a section for this version (not only "Unreleased"), and the zip,
 read back, matches its sources byte for byte with gamedata/ holding the mod's files and nothing
 else. The README's links to other files of the repo point at GitHub, since the zip carries only
@@ -81,7 +81,8 @@ def main():
         problems.append("gamedata/ holds %d files, the mod has %d" % (len(in_gd), mod_files))
     if {n.split("/", 1)[0] for n in names} != {TOP}:
         problems.append("more than one top folder")
-    for need in ("scripts/fotz_territory.script", "scripts/fotz_map.script", "configs/text/rus/st_fotz.xml"):
+    for need in ("scripts/fotz_territory.script", "scripts/fotz_map.script", "configs/text/rus/st_fotz.xml",
+                 "configs/text/ptb/st_fotz.xml"):
         if TOP + "/gamedata/" + need not in names:
             problems.append("no gamedata/" + need)
     if re.search(r"\]\((?!https?:|#)", readme):

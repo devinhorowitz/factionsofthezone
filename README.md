@@ -244,9 +244,12 @@ With Claude Code, see [INSTALL-WITH-CLAUDE.md](INSTALL-WITH-CLAUDE.md). By hand:
 own (`fotz_*`), so its position doesn't matter. Uninstall by disabling it, after taking your
 faction's patches out of the game (above).
 
+It's in English, Russian and Brazilian Portuguese, and follows the game's language: Portuguese
+comes with GAMMA's Brazilian Portuguese pack.
+
 ## Development
 
-- `_tools/build.py` writes the Russian string tables, compiles every script under LuaJIT 2.0, runs
+- `_tools/build.py` writes the translated string tables, compiles every script under LuaJIT 2.0, runs
   the tests, and installs into an MO2 mods folder (`--check` only checks).
 - `_tools/test_census.py` runs the census against a made-up alife, `test_politics.py` runs the
   politics engine through wars, truces, alliances, saves and stand-downs, `test_faction.py` runs
@@ -259,9 +262,9 @@ faction's patches out of the game (above).
   camps, `test_bridges.py` runs your faction's name, members' kills, Homestead's hooks and Tagged
   Patches against stand-ins for the string table, the loot claim, Homestead and Tagged Patches,
   `test_perks.py` runs the faction perks against stand-ins for the trade callback, Fair Fast Travel,
-  the paid companions, Milspec PDA and the radio, and `test_text.py` checks the Russian tables'
-  build.
-- `_tools/mutants.py` runs each test against broken copies of what it tests (620 so far); every
+  the paid companions, Milspec PDA and the radio, and `test_text.py` checks the translated
+  tables' build.
+- `_tools/mutants.py` runs each test against broken copies of what it tests (686 so far); every
   one must fail.
 - `_tools/make_tile.py` and `_tools/make_art.py` draw the mod's own art: the launcher tile, the
   page's lines, your faction's placeholder patch, and the templates in `docs/custom-patch/`.
@@ -269,13 +272,16 @@ faction's patches out of the game (above).
   ([docs/CUSTOM-PATCH.md](docs/CUSTOM-PATCH.md)).
 - `_tools/release.py` packages a release: `build/FactionsOfTheZone-<version>.zip`, after
   `build.py --check` passes and only once CHANGELOG.md has a section for the version.
-- Russian text lives in `_tools/lang/ru.po`, keyed by string id.
+- Translations live in `_tools/lang/`, keyed by string id: `ru.po` (Russian, `text/rus/`) and
+  `pt.po` (Brazilian Portuguese, `text/ptb/`, the language GAMMA's Portuguese pack sets). A
+  Portuguese string not yet translated shows in English; a Russian one stops the build.
 
 ## Credits
 
 - Capture the Zone, by Queen Jadwiga: its design shaped Factions' territory, and Factions leaves
   its campaign squads alone. Any code taken from it is used with her blessing and credited where
   it's used.
+- cuph0332: the Brazilian Portuguese translation.
 
 ## License
 
